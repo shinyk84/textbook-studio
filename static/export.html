@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HWPX 내보내기 · 교과서 제작 스튜디오</title>
+    <link rel="stylesheet" href="/styles.css?v=3" />
+    <link rel="stylesheet" href="/export.css" />
+  </head>
+  <body class="export-page">
+    <main class="export-shell">
+      <header>
+        <div>
+          <p class="eyebrow">DOCUMENT EXPORT</p>
+          <h1>HWPX 내보내기</h1>
+          <p class="subtitle">현재 저장된 분석·설계·원고 데이터를 한글에서 편집할 수 있는 문서로 만듭니다.</p>
+        </div>
+        <button class="secondary-button" type="button" onclick="location.href='/'">프로젝트로 돌아가기</button>
+      </header>
+      <section class="export-grid" id="exportGrid"></section>
+      <p class="export-message" id="exportMessage" role="status"></p>
+    </main>
+    <script src="/auth-client.js"></script>
+    <script src="/export.js"></script>
+  </body>
+</html>

@@ -1,1 +1,2 @@
 psycopg[binary]==3.2.9
+python-hwpx==4.1.1

@@ -12,10 +12,11 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 from urllib.request import Request, urlopen
 
 from database import connect_database
+from hwpx_export import build_hwpx
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -44,6 +45,81 @@ DOCUMENT_TYPE_LABELS = {
     "editorial_criteria": "편찬·검정 기준",
     "development_guide": "개발 가이드라인",
     "editorial_reference": "편수·참고 자료",
+}
+
+EXPORT_SCOPE_LABELS = {
+    "analysis": "교육과정 분석",
+    "direction": "교과서 개발 방향",
+    "allocation": "성취기준·차시 배분",
+    "content": "내용·종목 선정",
+    "outline": "목차·쪽수·차시 설계",
+    "design": "단원 설계",
+    "manuscript": "교과서 원고 초안",
+    "review": "자동검증·모의심사",
+    "all": "교과서 제작 전체 결과",
+}
+
+EXPORT_FIELD_LABELS = {
+    "name": "이름",
+    "title": "제목",
+    "subject": "교과",
+    "school_level": "학교급",
+    "curriculum_version": "교육과정",
+    "overview": "개요",
+    "summary": "요약",
+    "focus": "중점",
+    "assessment": "평가",
+    "purpose": "개발 목적",
+    "target_learner": "학습자",
+    "selected_option_id": "선택안",
+    "common_principles": "공통 개발 원칙",
+    "policies": "집필 정책",
+    "success_criteria": "성공 기준",
+    "planning_note": "배분 계획",
+    "target_hours": "학년별 목표 차시",
+    "assignments": "성취기준 배분",
+    "selection_note": "선정 원칙",
+    "candidates": "내용·종목 후보",
+    "grade_bands": "학년군 분석",
+    "domains": "영역별 분석",
+    "editorial_implications": "집필 시사점",
+    "standards": "성취기준과 해설",
+    "code": "성취기준",
+    "statement": "성취기준 내용",
+    "explanation": "성취기준 해설",
+    "grade_band": "학년군",
+    "grade": "학년",
+    "hours": "차시",
+    "treatment": "집중도",
+    "sequence": "순서",
+    "rationale": "근거",
+    "subdomain": "세부 영역",
+    "examples": "신체활동 예시",
+    "activity_groups": "중·소단원 구성",
+    "small_units": "소단원",
+    "selected_grades": "선정 학년",
+    "priority": "우선순위",
+    "feasibility": "현장 실행 가능성",
+    "safety_risk": "안전 위험도",
+    "facilities": "시설 조건",
+    "safety_note": "안전 대책",
+    "chapters": "대단원 원고",
+    "sections": "중단원 원고",
+    "body": "본문",
+    "findings": "심사 의견",
+    "scores": "심사 점수",
+}
+
+EXPORT_METADATA_FIELDS = {
+    "id",
+    "status",
+    "version",
+    "updated_at",
+    "approved_at",
+    "created_at",
+    "source_document_id",
+    "source_page",
+    "explanation_source_page",
 }
 
 
@@ -2976,6 +3052,129 @@ def update_source(document_id: str, payload: dict) -> dict:
     return next(source for source in source_rows() if source["document_id"] == document_id)
 
 
+def export_field_label(key: str) -> str:
+    return EXPORT_FIELD_LABELS.get(key, key.replace("_", " ").strip())
+
+
+def export_item_title(item: dict, index: int) -> str:
+    for key in ("title", "name", "code", "subdomain", "domain", "grade"):
+        value = item.get(key)
+        if isinstance(value, (str, int)) and str(value).strip():
+            return str(value).strip()
+    return f"항목 {index}"
+
+
+def payload_export_blocks(
+    value: object,
+    label: str = "",
+    level: int = 2,
+) -> list[tuple[str, str, int]]:
+    blocks: list[tuple[str, str, int]] = []
+    heading_level = min(max(level, 1), 4)
+    if isinstance(value, dict):
+        if label:
+            blocks.append(("heading", label, heading_level))
+        for key, child in value.items():
+            if key in EXPORT_METADATA_FIELDS or child in (None, "", [], {}):
+                continue
+            child_label = export_field_label(str(key))
+            if isinstance(child, (dict, list)):
+                blocks.extend(
+                    payload_export_blocks(
+                        child,
+                        child_label,
+                        min(heading_level + 1, 4),
+                    )
+                )
+            else:
+                rendered = "예" if child is True else "아니요" if child is False else str(child)
+                blocks.append(("paragraph", f"{child_label}: {rendered}", heading_level))
+        return blocks
+    if isinstance(value, list):
+        if label:
+            blocks.append(("heading", label, heading_level))
+        for index, item in enumerate(value, start=1):
+            if isinstance(item, dict):
+                blocks.extend(
+                    payload_export_blocks(
+                        item,
+                        export_item_title(item, index),
+                        min(heading_level + 1, 4),
+                    )
+                )
+            elif isinstance(item, list):
+                blocks.extend(
+                    payload_export_blocks(
+                        item,
+                        f"항목 {index}",
+                        min(heading_level + 1, 4),
+                    )
+                )
+            elif item not in (None, ""):
+                blocks.append(("bullet", str(item), heading_level))
+        return blocks
+    if value not in (None, ""):
+        blocks.append(("paragraph", f"{label}: {value}" if label else str(value), heading_level))
+    return blocks
+
+
+def export_scope_data(scope: str) -> list[tuple[str, dict]]:
+    if scope == "analysis":
+        return [
+            (
+                EXPORT_SCOPE_LABELS[scope],
+                {
+                    **analysis_record(),
+                    "standards": curriculum_standard_rows(),
+                },
+            )
+        ]
+    loaders = {
+        "direction": direction_record,
+        "allocation": allocation_record,
+        "content": content_record,
+        "outline": lambda: workflow_stage_record("outline"),
+        "design": lambda: workflow_stage_record("design"),
+        "manuscript": lambda: workflow_stage_record("manuscript"),
+        "review": lambda: workflow_stage_record("review"),
+    }
+    if scope in loaders:
+        return [(EXPORT_SCOPE_LABELS[scope], loaders[scope]())]
+    if scope == "all":
+        sections = export_scope_data("analysis")
+        for child_scope in (
+            "direction",
+            "allocation",
+            "content",
+            "outline",
+            "design",
+            "manuscript",
+            "review",
+        ):
+            sections.extend(export_scope_data(child_scope))
+        return sections
+    raise ValueError("지원하지 않는 HWPX 출력 범위입니다.")
+
+
+def export_hwpx(scope: str) -> tuple[bytes, str]:
+    if scope not in EXPORT_SCOPE_LABELS:
+        raise ValueError("지원하지 않는 HWPX 출력 범위입니다.")
+    project = project_payload()
+    title = f"{project.get('name', '교과서 제작')} · {EXPORT_SCOPE_LABELS[scope]}"
+    blocks: list[tuple[str, str, int]] = [
+        ("paragraph", f"교과: {project.get('subject', '')}", 1),
+        ("paragraph", f"교육과정: {project.get('curriculum_version', '')}", 1),
+        ("paragraph", f"생성 시각: {utc_now()}", 1),
+    ]
+    for section_title, payload in export_scope_data(scope):
+        blocks.append(("heading", section_title, 1))
+        blocks.extend(payload_export_blocks(payload, level=2))
+    content = build_hwpx(title, blocks)
+    date_stamp = datetime.now().strftime("%Y%m%d")
+    filename = f"{EXPORT_SCOPE_LABELS[scope].replace('·', '_')}_{date_stamp}.hwpx"
+    return content, filename
+
+
 class StudioHandler(BaseHTTPRequestHandler):
     current_user: dict | None = None
 
@@ -2992,6 +3191,24 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(encoded)
+
+    def send_download(
+        self,
+        content: bytes,
+        filename: str,
+        content_type: str,
+    ) -> None:
+        ascii_name = "textbook-studio-export.hwpx"
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header(
+            "Content-Disposition",
+            f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}",
+        )
+        self.end_headers()
+        self.wfile.write(content)
 
     def read_json(self) -> dict:
         try:
@@ -3038,6 +3255,14 @@ class StudioHandler(BaseHTTPRequestHandler):
                 )
             except AuthorizationError as exc:
                 self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            return
+        if parsed.path == "/api/export/hwpx":
+            try:
+                scope = parse_qs(parsed.query).get("scope", ["all"])[0]
+                content, filename = export_hwpx(scope)
+                self.send_download(content, filename, "application/hwp+zip")
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return
         if parsed.path == "/api/analysis/bootstrap":
             self.send_json(analysis_bootstrap_payload())
@@ -3219,6 +3444,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             "/review": "workflow.html",
             "/login": "login.html",
             "/editors": "editors.html",
+            "/export": "export.html",
         }
         relative = route_files.get(request_path, unquote(request_path.lstrip("/")))
         candidate = (STATIC_DIR / relative).resolve()

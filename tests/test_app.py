@@ -97,6 +97,16 @@ class StudioDataTests(unittest.TestCase):
         with self.assertRaises(self.app.VersionConflictError):
             self.app.update_analysis(deepcopy(payload))
 
+    def test_analysis_hwpx_export_is_valid_zip_package(self):
+        content, filename = self.app.export_hwpx("analysis")
+        self.assertTrue(content.startswith(b"PK"))
+        self.assertTrue(filename.endswith(".hwpx"))
+        self.assertGreater(len(content), 5000)
+
+    def test_hwpx_export_rejects_unknown_scope(self):
+        with self.assertRaises(ValueError):
+            self.app.export_hwpx("unknown")
+
     def test_direction_has_three_editable_options(self):
         direction = self.app.direction_record()
         self.assertEqual(
