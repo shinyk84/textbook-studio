@@ -6,13 +6,16 @@ import json
 import mimetypes
 import os
 import re
-import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.parse import unquote, urlparse
+from urllib.request import Request, urlopen
+
+from database import connect_database
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -50,14 +53,8 @@ def utc_now() -> str:
 
 @contextmanager
 def connect_db():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(DB_PATH)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys = ON")
-    try:
+    with connect_database(DB_PATH) as connection:
         yield connection
-    finally:
-        connection.close()
 
 
 def initialize_database() -> None:
@@ -201,11 +198,18 @@ def initialize_database() -> None:
                 change_note TEXT NOT NULL,
                 created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS editor_accounts (
+                email TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL DEFAULT '',
+                role TEXT NOT NULL DEFAULT 'editor',
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
             """
         )
-        standard_columns = {
-            row["name"] for row in db.execute("PRAGMA table_info(curriculum_standards)")
-        }
+        standard_columns = db.table_columns("curriculum_standards")
         if "explanation" not in standard_columns:
             db.execute(
                 "ALTER TABLE curriculum_standards ADD COLUMN explanation TEXT NOT NULL DEFAULT ''"
@@ -239,6 +243,184 @@ def sha256_file(path: Path) -> str:
         for block in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+class AuthenticationError(Exception):
+    pass
+
+
+class AuthorizationError(Exception):
+    pass
+
+
+class VersionConflictError(Exception):
+    pass
+
+
+def requested_version(payload: dict) -> int | None:
+    value = payload.pop("expected_version", None)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError("저장 기준 버전이 올바르지 않습니다.")
+    return value
+
+
+def ensure_current_version(current_version: int, expected_version: int | None) -> None:
+    if expected_version is not None and current_version != expected_version:
+        raise VersionConflictError(
+            "다른 편집자가 먼저 저장했습니다. 최신 내용을 다시 불러온 뒤 수정해 주세요."
+        )
+
+
+def auth_config() -> dict:
+    supabase_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    publishable_key = (
+        os.environ.get("SUPABASE_PUBLISHABLE_KEY")
+        or os.environ.get("SUPABASE_ANON_KEY")
+        or ""
+    )
+    return {
+        "enabled": bool(supabase_url and publishable_key),
+        "supabase_url": supabase_url,
+        "publishable_key": publishable_key,
+    }
+
+
+def authenticated_user(authorization_header: str) -> dict:
+    config = auth_config()
+    if not config["enabled"]:
+        return {
+            "id": "local-user",
+            "email": os.environ.get("STUDIO_OWNER_EMAIL", "local@example.com"),
+            "role": "owner",
+        }
+    if not authorization_header.startswith("Bearer "):
+        raise AuthenticationError("로그인이 필요합니다.")
+    access_token = authorization_header.removeprefix("Bearer ").strip()
+    if not access_token:
+        raise AuthenticationError("로그인이 필요합니다.")
+    request = Request(
+        f"{config['supabase_url']}/auth/v1/user",
+        headers={
+            "apikey": config["publishable_key"],
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            user = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise AuthenticationError("로그인이 만료되었거나 유효하지 않습니다.") from exc
+    email = str(user.get("email", "")).strip().lower()
+    user_id = str(user.get("id", "")).strip()
+    if not email or not user_id:
+        raise AuthenticationError("사용자 정보를 확인할 수 없습니다.")
+
+    owner_email = os.environ.get("STUDIO_OWNER_EMAIL", "").strip().lower()
+    with connect_db() as db:
+        account = db.execute(
+            """
+            SELECT email, user_id, role, active
+            FROM editor_accounts WHERE email = ?
+            """,
+            (email,),
+        ).fetchone()
+        if account is None and owner_email and email == owner_email:
+            now = utc_now()
+            db.execute(
+                """
+                INSERT INTO editor_accounts (
+                    email, user_id, role, active, created_at, updated_at
+                ) VALUES (?, ?, 'owner', 1, ?, ?)
+                """,
+                (email, user_id, now, now),
+            )
+            db.commit()
+            account = {"email": email, "user_id": user_id, "role": "owner", "active": 1}
+        elif account is not None and account["user_id"] != user_id:
+            db.execute(
+                """
+                UPDATE editor_accounts
+                SET user_id = ?, updated_at = ?
+                WHERE email = ?
+                """,
+                (user_id, utc_now(), email),
+            )
+            db.commit()
+        if account is None or not bool(account["active"]):
+            raise AuthorizationError("이 프로젝트의 편집자로 등록되지 않았습니다.")
+        return {"id": user_id, "email": email, "role": account["role"]}
+
+
+def require_owner(user: dict | None) -> None:
+    if not user or user.get("role") != "owner":
+        raise AuthorizationError("관리자만 편집자 계정을 관리할 수 있습니다.")
+
+
+def editor_rows() -> list[dict]:
+    with connect_db() as db:
+        rows = db.execute(
+            """
+            SELECT email, role, active, created_at, updated_at
+            FROM editor_accounts
+            ORDER BY CASE WHEN role = 'owner' THEN 0 ELSE 1 END, email
+            """
+        ).fetchall()
+    return [
+        {
+            "email": row["email"],
+            "role": row["role"],
+            "active": bool(row["active"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+        for row in rows
+    ]
+
+
+def add_editor(payload: dict) -> dict:
+    email = str(payload.get("email", "")).strip().lower()
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise ValueError("올바른 편집자 이메일을 입력하세요.")
+    now = utc_now()
+    with connect_db() as db:
+        db.execute(
+            """
+            INSERT INTO editor_accounts (
+                email, user_id, role, active, created_at, updated_at
+            ) VALUES (?, '', 'editor', 1, ?, ?)
+            ON CONFLICT(email) DO UPDATE SET
+                active = 1,
+                updated_at = excluded.updated_at
+            """,
+            (email, now, now),
+        )
+        db.commit()
+    return next(row for row in editor_rows() if row["email"] == email)
+
+
+def deactivate_editor(email: str) -> dict:
+    normalized = email.strip().lower()
+    with connect_db() as db:
+        account = db.execute(
+            "SELECT email, role FROM editor_accounts WHERE email = ?",
+            (normalized,),
+        ).fetchone()
+        if account is None:
+            raise KeyError("편집자를 찾을 수 없습니다.")
+        if account["role"] == "owner":
+            raise ValueError("최초 관리자는 비활성화할 수 없습니다.")
+        db.execute(
+            """
+            UPDATE editor_accounts
+            SET active = 0, updated_at = ?
+            WHERE email = ?
+            """,
+            (utc_now(), normalized),
+        )
+        db.commit()
+    return next(row for row in editor_rows() if row["email"] == normalized)
 
 
 def source_title(manifest: dict, folder: Path) -> str:
@@ -1175,24 +1357,35 @@ def validate_analysis_payload(payload: dict) -> dict:
     }
 
 
-def store_analysis(payload: dict, change_note: str, status: str = "draft") -> dict:
+def store_analysis(
+    payload: dict,
+    change_note: str,
+    status: str = "draft",
+    expected_version: int | None = None,
+) -> dict:
     clean = validate_analysis_payload(payload)
     now = utc_now()
     with connect_db() as db:
         current = db.execute(
             "SELECT version FROM curriculum_analysis WHERE id = 1"
         ).fetchone()
-        next_version = int(current["version"]) + 1
+        current_version = int(current["version"])
+        ensure_current_version(current_version, expected_version)
+        next_version = current_version + 1
         encoded = json.dumps(clean, ensure_ascii=False)
         approved_at = now if status == "approved" else None
-        db.execute(
+        updated = db.execute(
             """
             UPDATE curriculum_analysis
             SET payload = ?, status = ?, version = ?, updated_at = ?, approved_at = ?
-            WHERE id = 1
+            WHERE id = 1 AND version = ?
             """,
-            (encoded, status, next_version, now, approved_at),
+            (encoded, status, next_version, now, approved_at, current_version),
         )
+        if updated.rowcount != 1:
+            raise VersionConflictError(
+                "다른 편집자가 먼저 저장했습니다. 최신 내용을 다시 불러온 뒤 수정해 주세요."
+            )
         db.execute(
             """
             INSERT INTO curriculum_analysis_versions
@@ -1220,10 +1413,15 @@ def store_analysis(payload: dict, change_note: str, status: str = "draft") -> di
 
 
 def update_analysis(payload: dict) -> dict:
+    expected_version = requested_version(payload)
     change_note = payload.pop("change_note", "웹 편집 내용 저장")
     if not isinstance(change_note, str) or len(change_note) > 200:
         raise ValueError("변경 메모는 200자 이내여야 합니다.")
-    return store_analysis(payload, change_note.strip() or "웹 편집 내용 저장")
+    return store_analysis(
+        payload,
+        change_note.strip() or "웹 편집 내용 저장",
+        expected_version=expected_version,
+    )
 
 
 def regenerate_analysis() -> dict:
@@ -1381,24 +1579,35 @@ def validate_direction_payload(payload: dict) -> dict:
     }
 
 
-def store_direction(payload: dict, change_note: str, status: str = "draft") -> dict:
+def store_direction(
+    payload: dict,
+    change_note: str,
+    status: str = "draft",
+    expected_version: int | None = None,
+) -> dict:
     clean = validate_direction_payload(payload)
     now = utc_now()
     with connect_db() as db:
         current = db.execute(
             "SELECT version FROM development_direction WHERE id = 1"
         ).fetchone()
-        next_version = int(current["version"]) + 1
+        current_version = int(current["version"])
+        ensure_current_version(current_version, expected_version)
+        next_version = current_version + 1
         encoded = json.dumps(clean, ensure_ascii=False)
         approved_at = now if status == "approved" else None
-        db.execute(
+        updated = db.execute(
             """
             UPDATE development_direction
             SET payload = ?, status = ?, version = ?, updated_at = ?, approved_at = ?
-            WHERE id = 1
+            WHERE id = 1 AND version = ?
             """,
-            (encoded, status, next_version, now, approved_at),
+            (encoded, status, next_version, now, approved_at, current_version),
         )
+        if updated.rowcount != 1:
+            raise VersionConflictError(
+                "다른 편집자가 먼저 저장했습니다. 최신 내용을 다시 불러온 뒤 수정해 주세요."
+            )
         db.execute(
             """
             INSERT INTO development_direction_versions
@@ -1426,10 +1635,15 @@ def store_direction(payload: dict, change_note: str, status: str = "draft") -> d
 
 
 def update_direction(payload: dict) -> dict:
+    expected_version = requested_version(payload)
     change_note = payload.pop("change_note", "웹 편집 내용 저장")
     if not isinstance(change_note, str) or len(change_note) > 200:
         raise ValueError("변경 메모는 200자 이내여야 합니다.")
-    return store_direction(payload, change_note.strip() or "웹 편집 내용 저장")
+    return store_direction(
+        payload,
+        change_note.strip() or "웹 편집 내용 저장",
+        expected_version=expected_version,
+    )
 
 
 def regenerate_direction() -> dict:
@@ -1609,22 +1823,33 @@ def validate_allocation_payload(payload: dict) -> dict:
     }
 
 
-def store_allocation(payload: dict, change_note: str, status: str = "draft") -> dict:
+def store_allocation(
+    payload: dict,
+    change_note: str,
+    status: str = "draft",
+    expected_version: int | None = None,
+) -> dict:
     clean = validate_allocation_payload(payload)
     now = utc_now()
     with connect_db() as db:
         current = db.execute("SELECT version FROM grade_allocation WHERE id = 1").fetchone()
-        next_version = int(current["version"]) + 1
+        current_version = int(current["version"])
+        ensure_current_version(current_version, expected_version)
+        next_version = current_version + 1
         encoded = json.dumps(clean, ensure_ascii=False)
         approved_at = now if status == "approved" else None
-        db.execute(
+        updated = db.execute(
             """
             UPDATE grade_allocation
             SET payload = ?, status = ?, version = ?, updated_at = ?, approved_at = ?
-            WHERE id = 1
+            WHERE id = 1 AND version = ?
             """,
-            (encoded, status, next_version, now, approved_at),
+            (encoded, status, next_version, now, approved_at, current_version),
         )
+        if updated.rowcount != 1:
+            raise VersionConflictError(
+                "다른 편집자가 먼저 저장했습니다. 최신 내용을 다시 불러온 뒤 수정해 주세요."
+            )
         db.execute(
             """
             INSERT INTO grade_allocation_versions
@@ -1656,10 +1881,15 @@ def store_allocation(payload: dict, change_note: str, status: str = "draft") -> 
 
 
 def update_allocation(payload: dict) -> dict:
+    expected_version = requested_version(payload)
     change_note = payload.pop("change_note", "웹 편집 내용 저장")
     if not isinstance(change_note, str) or len(change_note) > 200:
         raise ValueError("변경 메모는 200자 이내여야 합니다.")
-    return store_allocation(payload, change_note.strip() or "웹 편집 내용 저장")
+    return store_allocation(
+        payload,
+        change_note.strip() or "웹 편집 내용 저장",
+        expected_version=expected_version,
+    )
 
 
 def regenerate_allocation() -> dict:
@@ -1917,24 +2147,35 @@ def validate_content_payload(payload: dict) -> dict:
     }
 
 
-def store_content(payload: dict, change_note: str, status: str = "draft") -> dict:
+def store_content(
+    payload: dict,
+    change_note: str,
+    status: str = "draft",
+    expected_version: int | None = None,
+) -> dict:
     clean = validate_content_payload(payload)
     now = utc_now()
     with connect_db() as db:
         current = db.execute(
             "SELECT version FROM content_selection WHERE id = 1"
         ).fetchone()
-        next_version = int(current["version"]) + 1
+        current_version = int(current["version"])
+        ensure_current_version(current_version, expected_version)
+        next_version = current_version + 1
         encoded = json.dumps(clean, ensure_ascii=False)
         approved_at = now if status == "approved" else None
-        db.execute(
+        updated = db.execute(
             """
             UPDATE content_selection
             SET payload = ?, status = ?, version = ?, updated_at = ?, approved_at = ?
-            WHERE id = 1
+            WHERE id = 1 AND version = ?
             """,
-            (encoded, status, next_version, now, approved_at),
+            (encoded, status, next_version, now, approved_at, current_version),
         )
+        if updated.rowcount != 1:
+            raise VersionConflictError(
+                "다른 편집자가 먼저 저장했습니다. 최신 내용을 다시 불러온 뒤 수정해 주세요."
+            )
         db.execute(
             """
             INSERT INTO content_selection_versions
@@ -1966,10 +2207,15 @@ def store_content(payload: dict, change_note: str, status: str = "draft") -> dic
 
 
 def update_content(payload: dict) -> dict:
+    expected_version = requested_version(payload)
     change_note = payload.pop("change_note", "웹 편집 내용 저장")
     if not isinstance(change_note, str) or len(change_note) > 200:
         raise ValueError("변경 메모는 200자 이내여야 합니다.")
-    return store_content(payload, change_note.strip() or "웹 편집 내용 저장")
+    return store_content(
+        payload,
+        change_note.strip() or "웹 편집 내용 저장",
+        expected_version=expected_version,
+    )
 
 
 def regenerate_content() -> dict:
@@ -2488,7 +2734,11 @@ def validate_workflow_payload(stage_key: str, payload: dict) -> dict:
 
 
 def store_workflow_stage(
-    stage_key: str, payload: dict, change_note: str, status: str = "draft"
+    stage_key: str,
+    payload: dict,
+    change_note: str,
+    status: str = "draft",
+    expected_version: int | None = None,
 ) -> dict:
     clean = validate_workflow_payload(stage_key, payload)
     now = utc_now()
@@ -2496,13 +2746,15 @@ def store_workflow_stage(
         current = db.execute(
             "SELECT version FROM workflow_stages WHERE stage_key = ?", (stage_key,)
         ).fetchone()
-        next_version = int(current["version"]) + 1
+        current_version = int(current["version"])
+        ensure_current_version(current_version, expected_version)
+        next_version = current_version + 1
         encoded = json.dumps(clean, ensure_ascii=False)
-        db.execute(
+        updated = db.execute(
             """
             UPDATE workflow_stages
             SET payload = ?, status = ?, version = ?, updated_at = ?, approved_at = ?
-            WHERE stage_key = ?
+            WHERE stage_key = ? AND version = ?
             """,
             (
                 encoded,
@@ -2511,8 +2763,13 @@ def store_workflow_stage(
                 now,
                 now if status == "approved" else None,
                 stage_key,
+                current_version,
             ),
         )
+        if updated.rowcount != 1:
+            raise VersionConflictError(
+                "다른 편집자가 먼저 저장했습니다. 최신 내용을 다시 불러온 뒤 수정해 주세요."
+            )
         db.execute(
             """
             INSERT INTO workflow_stage_versions
@@ -2539,11 +2796,15 @@ def workflow_bootstrap_payload(stage_key: str) -> dict:
 
 
 def update_workflow_stage(stage_key: str, payload: dict) -> dict:
+    expected_version = requested_version(payload)
     change_note = payload.pop("change_note", "웹 편집 내용 저장")
     if not isinstance(change_note, str) or len(change_note) > 200:
         raise ValueError("변경 메모는 200자 이내여야 합니다.")
     return store_workflow_stage(
-        stage_key, payload, change_note.strip() or "웹 편집 내용 저장"
+        stage_key,
+        payload,
+        change_note.strip() or "웹 편집 내용 저장",
+        expected_version=expected_version,
     )
 
 
@@ -2716,6 +2977,8 @@ def update_source(document_id: str, payload: dict) -> dict:
 
 
 class StudioHandler(BaseHTTPRequestHandler):
+    current_user: dict | None = None
+
     server_version = "TextbookStudio/0.1"
 
     def log_message(self, format_string: str, *args: object) -> None:
@@ -2741,10 +3004,40 @@ class StudioHandler(BaseHTTPRequestHandler):
             raise ValueError("JSON 객체가 필요합니다.")
         return payload
 
+    def require_user(self) -> dict:
+        self.current_user = authenticated_user(
+            self.headers.get("Authorization", "")
+        )
+        return self.current_user
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/health":
+            self.send_json({"status": "ok", "time": utc_now()})
+            return
+        if parsed.path == "/api/auth/config":
+            self.send_json(auth_config())
+            return
+        if parsed.path.startswith("/api/"):
+            try:
+                self.require_user()
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+                return
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+                return
         if parsed.path == "/api/bootstrap":
             self.send_json(bootstrap_payload())
+            return
+        if parsed.path == "/api/editors":
+            try:
+                require_owner(self.current_user)
+                self.send_json(
+                    {"editors": editor_rows(), "current_user": self.current_user}
+                )
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
             return
         if parsed.path == "/api/analysis/bootstrap":
             self.send_json(analysis_bootstrap_payload())
@@ -2762,14 +3055,12 @@ class StudioHandler(BaseHTTPRequestHandler):
             if parsed.path == f"/api/{stage_key}/bootstrap":
                 self.send_json(workflow_bootstrap_payload(stage_key))
                 return
-        if parsed.path == "/api/health":
-            self.send_json({"status": "ok", "time": utc_now()})
-            return
         self.serve_static(parsed.path)
 
     def do_PATCH(self) -> None:
         parsed = urlparse(self.path)
         try:
+            self.require_user()
             payload = self.read_json()
             if parsed.path == "/api/project":
                 self.send_json({"project": update_project(payload)})
@@ -2815,6 +3106,12 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "API 경로를 찾을 수 없습니다."}, HTTPStatus.NOT_FOUND)
         except KeyError as exc:
             self.send_json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
+        except AuthenticationError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+        except AuthorizationError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+        except VersionConflictError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.CONFLICT)
         except ValueError as exc:
             self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:  # pragma: no cover - last-resort boundary
@@ -2823,6 +3120,11 @@ class StudioHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         try:
+            self.require_user()
+            if parsed.path == "/api/editors":
+                require_owner(self.current_user)
+                self.send_json({"editor": add_editor(self.read_json())})
+                return
             if parsed.path == "/api/analysis/generate":
                 self.send_json({"analysis": regenerate_analysis()})
                 return
@@ -2870,6 +3172,34 @@ class StudioHandler(BaseHTTPRequestHandler):
                     self.send_json({"stage": approve_workflow_stage(stage_key)})
                     return
             self.send_json({"error": "API 경로를 찾을 수 없습니다."}, HTTPStatus.NOT_FOUND)
+        except AuthenticationError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+        except AuthorizationError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+        except VersionConflictError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.CONFLICT)
+        except ValueError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:  # pragma: no cover - last-resort boundary
+            self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def do_DELETE(self) -> None:
+        parsed = urlparse(self.path)
+        try:
+            self.require_user()
+            prefix = "/api/editors/"
+            if parsed.path.startswith(prefix):
+                require_owner(self.current_user)
+                email = unquote(parsed.path[len(prefix) :])
+                self.send_json({"editor": deactivate_editor(email)})
+                return
+            self.send_json({"error": "API 경로를 찾을 수 없습니다."}, HTTPStatus.NOT_FOUND)
+        except KeyError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
+        except AuthenticationError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+        except AuthorizationError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
         except ValueError as exc:
             self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:  # pragma: no cover - last-resort boundary
@@ -2887,6 +3217,8 @@ class StudioHandler(BaseHTTPRequestHandler):
             "/design": "workflow.html",
             "/manuscript": "workflow.html",
             "/review": "workflow.html",
+            "/login": "login.html",
+            "/editors": "editors.html",
         }
         relative = route_files.get(request_path, unquote(request_path.lstrip("/")))
         candidate = (STATIC_DIR / relative).resolve()

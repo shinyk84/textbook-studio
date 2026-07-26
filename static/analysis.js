@@ -157,6 +157,7 @@ function collectAnalysis() {
     editorial_implications: [...document.querySelectorAll(".implication-row input")].map(
       (input) => input.value,
     ),
+    expected_version: state.analysis.version,
     change_note: document.querySelector("#changeNote").value,
   };
 }

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>로그인 · 교과서 제작 스튜디오</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/login.css" />
+  </head>
+  <body class="login-page">
+    <main class="login-card">
+      <p class="eyebrow">TEXTBOOK STUDIO</p>
+      <h1>편집자 로그인</h1>
+      <p class="login-description">
+        승인된 편집자 계정으로 로그인하면 동일한 교과서 프로젝트를 함께 편집할 수 있습니다.
+      </p>
+      <form id="loginForm">
+        <label for="email">이메일</label>
+        <input id="email" type="email" autocomplete="email" required />
+        <label for="password">비밀번호</label>
+        <input id="password" type="password" autocomplete="current-password" minlength="8" required />
+        <button class="primary-button" type="submit">로그인</button>
+      </form>
+      <button class="text-button" id="signupButton" type="button">
+        최초 계정 만들기
+      </button>
+      <p class="login-message" id="loginMessage" role="status"></p>
+    </main>
+    <script src="/login.js"></script>
+  </body>
+</html>

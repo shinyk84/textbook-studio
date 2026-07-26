@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 
@@ -78,6 +79,23 @@ class StudioDataTests(unittest.TestCase):
         updated = self.app.store_analysis(payload, "단위 테스트")
         self.assertGreater(updated["version"], current["version"])
         self.assertTrue(updated["overview"].endswith("테스트 저장."))
+
+    def test_analysis_rejects_stale_editor_version(self):
+        current = self.app.analysis_record()
+        payload = {
+            key: deepcopy(current[key])
+            for key in (
+                "title",
+                "overview",
+                "grade_bands",
+                "domains",
+                "editorial_implications",
+            )
+        }
+        payload["expected_version"] = current["version"]
+        self.app.update_analysis(deepcopy(payload))
+        with self.assertRaises(self.app.VersionConflictError):
+            self.app.update_analysis(deepcopy(payload))
 
     def test_direction_has_three_editable_options(self):
         direction = self.app.direction_record()

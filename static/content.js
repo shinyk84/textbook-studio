@@ -550,6 +550,7 @@ function collectContent() {
     title: document.querySelector("#contentTitle").value,
     selection_note: document.querySelector("#selectionNote").value,
     candidates: state.content.candidates,
+    expected_version: state.content.version,
     change_note: document.querySelector("#contentChangeNote").value,
   };
 }

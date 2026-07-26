@@ -1,6 +1,6 @@
 # 교과서 제작 스튜디오
 
-초등 체육 3~6학년 교과서 제작 웹서비스의 1~5단계입니다.
+초등 체육 3~6학년 교과서 제작 웹서비스의 1~9단계입니다.
 
 현재 구현 범위:
 
@@ -64,3 +64,24 @@ python -m unittest discover -s tests -v
 ```
 
 실행 중 생성되는 SQLite 데이터베이스는 `data/studio.db`에 저장됩니다. 원본 PDF와 전처리 결과는 수정하지 않습니다.
+
+## 공동 편집 배포
+
+배포 환경에서는 Vercel Python Functions와 Supabase Postgres/Auth를 사용합니다.
+
+- 로컬 실행: SQLite
+- Vercel 배포: `POSTGRES_URL`이 있으면 Supabase Postgres 자동 사용
+- 사용자 인증: Supabase 이메일·비밀번호 로그인
+- 접근 권한: `STUDIO_OWNER_EMAIL` 관리자와 관리자가 등록한 편집자만 허용
+- 동시 수정: 화면을 연 버전보다 새 버전이 저장된 경우 `409 Conflict`로 덮어쓰기 차단
+- 비밀 정보: `.env.local`은 Git에 포함하지 않음
+
+현재 SQLite 데이터를 연결된 Supabase로 이전할 때:
+
+```powershell
+vercel env run -- python scripts\migrate_sqlite_to_postgres.py --confirm
+```
+
+이전 도구는 대상 테이블을 하나의 트랜잭션 안에서 교체하므로, 실패하면 변경 전체가 취소됩니다.
+
+관리자는 배포 사이트의 `/editors`에서 편집자 이메일을 등록합니다. 등록된 편집자는 `/login`에서 같은 이메일로 최초 계정을 만든 뒤 공동 편집할 수 있습니다.

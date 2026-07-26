@@ -350,6 +350,7 @@ async function save() {
   document.querySelector("#saveState").textContent = "저장 중…";
   try {
     const body = JSON.parse(JSON.stringify(state.stage));
+    body.expected_version = state.stage.version;
     body.change_note = document.querySelector("#changeNote").value;
     const payload = await request(`/api/${stageKey}`, { method: "PATCH", body: JSON.stringify(body) });
     state.stage = payload.stage;
