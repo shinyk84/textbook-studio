@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>교과서 개발 방향 · 교과서 제작 스튜디오</title>
+    <link rel="stylesheet" href="/styles.css?v=3" />
+    <link rel="stylesheet" href="/direction.css?v=2" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">교</div>
+          <div>
+            <strong>교과서 제작 스튜디오</strong>
+            <span>Elementary PE · 2022</span>
+          </div>
+        </div>
+        <nav aria-label="제작 단계">
+          <p class="nav-label">제작 공정</p>
+          <button class="nav-item completed" type="button" onclick="location.href='/'">
+            <span class="step-number">01</span><span>프로젝트 설정</span><span class="step-check">✓</span>
+          </button>
+          <button class="nav-item completed" type="button" onclick="location.href='/analysis'">
+            <span class="step-number">02</span><span>교육과정 분석</span><span class="step-check">✓</span>
+          </button>
+          <button class="nav-item active" type="button">
+            <span class="step-number">03</span><span>개발 방향 설정</span><span class="step-state">편집 중</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/allocation'">
+            <span class="step-number">04</span><span>성취기준·차시</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/content'">
+            <span class="step-number">05</span><span>내용·종목 선정</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/outline'"><span class="step-number">06</span><span>목차·쪽수·차시</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/design'"><span class="step-number">07</span><span>단원 설계</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/manuscript'"><span class="step-number">08</span><span>원고 초안</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/review'"><span class="step-number">09</span><span>자동검증·모의심사</span></button>
+        </nav>
+        <div class="sidebar-note">
+          <span>현재 결정</span>
+          <strong id="sidebarSelection">개발 방향 선택 중</strong>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar direction-topbar">
+          <div>
+            <p class="eyebrow">STEP 03 · TEXTBOOK DIRECTION</p>
+            <h1>교과서 개발 방향 설정</h1>
+            <p class="subtitle">교육과정 분석을 바탕으로 세 가지 방향을 비교하고 집필 원칙을 잠급니다.</p>
+          </div>
+          <div class="header-actions">
+            <span class="save-state" id="directionSaveState">불러오는 중</span>
+            <button class="secondary-button ai-button" id="generateDirectionButton" type="button">
+              <span>✦</span> 3개 안 재생성
+            </button>
+            <button class="primary-button" id="saveDirectionButton" type="button">현재 버전 저장</button>
+          </div>
+        </header>
+
+        <section class="direction-gate" id="directionGate">
+          <div>
+            <span class="gate-label">승인 게이트 1</span>
+            <strong id="directionGateTitle">교육과정 분석 승인 전 초안</strong>
+            <p id="directionGateDescription">세 가지 안을 비교하고 수정할 수 있지만 아직 확정할 수 없습니다.</p>
+          </div>
+          <button class="approve-button" id="approveDirectionButton" type="button">개발 방향 확정</button>
+        </section>
+
+        <section class="context-strip">
+          <div>
+            <span>상위 근거</span>
+            <strong id="analysisContext">교육과정 분석</strong>
+          </div>
+          <div>
+            <span>대상</span>
+            <strong id="projectContext">초등 체육 3~6학년</strong>
+          </div>
+          <div>
+            <span>방향안</span>
+            <strong>3개 비교</strong>
+          </div>
+          <div>
+            <span>현재 버전</span>
+            <strong>v<span id="directionVersion">1</span></strong>
+          </div>
+        </section>
+
+        <div class="direction-tabs">
+          <button class="direction-tab active" data-tab="options" type="button">개발 방향 3개 안</button>
+          <button class="direction-tab" data-tab="policies" type="button">공통 집필 정책</button>
+          <button class="direction-tab" data-tab="versions" type="button">버전 기록</button>
+        </div>
+
+        <section class="direction-panel active" data-panel="options">
+          <section class="panel brief-panel">
+            <div class="section-header">
+              <div>
+                <p class="section-kicker">EDITORIAL NORTH STAR</p>
+                <h2>개발 목적과 대상</h2>
+              </div>
+              <span class="editable-badge">AI 초안 · 편집 가능</span>
+            </div>
+            <input class="direction-title" id="directionTitle" aria-label="개발 방향 제목" />
+            <div class="brief-grid">
+              <div>
+                <label for="directionPurpose">개발 목적</label>
+                <textarea id="directionPurpose"></textarea>
+              </div>
+              <div>
+                <label for="targetLearner">대상 학습자</label>
+                <textarea id="targetLearner"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <div class="option-heading">
+            <div>
+              <p class="section-kicker">COMPARE THREE OPTIONS</p>
+              <h2>교과서 개발 방향 선택</h2>
+            </div>
+            <p>선택한 안은 4단계 학년별 성취기준·차시 배분의 기본 전략이 됩니다.</p>
+          </div>
+          <div class="option-grid" id="optionGrid"></div>
+
+          <section class="selected-direction panel" id="selectedDirectionSummary">
+            <div class="selected-mark">✓</div>
+            <div>
+              <span>현재 선택</span>
+              <strong id="selectedDirectionName">균형 성장형</strong>
+              <p id="selectedDirectionReason"></p>
+            </div>
+            <button class="secondary-button" data-open-tab="policies" type="button">공통 정책 다듬기</button>
+          </section>
+        </section>
+
+        <section class="direction-panel" data-panel="policies">
+          <div class="policy-layout">
+            <div>
+              <section class="panel policy-section">
+                <div class="section-header">
+                  <div>
+                    <p class="section-kicker">COMMON PRINCIPLES</p>
+                    <h2>공통 개발 원칙</h2>
+                  </div>
+                  <button class="text-button" id="addPrincipleButton" type="button">＋ 원칙 추가</button>
+                </div>
+                <div class="editable-list" id="principleList"></div>
+              </section>
+
+              <section class="panel policy-section">
+                <div class="section-header">
+                  <div>
+                    <p class="section-kicker">WRITING POLICIES</p>
+                    <h2>집필 정책</h2>
+                  </div>
+                </div>
+                <div class="policy-grid">
+                  <article>
+                    <span class="policy-number">01</span>
+                    <label for="policyLesson">수업 경험 구조</label>
+                    <textarea id="policyLesson"></textarea>
+                  </article>
+                  <article>
+                    <span class="policy-number">02</span>
+                    <label for="policySafety">안전·포용성</label>
+                    <textarea id="policySafety"></textarea>
+                  </article>
+                  <article>
+                    <span class="policy-number">03</span>
+                    <label for="policyAssessment">평가</label>
+                    <textarea id="policyAssessment"></textarea>
+                  </article>
+                  <article>
+                    <span class="policy-number">04</span>
+                    <label for="policyDigital">디지털 활용</label>
+                    <textarea id="policyDigital"></textarea>
+                  </article>
+                  <article class="wide-policy">
+                    <span class="policy-number">05</span>
+                    <label for="policyLanguage">언어·시각 표현</label>
+                    <textarea id="policyLanguage"></textarea>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel policy-section">
+                <div class="section-header">
+                  <div>
+                    <p class="section-kicker">SUCCESS CRITERIA</p>
+                    <h2>개발 방향 성공 기준</h2>
+                  </div>
+                  <button class="text-button" id="addSuccessButton" type="button">＋ 기준 추가</button>
+                </div>
+                <div class="editable-list success-list" id="successList"></div>
+              </section>
+            </div>
+
+            <aside>
+              <section class="panel decision-summary">
+                <p class="section-kicker">DECISION SUMMARY</p>
+                <h2>확정 전 점검</h2>
+                <div class="decision-row"><span>선택 방향</span><b id="policySelectedName">—</b></div>
+                <div class="decision-row"><span>공통 원칙</span><b id="principleCount">0개</b></div>
+                <div class="decision-row"><span>집필 정책</span><b>5개</b></div>
+                <div class="decision-row"><span>성공 기준</span><b id="successCount">0개</b></div>
+                <div class="decision-message">
+                  이 결정은 이후 단계의 AI 제안과 모의심사 기준에 프로젝트 원칙으로 반영됩니다.
+                </div>
+              </section>
+              <section class="panel version-note">
+                <p class="section-kicker">VERSION NOTE</p>
+                <h2>저장 메모</h2>
+                <textarea id="directionChangeNote" rows="5" placeholder="선택 이유나 주요 수정 내용을 기록하세요."></textarea>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <section class="direction-panel" data-panel="versions">
+          <section class="panel versions-panel">
+            <div>
+              <p class="section-kicker">AUDIT TRAIL</p>
+              <h2>개발 방향 버전 기록</h2>
+              <p>AI 재생성, 편집팀 수정, 최종 승인 이력을 보존합니다.</p>
+            </div>
+            <div class="version-list" id="directionVersionList"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="directionGenerateDialog">
+      <form method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="section-kicker">REGENERATE OPTIONS</p>
+            <h2>개발 방향 3개 안을 다시 생성할까요?</h2>
+          </div>
+        </div>
+        <p class="dialog-copy">현재 방향과 정책은 이전 버전으로 보존됩니다.</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">취소</button>
+          <button class="primary-button" id="confirmDirectionGenerate" value="default">새 방향 생성</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/direction.js"></script>
+  </body>
+</html>

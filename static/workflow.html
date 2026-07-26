@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>교과서 제작 공정 · 교과서 제작 스튜디오</title>
+    <link rel="stylesheet" href="/styles.css?v=3" />
+    <link rel="stylesheet" href="/workflow.css?v=1" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">교</div>
+          <div><strong>교과서 제작 스튜디오</strong><span>Elementary PE · 2022</span></div>
+        </div>
+        <nav aria-label="제작 단계">
+          <p class="nav-label">제작 공정</p>
+          <button class="nav-item completed" type="button" onclick="location.href='/'"><span class="step-number">01</span><span>프로젝트 설정</span><span class="step-check">✓</span></button>
+          <button class="nav-item completed" type="button" onclick="location.href='/analysis'"><span class="step-number">02</span><span>교육과정 분석</span><span class="step-check">✓</span></button>
+          <button class="nav-item completed" type="button" onclick="location.href='/direction'"><span class="step-number">03</span><span>개발 방향 설정</span><span class="step-check">✓</span></button>
+          <button class="nav-item completed" type="button" onclick="location.href='/allocation'"><span class="step-number">04</span><span>성취기준·차시</span><span class="step-check">✓</span></button>
+          <button class="nav-item completed" type="button" onclick="location.href='/content'"><span class="step-number">05</span><span>내용·종목 선정</span><span class="step-check">✓</span></button>
+          <button class="nav-item" data-nav-stage="outline" type="button" onclick="location.href='/outline'"><span class="step-number">06</span><span>목차·쪽수·차시</span></button>
+          <button class="nav-item" data-nav-stage="design" type="button" onclick="location.href='/design'"><span class="step-number">07</span><span>단원 설계</span></button>
+          <button class="nav-item" data-nav-stage="manuscript" type="button" onclick="location.href='/manuscript'"><span class="step-number">08</span><span>원고 초안</span></button>
+          <button class="nav-item" data-nav-stage="review" type="button" onclick="location.href='/review'"><span class="step-number">09</span><span>자동검증·모의심사</span></button>
+        </nav>
+        <div class="sidebar-note">
+          <span id="sidebarLabel">현재 단계</span>
+          <strong id="sidebarSummary">불러오는 중…</strong>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar workflow-topbar">
+          <div>
+            <p class="eyebrow" id="stageEyebrow">STEP</p>
+            <h1 id="stageHeading">제작 단계</h1>
+            <p class="subtitle" id="stageSubtitle"></p>
+          </div>
+          <div class="header-actions">
+            <span class="save-state" id="saveState">불러오는 중</span>
+            <button class="secondary-button ai-button" id="generateButton" type="button">✦ AI 초안 재생성</button>
+            <button class="primary-button" id="saveButton" type="button">현재 버전 저장</button>
+          </div>
+        </header>
+
+        <section class="workflow-gate" id="workflowGate">
+          <div>
+            <span class="gate-label">승인 게이트</span>
+            <strong id="gateTitle">이전 단계 승인 확인 중</strong>
+            <p id="gateDescription"></p>
+          </div>
+          <button class="approve-button" id="approveButton" type="button">단계 확정</button>
+        </section>
+
+        <section class="workflow-summary" id="workflowSummary"></section>
+
+        <div class="workflow-tabs">
+          <button class="workflow-tab active" data-tab="editor" type="button">편집 작업</button>
+          <button class="workflow-tab" data-tab="versions" type="button">버전 기록</button>
+        </div>
+
+        <section class="workflow-panel active" data-panel="editor">
+          <section class="panel workflow-editor">
+            <div class="editor-toolbar">
+              <div>
+                <p class="section-kicker" id="editorKicker">WORKSPACE</p>
+                <h2 id="editorTitle">편집 작업</h2>
+              </div>
+              <div class="grade-filter" id="workflowGradeFilters"></div>
+            </div>
+            <div id="workflowWorkspace"></div>
+          </section>
+          <section class="panel workflow-note">
+            <label for="changeNote">이번 버전 변경 메모</label>
+            <textarea id="changeNote" placeholder="편집 이유와 주요 변경 내용을 기록하세요."></textarea>
+          </section>
+        </section>
+
+        <section class="workflow-panel" data-panel="versions">
+          <section class="panel versions-panel">
+            <p class="section-kicker">VERSION HISTORY</p>
+            <h2>단계별 버전 기록</h2>
+            <div class="version-list" id="versionList"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/workflow.js?v=1"></script>
+  </body>
+</html>

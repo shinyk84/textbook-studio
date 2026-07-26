@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>교과서 제작 스튜디오</title>
+    <link rel="stylesheet" href="/styles.css?v=3" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">교</div>
+          <div>
+            <strong>교과서 제작 스튜디오</strong>
+            <span>Elementary PE · 2022</span>
+          </div>
+        </div>
+
+        <nav aria-label="제작 단계">
+          <p class="nav-label">제작 공정</p>
+          <button class="nav-item active" type="button">
+            <span class="step-number">01</span>
+            <span>프로젝트 설정</span>
+            <span class="step-state">진행 중</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/analysis'">
+            <span class="step-number">02</span>
+            <span>교육과정 분석</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/direction'">
+            <span class="step-number">03</span>
+            <span>개발 방향 설정</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/allocation'">
+            <span class="step-number">04</span>
+            <span>성취기준·차시</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/content'">
+            <span class="step-number">05</span>
+            <span>내용·종목 선정</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/outline'"><span class="step-number">06</span><span>목차·쪽수·차시</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/design'"><span class="step-number">07</span><span>단원 설계</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/manuscript'"><span class="step-number">08</span><span>원고 초안</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/review'"><span class="step-number">09</span><span>자동검증·모의심사</span></button>
+        </nav>
+
+        <div class="sidebar-note">
+          <span>공식 자료 저장소</span>
+          <strong id="workspacePath">연결 확인 중…</strong>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">STEP 01 · PROJECT FOUNDATION</p>
+            <h1>프로젝트 설정 및 공식 자료 확정</h1>
+            <p class="subtitle">생성에 사용할 기준과 프로젝트 범위를 먼저 잠급니다.</p>
+          </div>
+          <div class="header-actions">
+            <span class="save-state" id="saveState">불러오는 중</span>
+            <button class="secondary-button" id="reloadButton" type="button">자료 다시 확인</button>
+          </div>
+        </header>
+
+        <section class="status-banner" id="statusBanner">
+          <div class="status-icon">1</div>
+          <div>
+            <strong id="statusTitle">공식 자료를 확인하고 있습니다.</strong>
+            <p id="statusDescription">잠시만 기다려 주세요.</p>
+          </div>
+          <div class="status-progress">
+            <span id="statusCount">0 / 0</span>
+            <small>관리자 승인</small>
+          </div>
+        </section>
+
+        <div class="content-grid">
+          <section class="panel project-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="section-kicker">PROJECT BRIEF</p>
+                <h2>프로젝트 기본 설정</h2>
+              </div>
+              <button class="primary-button" id="saveProjectButton" type="button">설정 저장</button>
+            </div>
+
+            <form id="projectForm">
+              <div class="field wide">
+                <label for="name">프로젝트명</label>
+                <input id="name" name="name" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="subject">과목</label>
+                <input id="subject" name="subject" />
+              </div>
+              <div class="field">
+                <label for="school_level">학교급</label>
+                <input id="school_level" name="school_level" />
+              </div>
+              <div class="field">
+                <label for="curriculum_version">교육과정</label>
+                <input id="curriculum_version" name="curriculum_version" />
+              </div>
+              <div class="field">
+                <label>대상 학년</label>
+                <div class="grade-chips">
+                  <span>3학년</span><span>4학년</span><span>5학년</span><span>6학년</span>
+                </div>
+              </div>
+
+              <div class="form-divider">
+                <span>교과서 분량 규칙</span>
+              </div>
+              <div class="field compact">
+                <label for="page_baseline">기준 쪽수</label>
+                <div class="unit-input"><input id="page_baseline" name="page_baseline" type="number" /><span>쪽</span></div>
+              </div>
+              <div class="field compact">
+                <label for="page_min">최소 쪽수</label>
+                <div class="unit-input"><input id="page_min" name="page_min" type="number" /><span>쪽</span></div>
+              </div>
+              <div class="field compact">
+                <label for="page_max">최대 쪽수</label>
+                <div class="unit-input"><input id="page_max" name="page_max" type="number" /><span>쪽</span></div>
+              </div>
+              <div class="field compact">
+                <label for="supplement_max">부속자료 최대</label>
+                <div class="unit-input"><input id="supplement_max" name="supplement_max" type="number" /><span>쪽</span></div>
+              </div>
+
+              <div class="form-divider">
+                <span>시간 배당 기준</span>
+              </div>
+              <div class="field compact">
+                <label for="band_hours_34">3~4학년군</label>
+                <div class="unit-input"><input id="band_hours_34" name="band_hours_34" type="number" /><span>시간</span></div>
+              </div>
+              <div class="field compact">
+                <label for="band_hours_56">5~6학년군</label>
+                <div class="unit-input"><input id="band_hours_56" name="band_hours_56" type="number" /><span>시간</span></div>
+              </div>
+              <div class="field compact">
+                <label for="default_grade_hours">학년별 기본값</label>
+                <div class="unit-input"><input id="default_grade_hours" name="default_grade_hours" type="number" /><span>차시</span></div>
+              </div>
+            </form>
+          </section>
+
+          <aside class="panel rule-summary">
+            <p class="section-kicker">LOCKED CONSTRAINTS</p>
+            <h2>핵심 기준 요약</h2>
+            <div class="summary-card accent">
+              <span>책별 기준 분량</span>
+              <strong><b id="summaryBaseline">120</b>쪽</strong>
+              <small>본문과 부록 포함</small>
+            </div>
+            <div class="summary-pair">
+              <div>
+                <span>허용 범위</span>
+                <strong id="summaryRange">108–132쪽</strong>
+              </div>
+              <div>
+                <span>물리적 최대</span>
+                <strong id="summaryPhysicalMax">142쪽</strong>
+              </div>
+            </div>
+            <div class="summary-card">
+              <span>학년군 체육 시수</span>
+              <strong><b id="summaryBandHours">204</b>시간</strong>
+              <small>2년 · 연간 34주 기준</small>
+            </div>
+            <p class="summary-warning">이 설정은 다음 단계의 AI 생성과 자동 검증에 강제 조건으로 적용됩니다.</p>
+          </aside>
+        </div>
+
+        <section class="panel sources-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">OFFICIAL SOURCES</p>
+              <h2>공식 자료 검수</h2>
+              <p>자동 무결성 확인과 관리자 내용 검수는 별도로 관리됩니다.</p>
+            </div>
+            <div class="legend">
+              <span><i class="dot verified"></i> 무결성 확인</span>
+              <span><i class="dot pending"></i> 검수 대기</span>
+              <span><i class="dot approved"></i> 사용 승인</span>
+            </div>
+          </div>
+          <div class="source-list" id="sourceList">
+            <div class="empty-state">공식 자료를 불러오는 중입니다.</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="reviewDialog">
+      <form method="dialog" id="reviewForm">
+        <div class="dialog-heading">
+          <div>
+            <p class="section-kicker">ADMIN REVIEW</p>
+            <h2 id="dialogTitle">공식 자료 검수</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="닫기">×</button>
+        </div>
+        <input type="hidden" id="reviewDocumentId" />
+        <label for="reviewStatus">검수 결과</label>
+        <select id="reviewStatus">
+          <option value="pending">검수 대기</option>
+          <option value="approved">사용 승인</option>
+          <option value="rejected">보완 필요</option>
+        </select>
+        <label for="reviewNote">검수 메모</label>
+        <textarea id="reviewNote" rows="6" placeholder="확인한 범위, 수정이 필요한 페이지 등을 기록하세요."></textarea>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">취소</button>
+          <button class="primary-button" value="default" id="saveReviewButton">검수 결과 저장</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

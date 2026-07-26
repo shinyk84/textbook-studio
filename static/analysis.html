@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>교육과정 분석 · 교과서 제작 스튜디오</title>
+    <link rel="stylesheet" href="/styles.css?v=3" />
+    <link rel="stylesheet" href="/analysis.css?v=2" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">교</div>
+          <div>
+            <strong>교과서 제작 스튜디오</strong>
+            <span>Elementary PE · 2022</span>
+          </div>
+        </div>
+
+        <nav aria-label="제작 단계">
+          <p class="nav-label">제작 공정</p>
+          <button class="nav-item completed" type="button" onclick="location.href='/'">
+            <span class="step-number">01</span>
+            <span>프로젝트 설정</span>
+            <span class="step-check">✓</span>
+          </button>
+          <button class="nav-item active" type="button">
+            <span class="step-number">02</span>
+            <span>교육과정 분석</span>
+            <span class="step-state">편집 중</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/direction'">
+            <span class="step-number">03</span>
+            <span>개발 방향 설정</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/allocation'">
+            <span class="step-number">04</span>
+            <span>성취기준·차시</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/content'">
+            <span class="step-number">05</span>
+            <span>내용·종목 선정</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/outline'"><span class="step-number">06</span><span>목차·쪽수·차시</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/design'"><span class="step-number">07</span><span>단원 설계</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/manuscript'"><span class="step-number">08</span><span>원고 초안</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/review'"><span class="step-number">09</span><span>자동검증·모의심사</span></button>
+        </nav>
+
+        <div class="sidebar-note analysis-note">
+          <span>분석 근거</span>
+          <strong>체육과 교육과정<br />교육부 고시 제2022-33호</strong>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar analysis-topbar">
+          <div>
+            <p class="eyebrow">STEP 02 · CURRICULUM ANALYSIS</p>
+            <h1>교육과정 분석</h1>
+            <p class="subtitle">공식 성취기준을 근거로 AI 초안을 만들고 편집팀의 해석을 축적합니다.</p>
+          </div>
+          <div class="header-actions">
+            <span class="save-state" id="analysisSaveState">불러오는 중</span>
+            <button class="secondary-button ai-button" id="generateButton" type="button">
+              <span>✦</span> AI 초안 재생성
+            </button>
+            <button class="primary-button" id="saveAnalysisButton" type="button">현재 버전 저장</button>
+          </div>
+        </header>
+
+        <section class="analysis-gate" id="analysisGate">
+          <div>
+            <span class="gate-label">승인 게이트 1</span>
+            <strong id="gateTitle">공식 자료 승인 전 초안</strong>
+            <p id="gateDescription">분석과 편집은 가능하지만 공식 자료가 확정되기 전에는 다음 단계로 승인할 수 없습니다.</p>
+          </div>
+          <button class="approve-button" id="approveAnalysisButton" type="button">분석 확정</button>
+        </section>
+
+        <section class="metric-row">
+          <article>
+            <span>전체 성취기준</span>
+            <strong id="totalStandards">49</strong>
+            <small>공식 문장 자동 추출</small>
+          </article>
+          <article>
+            <span>3~4학년군</span>
+            <strong id="band34Count">23</strong>
+            <small>입문·기본 움직임</small>
+          </article>
+          <article>
+            <span>5~6학년군</span>
+            <strong id="band56Count">26</strong>
+            <small>응용·전략·실천</small>
+          </article>
+          <article>
+            <span>분석 버전</span>
+            <strong>v<span id="analysisVersion">1</span></strong>
+            <small id="analysisStatus">초안</small>
+          </article>
+        </section>
+
+        <div class="analysis-tabs" role="tablist">
+          <button class="analysis-tab active" data-tab="draft" type="button">분석 초안</button>
+          <button class="analysis-tab" data-tab="standards" type="button">
+            성취기준 원문 <span id="standardTabCount">49</span>
+          </button>
+          <button class="analysis-tab" data-tab="versions" type="button">버전 기록</button>
+        </div>
+
+        <section class="tab-panel active" data-panel="draft">
+          <div class="analysis-layout">
+            <div class="analysis-editor">
+              <section class="panel analysis-section">
+                <div class="section-header">
+                  <div>
+                    <p class="section-kicker">AI DRAFT · EDITABLE</p>
+                    <h2>교육과정 총괄 분석</h2>
+                  </div>
+                  <span class="evidence-chip">근거 49개 성취기준</span>
+                </div>
+                <input class="analysis-title" id="analysisTitle" aria-label="분석 제목" />
+                <textarea class="analysis-textarea large" id="overview" aria-label="총괄 분석"></textarea>
+              </section>
+
+              <section class="panel analysis-section">
+                <div class="section-header">
+                  <div>
+                    <p class="section-kicker">GRADE-BAND PROGRESSION</p>
+                    <h2>학년군별 분석</h2>
+                  </div>
+                  <span class="section-hint">공식 문장은 바꾸지 않고 해석만 편집합니다.</span>
+                </div>
+                <div class="band-grid">
+                  <article class="band-card band-34">
+                    <div class="band-heading">
+                      <span>3–4</span>
+                      <div><strong>3~4학년군</strong><small>기본 움직임 · 입문</small></div>
+                    </div>
+                    <label for="band34Summary">발달 단계 분석</label>
+                    <textarea id="band34Summary"></textarea>
+                    <label for="band34Focus">집필 초점</label>
+                    <textarea id="band34Focus"></textarea>
+                    <label for="band34Assessment">평가 방향</label>
+                    <textarea id="band34Assessment"></textarea>
+                  </article>
+                  <article class="band-card band-56">
+                    <div class="band-heading">
+                      <span>5–6</span>
+                      <div><strong>5~6학년군</strong><small>응용 · 전략 · 실천</small></div>
+                    </div>
+                    <label for="band56Summary">발달 단계 분석</label>
+                    <textarea id="band56Summary"></textarea>
+                    <label for="band56Focus">집필 초점</label>
+                    <textarea id="band56Focus"></textarea>
+                    <label for="band56Assessment">평가 방향</label>
+                    <textarea id="band56Assessment"></textarea>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel analysis-section">
+                <div class="section-header">
+                  <div>
+                    <p class="section-kicker">THREE DOMAINS</p>
+                    <h2>영역별 해석</h2>
+                  </div>
+                </div>
+                <div class="domain-grid">
+                  <article>
+                    <div class="domain-icon movement">01</div>
+                    <strong>운동</strong>
+                    <small id="movementCount">12개 기준</small>
+                    <textarea id="domainMovement"></textarea>
+                  </article>
+                  <article>
+                    <div class="domain-icon sports">02</div>
+                    <strong>스포츠</strong>
+                    <small id="sportsCount">22개 기준</small>
+                    <textarea id="domainSports"></textarea>
+                  </article>
+                  <article>
+                    <div class="domain-icon expression">03</div>
+                    <strong>표현</strong>
+                    <small id="expressionCount">15개 기준</small>
+                    <textarea id="domainExpression"></textarea>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel analysis-section">
+                <div class="section-header">
+                  <div>
+                    <p class="section-kicker">EDITORIAL IMPLICATIONS</p>
+                    <h2>교과서 집필 시사점</h2>
+                  </div>
+                  <button class="text-button" id="addImplicationButton" type="button">＋ 항목 추가</button>
+                </div>
+                <div class="implication-list" id="implicationList"></div>
+              </section>
+            </div>
+
+            <aside class="analysis-aside">
+              <section class="panel aside-panel">
+                <p class="section-kicker">TRACEABILITY</p>
+                <h2>근거 연결 상태</h2>
+                <div class="trace-score"><strong>100%</strong><span>성취기준 연결</span></div>
+                <div class="trace-row"><span>운동 영역</span><b id="traceMovement">12</b></div>
+                <div class="trace-row"><span>스포츠 영역</span><b id="traceSports">22</b></div>
+                <div class="trace-row"><span>표현 영역</span><b id="traceExpression">15</b></div>
+                <button class="secondary-button full-button" data-open-tab="standards" type="button">성취기준 원문 보기</button>
+              </section>
+
+              <section class="panel aside-panel version-card">
+                <p class="section-kicker">VERSION NOTE</p>
+                <h2>저장 메모</h2>
+                <textarea id="changeNote" rows="4" placeholder="이번 수정의 핵심을 기록하세요."></textarea>
+                <p>저장할 때마다 이전 분석을 보존합니다. 이전 단계에서 수정해도 이 버전은 사라지지 않습니다.</p>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-panel="standards">
+          <section class="panel standards-panel">
+            <div class="standards-toolbar">
+              <div>
+                <p class="section-kicker">OFFICIAL CURRICULUM</p>
+                <h2>성취기준 원문</h2>
+              </div>
+              <div class="filter-group">
+                <input id="standardSearch" type="search" placeholder="코드 또는 내용 검색" />
+                <select id="bandFilter" aria-label="학년군 필터">
+                  <option value="all">모든 학년군</option>
+                  <option value="3~4학년군">3~4학년군</option>
+                  <option value="5~6학년군">5~6학년군</option>
+                </select>
+                <select id="domainFilter" aria-label="영역 필터">
+                  <option value="all">모든 영역</option>
+                  <option value="운동">운동</option>
+                  <option value="스포츠">스포츠</option>
+                  <option value="표현">표현</option>
+                </select>
+              </div>
+            </div>
+            <div class="standards-list" id="standardsList"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-panel="versions">
+          <section class="panel versions-panel">
+            <div>
+              <p class="section-kicker">AUDIT TRAIL</p>
+              <h2>교육과정 분석 버전 기록</h2>
+              <p>AI 재생성과 편집팀 저장·승인 내역을 시간순으로 보존합니다.</p>
+            </div>
+            <div class="version-list" id="versionList"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="confirmGenerateDialog">
+      <form method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="section-kicker">REGENERATE DRAFT</p>
+            <h2>AI 초안을 다시 생성할까요?</h2>
+          </div>
+        </div>
+        <p class="dialog-copy">현재 내용은 이전 버전으로 보존되고, 공식 교육과정을 기반으로 새 분석 초안이 생성됩니다.</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">취소</button>
+          <button class="primary-button" id="confirmGenerateButton" value="default">새 초안 생성</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/analysis.js"></script>
+  </body>
+</html>

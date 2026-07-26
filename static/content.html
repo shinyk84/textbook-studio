@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>내용·종목 선정 · 교과서 제작 스튜디오</title>
+    <link rel="stylesheet" href="/styles.css?v=3" />
+    <link rel="stylesheet" href="/content.css?v=6" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">교</div>
+          <div>
+            <strong>교과서 제작 스튜디오</strong>
+            <span>Elementary PE · 2022</span>
+          </div>
+        </div>
+        <nav aria-label="제작 단계">
+          <p class="nav-label">제작 공정</p>
+          <button class="nav-item completed" type="button" onclick="location.href='/'">
+            <span class="step-number">01</span><span>프로젝트 설정</span><span class="step-check">✓</span>
+          </button>
+          <button class="nav-item completed" type="button" onclick="location.href='/analysis'">
+            <span class="step-number">02</span><span>교육과정 분석</span><span class="step-check">✓</span>
+          </button>
+          <button class="nav-item completed" type="button" onclick="location.href='/direction'">
+            <span class="step-number">03</span><span>개발 방향 설정</span><span class="step-check">✓</span>
+          </button>
+          <button class="nav-item completed" type="button" onclick="location.href='/allocation'">
+            <span class="step-number">04</span><span>성취기준·차시</span><span class="step-check">✓</span>
+          </button>
+          <button class="nav-item active" type="button">
+            <span class="step-number">05</span><span>내용·종목 선정</span><span class="step-state">편집 중</span>
+          </button>
+          <button class="nav-item" type="button" onclick="location.href='/outline'"><span class="step-number">06</span><span>목차·쪽수·차시</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/design'"><span class="step-number">07</span><span>단원 설계</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/manuscript'"><span class="step-number">08</span><span>원고 초안</span></button>
+          <button class="nav-item" type="button" onclick="location.href='/review'"><span class="step-number">09</span><span>자동검증·모의심사</span></button>
+        </nav>
+        <div class="sidebar-note">
+          <span>현재 선택</span>
+          <strong><b id="sidebarSelected">0</b>개 세부 영역</strong>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar content-topbar">
+          <div>
+            <p class="eyebrow">STEP 05 · CONTENT & ACTIVITY SELECTION</p>
+            <h1>학년별 내용·종목 선정</h1>
+            <p class="subtitle">공식 신체활동 예시의 계층을 보존해 대단원 부제와 중·소단원 기초를 구성합니다.</p>
+          </div>
+          <div class="header-actions">
+            <span class="save-state" id="contentSaveState">불러오는 중</span>
+            <button class="secondary-button ai-button" id="generateContentButton" type="button">
+              <span>✦</span> AI 후보안 재생성
+            </button>
+            <button class="primary-button" id="saveContentButton" type="button">현재 버전 저장</button>
+          </div>
+        </header>
+
+        <section class="content-gate" id="contentGate">
+          <div>
+            <span class="gate-label">승인 게이트 1</span>
+            <strong id="contentGateTitle">차시 배분 승인 전 초안</strong>
+            <p id="contentGateDescription">후보 선택과 편집은 가능하지만 아직 확정할 수 없습니다.</p>
+          </div>
+          <button class="approve-button" id="approveContentButton" type="button">내용·종목 확정</button>
+        </section>
+
+        <section class="panel content-brief">
+          <div>
+            <p class="section-kicker">SELECTION PRINCIPLE</p>
+            <input id="contentTitle" class="content-title" aria-label="선정안 제목" />
+          </div>
+          <textarea id="selectionNote" aria-label="선정 원칙"></textarea>
+          <div class="brief-source">
+            <span>공식 근거</span>
+            <strong>체육과 교육과정</strong>
+            <small>신체활동 예시 표 2·3</small>
+          </div>
+        </section>
+
+        <section class="content-grade-grid" id="contentGradeGrid"></section>
+
+        <div class="content-tabs">
+          <button class="content-tab active" data-tab="candidates" type="button">단원 기초 선정</button>
+          <button class="content-tab" data-tab="map" type="button">선정 결과·성취기준 연결</button>
+          <button class="content-tab" data-tab="versions" type="button">버전 기록</button>
+        </div>
+
+        <section class="content-panel active" data-panel="candidates">
+          <section class="panel candidate-panel">
+            <div class="candidate-toolbar">
+              <div class="grade-filter" id="contentGradeFilters">
+                <button class="active" data-grade="3" type="button">3학년</button>
+                <button data-grade="4" type="button">4학년</button>
+                <button data-grade="5" type="button">5학년</button>
+                <button data-grade="6" type="button">6학년</button>
+              </div>
+              <div class="candidate-search">
+                <label class="selected-only"><input id="selectedOnly" type="checkbox" /> 선정된 세부 영역만</label>
+                <select id="contentDomainFilter">
+                  <option value="all">모든 영역</option>
+                  <option value="운동">운동</option>
+                  <option value="스포츠">스포츠</option>
+                  <option value="표현">표현</option>
+                </select>
+                <input id="contentSearch" type="search" placeholder="세부 영역·중단원·활동 검색" />
+              </div>
+            </div>
+            <div class="candidate-grid" id="candidateGrid"></div>
+          </section>
+        </section>
+
+        <section class="content-panel" data-panel="map">
+          <div class="selection-layout">
+            <section class="panel selection-map-panel">
+              <div>
+                <p class="section-kicker">SELECTION MAP</p>
+                <h2>학년·영역별 선정 결과</h2>
+                <p>각 학년의 세 영역과 배분된 성취기준이 모두 연결되는지 확인합니다.</p>
+              </div>
+              <div class="selection-map" id="selectionMap"></div>
+            </section>
+            <aside>
+              <section class="panel content-validation-panel">
+                <p class="section-kicker">HARD CHECKS</p>
+                <h2>자동 검증</h2>
+                <div id="contentValidation"></div>
+              </section>
+              <section class="panel content-note-panel">
+                <p class="section-kicker">VERSION NOTE</p>
+                <h2>저장 메모</h2>
+                <textarea id="contentChangeNote" rows="5" placeholder="종목 선택·제외 또는 안전 조건 변경 이유를 기록하세요."></textarea>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <section class="content-panel" data-panel="versions">
+          <section class="panel versions-panel">
+            <div>
+              <p class="section-kicker">AUDIT TRAIL</p>
+              <h2>내용·종목 선정 버전 기록</h2>
+              <p>AI 후보 재생성과 편집팀의 선택·안전 조건 변경 이력을 보존합니다.</p>
+            </div>
+            <div class="version-list" id="contentVersionList"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="contentGenerateDialog">
+      <form method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="section-kicker">REGENERATE CANDIDATES</p>
+            <h2>AI 내용·종목 후보안을 다시 생성할까요?</h2>
+          </div>
+        </div>
+        <p class="dialog-copy">현재 선택과 수정 내용은 이전 버전으로 보존됩니다.</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">취소</button>
+          <button class="primary-button" id="confirmContentGenerate" value="default">새 후보안 생성</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/content.js?v=7"></script>
+  </body>
+</html>
