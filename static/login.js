@@ -2,6 +2,7 @@ const sessionKey = "textbook-studio-session";
 const form = document.querySelector("#loginForm");
 const message = document.querySelector("#loginMessage");
 const signupButton = document.querySelector("#signupButton");
+const resetButton = document.querySelector("#resetButton");
 let config;
 
 function setMessage(text, success = false) {
@@ -65,6 +66,40 @@ signupButton.addEventListener("click", async () => {
     setMessage("확인 메일을 보냈습니다. 이메일 확인 후 로그인해 주세요.", true);
   } catch (error) {
     setMessage(error.message);
+  }
+});
+
+resetButton.addEventListener("click", async () => {
+  if (!config) await loadConfig();
+  const email = document.querySelector("#email").value.trim();
+  if (!email) {
+    setMessage("이메일을 먼저 입력해 주세요.");
+    return;
+  }
+  resetButton.disabled = true;
+  setMessage("비밀번호 재설정 메일을 보내는 중입니다.", true);
+  try {
+    const redirectTo = `${location.origin}/reset-password`;
+    const response = await fetch(
+      `${config.supabase_url}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,
+      {
+        method: "POST",
+        headers: {
+          apikey: config.publishable_key,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      },
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.msg || payload.message || "재설정 메일을 보내지 못했습니다.");
+    }
+    setMessage("재설정 메일을 보냈습니다. 메일의 링크를 눌러 새 비밀번호를 정해 주세요.", true);
+  } catch (error) {
+    setMessage(error.message);
+  } finally {
+    resetButton.disabled = false;
   }
 });
 

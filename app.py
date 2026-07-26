@@ -3443,6 +3443,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             "/manuscript": "workflow.html",
             "/review": "workflow.html",
             "/login": "login.html",
+            "/reset-password": "reset-password.html",
             "/editors": "editors.html",
             "/export": "export.html",
         }
