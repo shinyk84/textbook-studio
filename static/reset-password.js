@@ -20,8 +20,8 @@ if (!accessToken) {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const password = document.querySelector("#newPassword").value;
-  const confirmation = document.querySelector("#confirmPassword").value;
+  const password = document.querySelector("#newPassword").value.trim();
+  const confirmation = document.querySelector("#confirmPassword").value.trim();
   if (password !== confirmation) {
     setMessage("두 비밀번호가 일치하지 않습니다.");
     return;

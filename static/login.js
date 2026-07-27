@@ -26,7 +26,7 @@ async function loadConfig() {
 async function authRequest(path) {
   if (!config) await loadConfig();
   const email = document.querySelector("#email").value.trim();
-  const password = document.querySelector("#password").value;
+  const password = document.querySelector("#password").value.trim();
   const response = await fetch(`${config.supabase_url}${path}`, {
     method: "POST",
     headers: {
