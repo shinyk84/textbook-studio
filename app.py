@@ -2435,23 +2435,140 @@ def generated_design_payload() -> dict:
     }
 
 
+def allocate_small_unit_spreads(total_pages: int, count: int) -> tuple[int, list[int]]:
+    """Return chapter opener pages and even small-unit page counts."""
+    if count <= 0:
+        return total_pages, []
+    opener_pages = total_pages % 2
+    content_pages = total_pages - opener_pages
+    minimum = count * 2
+    if content_pages < minimum:
+        raise ValueError("소단원마다 최소 한 개의 펼침면(2쪽)을 배정할 수 없습니다.")
+    pages = [2 for _ in range(count)]
+    remaining_spreads = (content_pages - minimum) // 2
+    for index in range(remaining_spreads):
+        pages[index % count] += 2
+    return opener_pages, pages
+
+
+def manuscript_spread_draft(
+    *,
+    left_page: int,
+    spread_index: int,
+    spread_count: int,
+    small_title: str,
+    source_activity: str,
+    middle_title: str,
+) -> dict:
+    if spread_index == 0:
+        template = "기본 기능형"
+        role = "도입·기능 익히기"
+        focus = f"{source_activity}의 특징과 기본 움직임을 익혀 봅시다."
+    elif spread_index == spread_count - 1:
+        template = "탐구·평가형"
+        role = "적용·정리"
+        focus = f"{source_activity}을 적용하고 활동 결과를 돌아봅시다."
+    else:
+        template = "게임·적용형"
+        role = "도전·전략 적용"
+        focus = f"친구와 함께 {source_activity}에 도전하며 전략을 찾아봅시다."
+    activity_count = 3 if spread_count > 1 and spread_index == spread_count - 1 else 2
+    placements = ["left", "right", "across"]
+    activities = [
+        {
+            "number": index + 1,
+            "title": (
+                f"{small_title} 기본 움직임 익히기"
+                if index == 0
+                else f"{small_title} 상황에 맞게 도전하기"
+                if index == 1
+                else f"{small_title} 전략 만들기"
+            ),
+            "placement": placements[index],
+            "objective": f"{source_activity}의 방법을 이해하고 자신의 수준에 맞게 수행할 수 있다.",
+            "method": [
+                "모둠을 정하고 활동 공간과 준비물을 확인합니다.",
+                f"{source_activity}의 핵심 움직임을 단계에 따라 수행합니다.",
+                "친구와 결과를 비교하고 더 나은 방법을 찾아 다시 활동합니다.",
+            ],
+            "visual_note": "주요 동작 순서, 학생 간 안전 거리, 이동 방향을 삽화로 표시",
+        }
+        for index in range(activity_count)
+    ]
+    return {
+        "spread_number": spread_index + 1,
+        "left_page": left_page,
+        "right_page": left_page + 1,
+        "layout_template": template,
+        "role": role,
+        "title": f"{small_title} · {role}",
+        "intro": (
+            f"{middle_title}에서 배운 내용을 바탕으로 {focus} "
+            "활동 전에는 공간과 도구를 확인하고 모둠의 안전 약속을 정합니다."
+        ),
+        "activities": activities,
+        "support_boxes": [
+            {"type": "준비물", "content": f"{source_activity}에 필요한 기본 교구와 기록 도구"},
+            {"type": "안전", "content": "활동 간격을 유지하고 충돌 위험이 있는 이동 방향을 미리 확인합니다."},
+            {
+                "type": "전략" if role != "적용·정리" else "점검",
+                "content": "친구의 움직임을 관찰하고 성공한 방법과 바꿀 점을 정리합니다.",
+            },
+        ],
+        "wrap_up": (
+            f"{source_activity}에서 잘된 점과 다음 활동에서 바꿀 점을 한 가지씩 적어 봅시다."
+        ),
+        "spread_visual_note": "좌우 페이지를 연결하는 주 활동 삽화와 활동별 동작·전략 보조 그림 배치",
+    }
+
+
 def generated_manuscript_payload() -> dict:
     design = workflow_stage_record("design")
     chapters = []
+    next_page_by_grade = {3: 1, 4: 1, 5: 1, 6: 1}
     for unit in design["units"]:
+        small_unit_count = sum(
+            len(middle["small_units"]) for middle in unit["middle_units"]
+        )
+        opener_pages, small_page_counts = allocate_small_unit_spreads(
+            unit["pages"], small_unit_count
+        )
+        chapter_start_page = next_page_by_grade[unit["grade"]]
+        opener_page_numbers = list(
+            range(chapter_start_page, chapter_start_page + opener_pages)
+        )
+        next_page_by_grade[unit["grade"]] += opener_pages
+        small_page_index = 0
         sections = []
         for middle in unit["middle_units"]:
-            activities = [
-                {
-                    "title": small["title"],
-                    "source_activity": small["source_activity"],
-                    "instruction": (
-                        f"{small['source_activity']}의 핵심 동작을 탐색하고, 자신의 수준에 맞게 "
-                        "연습한 뒤 친구와 결과를 나눠 봅시다."
-                    ),
-                }
-                for small in middle["small_units"]
-            ]
+            activities = []
+            for small in middle["small_units"]:
+                target_pages = small_page_counts[small_page_index]
+                spreads = [
+                    manuscript_spread_draft(
+                        left_page=next_page_by_grade[unit["grade"]] + spread_index * 2,
+                        spread_index=spread_index,
+                        spread_count=target_pages // 2,
+                        small_title=small["title"],
+                        source_activity=small["source_activity"],
+                        middle_title=middle["title"],
+                    )
+                    for spread_index in range(target_pages // 2)
+                ]
+                activities.append(
+                    {
+                        "title": small["title"],
+                        "source_activity": small["source_activity"],
+                        "target_pages": target_pages,
+                        "instruction": (
+                            f"{small['source_activity']}의 핵심 동작을 탐색하고, 자신의 수준에 맞게 "
+                            "연습한 뒤 친구와 결과를 나눠 봅시다."
+                        ),
+                        "spreads": spreads,
+                    }
+                )
+                next_page_by_grade[unit["grade"]] += target_pages
+                small_page_index += 1
             sections.append(
                 {
                     "title": middle["title"],
@@ -2469,6 +2586,13 @@ def generated_manuscript_payload() -> dict:
                 "domain": unit["domain"],
                 "large_unit_title": unit["large_unit_title"],
                 "subtitle": unit["subtitle"],
+                "target_pages": unit["pages"],
+                "opener_pages": opener_page_numbers,
+                "generated_pages": len(opener_page_numbers) + sum(
+                    len(activity["spreads"]) * 2
+                    for section in sections
+                    for activity in section["activities"]
+                ),
                 "opening": (
                     f"{unit['essential_question']}라는 질문에서 출발해 "
                     f"{unit['learning_goal']}"
@@ -2480,17 +2604,481 @@ def generated_manuscript_payload() -> dict:
         )
     return {
         "title": "교과서 원고 초안",
-        "editorial_note": "AI 초안을 편집팀이 수정하며, 공식 근거와 단원 설계의 연결을 유지한다.",
+        "editorial_note": (
+            "소단원은 2쪽 펼침면 단위로 구성하고, 펼침면 전체에 활동 2~3개와 "
+            "준비물·안전·전략·점검 요소를 배치한다."
+        ),
         "source_design_version": design["version"],
+        "generation_mode": "전체 원고",
+        "total_target_pages": sum(chapter["target_pages"] for chapter in chapters),
+        "total_generated_pages": sum(chapter["generated_pages"] for chapter in chapters),
         "chapters": chapters,
     }
 
 
-def build_review_payload() -> dict:
+def secret_environment_value(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if value:
+        return value
+    local_env = APP_DIR / ".env.local"
+    if not local_env.is_file():
+        return ""
+    for line in local_env.read_text(encoding="utf-8-sig").splitlines():
+        key, separator, candidate = line.partition("=")
+        if separator and key.strip() == name:
+            return candidate.strip().strip('"').strip("'")
+    return ""
+
+
+def manuscript_ai_config() -> dict:
+    return {
+        "enabled": bool(secret_environment_value("OPENAI_API_KEY")),
+        "model": os.environ.get("OPENAI_MODEL", "gpt-5.6"),
+    }
+
+
+def manuscript_catalog_record() -> dict:
+    manuscript = workflow_stage_record("manuscript")
+    catalog = []
+    for chapter in manuscript["chapters"]:
+        catalog.append(
+            {
+                "id": chapter["id"],
+                "grade": chapter["grade"],
+                "domain": chapter["domain"],
+                "large_unit_title": chapter["large_unit_title"],
+                "subtitle": chapter["subtitle"],
+                "target_pages": chapter["target_pages"],
+                "generated_pages": chapter["generated_pages"],
+                "sections": [
+                    {
+                        "index": section_index,
+                        "title": section["title"],
+                        "small_units": [
+                            {
+                                "index": small_index,
+                                "title": small_unit["title"],
+                                "target_pages": small_unit["target_pages"],
+                                "spread_count": len(small_unit.get("spreads", [])),
+                            }
+                            for small_index, small_unit in enumerate(
+                                section.get("activities", [])
+                            )
+                        ],
+                    }
+                    for section_index, section in enumerate(chapter["sections"])
+                ],
+            }
+        )
+    stage = {
+        key: value
+        for key, value in manuscript.items()
+        if key not in {"chapters"}
+    }
+    return {
+        "stage": stage,
+        "catalog": catalog,
+        "summary": workflow_stage_summary("manuscript", manuscript),
+        "versions": workflow_stage_versions("manuscript"),
+        "prerequisite": workflow_prerequisite("manuscript"),
+        "project": project_payload(),
+        "ai": manuscript_ai_config(),
+    }
+
+
+def manuscript_small_unit_selection(
+    chapter_id: str,
+    section_index: int,
+    small_unit_index: int,
+) -> tuple[dict, dict, dict, dict]:
+    if section_index < 0 or small_unit_index < 0:
+        raise KeyError("선택한 소단원을 찾을 수 없습니다.")
+    manuscript = workflow_stage_record("manuscript")
+    chapter = next(
+        (item for item in manuscript["chapters"] if item["id"] == chapter_id),
+        None,
+    )
+    if chapter is None:
+        raise KeyError("대단원을 찾을 수 없습니다.")
+    try:
+        section = chapter["sections"][section_index]
+        small_unit = section["activities"][small_unit_index]
+    except (IndexError, KeyError, TypeError) as exc:
+        raise KeyError("선택한 소단원을 찾을 수 없습니다.") from exc
+    return manuscript, chapter, section, small_unit
+
+
+def manuscript_small_unit_payload(
+    chapter_id: str,
+    section_index: int,
+    small_unit_index: int,
+) -> dict:
+    manuscript, chapter, section, small_unit = manuscript_small_unit_selection(
+        chapter_id, section_index, small_unit_index
+    )
+    return {
+        "manuscript_version": manuscript["version"],
+        "chapter": {
+            key: chapter[key]
+            for key in (
+                "id",
+                "grade",
+                "domain",
+                "large_unit_title",
+                "subtitle",
+                "target_pages",
+                "generated_pages",
+                "opening",
+                "assessment_box",
+                "safety_box",
+            )
+        },
+        "section": {
+            "index": section_index,
+            "title": section["title"],
+            "body": section["body"],
+        },
+        "small_unit": {
+            **small_unit,
+            "index": small_unit_index,
+        },
+        "ai": manuscript_ai_config(),
+    }
+
+
+def openai_response_text(response: dict) -> str:
+    if isinstance(response.get("output_text"), str):
+        return response["output_text"]
+    for output in response.get("output", []):
+        if output.get("type") != "message":
+            continue
+        for content in output.get("content", []):
+            if content.get("type") == "output_text" and isinstance(
+                content.get("text"), str
+            ):
+                return content["text"]
+            if content.get("type") == "refusal":
+                raise ValueError(f"AI가 생성을 거절했습니다: {content.get('refusal', '')}")
+    raise ValueError("OpenAI 응답에서 원고 JSON을 찾지 못했습니다.")
+
+
+def small_unit_ai_schema(spread_count: int) -> dict:
+    activity_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "title",
+            "placement",
+            "objective",
+            "method",
+            "visual_note",
+        ],
+        "properties": {
+            "title": {"type": "string"},
+            "placement": {"type": "string", "enum": ["left", "right", "across"]},
+            "objective": {"type": "string"},
+            "method": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 5,
+                "items": {"type": "string"},
+            },
+            "visual_note": {"type": "string"},
+        },
+    }
+    support_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["type", "content"],
+        "properties": {
+            "type": {
+                "type": "string",
+                "enum": ["준비물", "안전", "전략", "점검", "도움말"],
+            },
+            "content": {"type": "string"},
+        },
+    }
+    spread_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "layout_template",
+            "role",
+            "title",
+            "intro",
+            "activities",
+            "support_boxes",
+            "wrap_up",
+            "spread_visual_note",
+        ],
+        "properties": {
+            "layout_template": {
+                "type": "string",
+                "enum": ["기본 기능형", "게임·적용형", "탐구·평가형"],
+            },
+            "role": {"type": "string"},
+            "title": {"type": "string"},
+            "intro": {"type": "string"},
+            "activities": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 3,
+                "items": activity_schema,
+            },
+            "support_boxes": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 4,
+                "items": support_schema,
+            },
+            "wrap_up": {"type": "string"},
+            "spread_visual_note": {"type": "string"},
+        },
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["instruction", "spreads"],
+        "properties": {
+            "instruction": {"type": "string"},
+            "spreads": {
+                "type": "array",
+                "minItems": spread_count,
+                "maxItems": spread_count,
+                "items": spread_schema,
+            },
+        },
+    }
+
+
+def call_openai_for_small_unit(
+    chapter: dict,
+    section: dict,
+    small_unit: dict,
+) -> dict:
+    api_key = secret_environment_value("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+    design = workflow_stage_record("design")
+    unit_design = next(
+        (item for item in design["units"] if item["id"] == chapter["id"]),
+        {},
+    )
+    other_titles = [
+        activity["title"]
+        for candidate_section in chapter["sections"]
+        for activity in candidate_section.get("activities", [])
+        if activity is not small_unit
+    ][:20]
+    context = {
+        "grade": chapter["grade"],
+        "domain": chapter["domain"],
+        "large_unit": chapter["large_unit_title"],
+        "subtitle": chapter["subtitle"],
+        "middle_unit": section["title"],
+        "small_unit": small_unit["title"],
+        "source_activity": small_unit["source_activity"],
+        "target_pages": small_unit["target_pages"],
+        "spread_count": len(small_unit["spreads"]),
+        "learning_goal": unit_design.get("learning_goal", ""),
+        "essential_question": unit_design.get("essential_question", ""),
+        "safety": unit_design.get("safety", ""),
+        "inclusion": unit_design.get("inclusion", ""),
+        "assessment": unit_design.get("assessment", ""),
+        "other_small_unit_titles": other_titles,
+    }
+    instructions = (
+        "당신은 2022 개정 교육과정 초등 체육 교과서 집필자다. 제공된 소단원 하나의 "
+        "펼침면 원고만 작성한다. 출판사 샘플의 문장이나 고유 디자인을 복제하지 말고 "
+        "일반적인 교과서 구성 원리만 활용한다. 각 펼침면에는 서로 다른 활동 2~3개를 "
+        "구성한다. 활동마다 인원, 공간 배치, 준비물, 규칙, 수행 순서, 성공 조건, 안전 "
+        "유의점을 구체화한다. '확인합니다-수행합니다-나눕니다' 같은 동일 문장 틀을 "
+        "반복하지 않는다. 앞뒤 활동은 난이도와 사고 수준이 발전해야 한다. 초등학생이 "
+        "이해할 수 있는 짧고 명확한 문장을 사용하고, 사실 확인이 필요한 정보는 만들지 않는다."
+    )
+    request_body = {
+        "model": manuscript_ai_config()["model"],
+        "reasoning": {"effort": "low"},
+        "instructions": instructions,
+        "input": json.dumps(context, ensure_ascii=False),
+        "max_output_tokens": 12000,
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "elementary_pe_small_unit",
+                "strict": True,
+                "schema": small_unit_ai_schema(len(small_unit["spreads"])),
+            }
+        },
+    }
+    request = Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urlopen(request, timeout=50) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        try:
+            message = json.loads(detail).get("error", {}).get("message", detail)
+        except json.JSONDecodeError:
+            message = detail
+        if exc.code == HTTPStatus.UNAUTHORIZED:
+            raise ValueError(
+                "OpenAI API 키가 유효하지 않습니다. 등록한 키를 다시 확인해 주세요."
+            ) from exc
+        if exc.code == HTTPStatus.TOO_MANY_REQUESTS:
+            if "quota" in message.lower() or "billing" in message.lower():
+                raise ValueError(
+                    "OpenAI API 사용 가능 금액이 없습니다. OpenAI API 결제 설정과 "
+                    "사용 한도를 확인한 뒤 다시 시도해 주세요."
+                ) from exc
+            raise ValueError(
+                "OpenAI API 요청이 잠시 너무 많습니다. 잠시 후 다시 시도해 주세요."
+            ) from exc
+        raise ValueError(f"OpenAI API 오류: {message[:500]}") from exc
+    except TimeoutError as exc:
+        raise ValueError(
+            "OpenAI 응답 제한 시간(50초)을 초과했습니다. 잠시 후 다시 시도해 주세요."
+        ) from exc
+    except URLError as exc:
+        raise ValueError(
+            "로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인하고 "
+            "서버를 다시 실행해 주세요."
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "OpenAI 응답을 원고 형식으로 해석하지 못했습니다. 다시 생성해 주세요."
+        ) from exc
+    generated = json.loads(openai_response_text(payload))
+    if len(generated["spreads"]) != len(small_unit["spreads"]):
+        raise ValueError("AI가 요청한 펼침면 수와 다른 원고를 반환했습니다.")
+    for index, spread in enumerate(generated["spreads"]):
+        original = small_unit["spreads"][index]
+        spread.update(
+            {
+                "spread_number": original["spread_number"],
+                "left_page": original["left_page"],
+                "right_page": original["right_page"],
+            }
+        )
+        for activity_index, activity in enumerate(spread["activities"]):
+            activity["number"] = activity_index + 1
+    return generated
+
+
+def update_manuscript_small_unit(payload: dict, generate_with_ai: bool = False) -> dict:
+    chapter_id = str(payload.get("chapter_id", ""))
+    section_index = int(payload.get("section_index", -1))
+    small_unit_index = int(payload.get("small_unit_index", -1))
+    expected_version = requested_version(payload)
+    manuscript, chapter, section, small_unit = manuscript_small_unit_selection(
+        chapter_id, section_index, small_unit_index
+    )
+    if generate_with_ai:
+        generated = call_openai_for_small_unit(chapter, section, small_unit)
+        small_unit["instruction"] = generated["instruction"]
+        small_unit["spreads"] = generated["spreads"]
+        note = f"OpenAI로 소단원 '{small_unit['title']}' 원고 생성"
+    else:
+        replacement = payload.get("small_unit")
+        if not isinstance(replacement, dict):
+            raise ValueError("저장할 소단원 원고가 필요합니다.")
+        replacement = dict(replacement)
+        replacement.pop("index", None)
+        section["activities"][small_unit_index] = replacement
+        note = f"소단원 '{replacement.get('title', '')}' 원고 저장"
+    clean = {
+        key: value
+        for key, value in manuscript.items()
+        if key not in {"status", "version", "updated_at", "approved_at"}
+    }
+    stored = store_workflow_stage(
+        "manuscript",
+        clean,
+        note,
+        expected_version=expected_version,
+    )
+    return manuscript_small_unit_payload(
+        chapter_id, section_index, small_unit_index
+    ) | {"stored_version": stored["version"]}
+
+
+TEXTBOOK_REVIEW_CRITERIA = [
+    ("Ⅰ. 교육과정의 준수", 25, 1, "교육과정의 성격과 목표 반영"),
+    ("Ⅰ. 교육과정의 준수", 25, 2, "내용 체계와 성취기준 반영"),
+    ("Ⅰ. 교육과정의 준수", 25, 3, "교수·학습과 평가 반영"),
+    ("Ⅰ. 교육과정의 준수", 25, 4, "포용성·창의성·주도성과 디지털 소양 반영"),
+    ("Ⅰ. 교육과정의 준수", 25, 5, "신체활동 역량과 움직임 기술의 체계적 발달"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 6, "신체활동을 위한·관한·통한 학습의 종합 구현"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 7, "학년 간 중복 방지와 계열성·연계성"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 8, "학습자 수준과 성취기준 도달에 적절한 내용"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 9, "영역별 비중과 내용 제시 방법"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 10, "움직임 발달 체계에 따른 활동 위계화"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 11, "개인차를 고려한 현장 적합성과 실천 가능성"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 12, "자기주도 학습과 일상생활 적용"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 13, "사실·개념·용어·사례의 정확성"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 14, "사진·삽화·인용 자료의 최신성과 출처"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 15, "편견 없는 공정한 기술"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 16, "어문·용어·단위 표기의 정확성"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 17, "문법·어휘·표현의 정확성과 이해 용이성"),
+    ("Ⅳ. 학습 활동 및 평가 지원", 25, 18, "성취기준과 연계된 창의적 활동·평가"),
+    ("Ⅳ. 학습 활동 및 평가 지원", 25, 19, "수준에 적절하고 수행 가능한 충분한 활동"),
+    ("Ⅳ. 학습 활동 및 평가 지원", 25, 20, "다양한 교수·학습 과정과 평가 방법"),
+    ("Ⅳ. 학습 활동 및 평가 지원", 25, 21, "참여와 성장을 지원하는 과정 중심 활동"),
+    ("Ⅳ. 학습 활동 및 평가 지원", 25, 22, "디지털·온오프라인 연계 활동 지원"),
+]
+
+
+def manuscript_review_page_entries(manuscript: dict) -> list[tuple[int, str, dict]]:
+    entries: list[tuple[int, str, dict]] = []
+    for chapter in manuscript["chapters"]:
+        for opener_page in chapter.get("opener_pages", []):
+            entries.append(
+                (
+                    chapter["grade"],
+                    chapter["id"],
+                    {
+                        "page_number": opener_page,
+                        "body": chapter.get("opening", ""),
+                        "activities": [],
+                        "wrap_up": "",
+                        "page_role": "대단원 도입",
+                    },
+                )
+            )
+        for section in chapter["sections"]:
+            for small_unit in section.get("activities", []):
+                for spread in small_unit.get("spreads", []):
+                    page_view = {
+                        "body": spread.get("intro", ""),
+                        "activities": spread.get("activities", []),
+                        "wrap_up": spread.get("wrap_up", ""),
+                        "page_role": spread.get("role", ""),
+                    }
+                    for page_number in (spread["left_page"], spread["right_page"]):
+                        entries.append(
+                            (
+                                chapter["grade"],
+                                chapter["id"],
+                                {**page_view, "page_number": page_number},
+                            )
+                        )
+    return entries
+
+
+def build_review_payload(review_options: dict | None = None) -> dict:
     outline = workflow_stage_record("outline")
     design = workflow_stage_record("design")
     manuscript = workflow_stage_record("manuscript")
     outline_summary = workflow_stage_summary("outline", outline)
+    manuscript_summary = workflow_stage_summary("manuscript", manuscript)
     standards_count = len(curriculum_standard_rows())
     findings = []
     for grade, grade_summary in outline_summary["grades"].items():
@@ -2514,10 +3102,38 @@ def build_review_payload() -> dict:
                     "suggestion": "108~132쪽 범위로 조정하세요.",
                 }
             )
-    empty_bodies = sum(
-        not section["body"].strip()
-        for chapter in manuscript["chapters"]
-        for section in chapter["sections"]
+    review_options = review_options or {}
+    requested_mode = str(review_options.get("mode", "all"))
+    requested_grade = int(review_options.get("grade", 3))
+    requested_start = max(1, int(review_options.get("start_page", 1)))
+    requested_end = max(requested_start, int(review_options.get("end_page", 120)))
+    page_entries = manuscript_review_page_entries(manuscript)
+    if requested_mode == "range":
+        selected_entries = [
+            entry
+            for entry in page_entries
+            if entry[0] == requested_grade
+            and requested_start <= entry[2]["page_number"] <= requested_end
+        ]
+        scope_label = f"{requested_grade}학년 {requested_start}~{requested_end}쪽"
+        scope_grades = [requested_grade]
+    elif requested_mode == "grade":
+        selected_entries = [entry for entry in page_entries if entry[0] == requested_grade]
+        scope_label = f"{requested_grade}학년 전체"
+        scope_grades = [requested_grade]
+    else:
+        requested_mode = "all"
+        selected_entries = page_entries
+        scope_label = "3~6학년 전체 원고"
+        scope_grades = [3, 4, 5, 6]
+    if not selected_entries:
+        raise ValueError("선택한 심사 범위에 원고 쪽이 없습니다.")
+    all_pages = [entry[2] for entry in selected_entries]
+    empty_bodies = sum(not page.get("body", "").strip() for page in all_pages)
+    insufficient_activities = sum(
+        page.get("page_role") != "대단원 도입"
+        and not 2 <= len(page.get("activities", [])) <= 3
+        for page in all_pages
     )
     missing_safety = sum(not unit["safety"].strip() for unit in design["units"])
     if empty_bodies:
@@ -2540,20 +3156,98 @@ def build_review_payload() -> dict:
                 "suggestion": "위험 요소와 대체 활동을 명시하세요.",
             }
         )
-    critical_count = sum(item["severity"] == "critical" for item in findings)
-    major_count = sum(item["severity"] == "major" for item in findings)
+    if not manuscript_summary["page_count_valid"]:
+        findings.append(
+            {
+                "severity": "critical",
+                "category": "원고 분량",
+                "location": "전체 원고",
+                "message": (
+                    f"심사 원고가 {manuscript_summary['generated_pages']}쪽이며 "
+                    f"목표는 {manuscript_summary['target_pages']}쪽입니다."
+                ),
+                "suggestion": "목차에서 지정한 쪽수만큼 쪽별 원고를 다시 생성하세요.",
+            }
+        )
+    if insufficient_activities:
+        findings.append(
+            {
+                "severity": "major",
+                "category": "학습 활동",
+                "location": "쪽별 원고",
+                "message": f"활동이 2개 미만인 쪽이 {insufficient_activities}쪽입니다.",
+                "suggestion": "각 쪽에 수행 가능한 활동과 방법을 2개 이상 제시하세요.",
+            }
+        )
+
+    structure_ready = (
+        bool(all_pages)
+        and
+        standards_count == 49
+        and manuscript_summary["page_count_valid"]
+        and not empty_bodies
+        and not insufficient_activities
+    )
+    manual_numbers = {13, 14, 15, 16, 17}
+    criteria_results = []
+    for area, area_weight, number, criterion in TEXTBOOK_REVIEW_CRITERIA:
+        if number in manual_numbers:
+            status = "manual"
+            evidence = "원문·이미지·출처·어문 규정과의 인적 대조가 필요합니다."
+        elif structure_ready and not missing_safety:
+            status = "pass"
+            evidence = (
+                f"{manuscript_summary['generated_pages']}쪽 원고, "
+                f"선택 범위 {len(all_pages)}쪽, 성취기준 {standards_count}개 연결을 확인했습니다."
+            )
+        else:
+            status = "supplement"
+            evidence = "분량·본문·활동·안전 구성의 보완이 필요합니다."
+        criteria_results.append(
+            {
+                "number": number,
+                "area": area,
+                "area_weight": area_weight,
+                "criterion": criterion,
+                "status": status,
+                "evidence": evidence,
+                "source_page": 20 if number <= 18 else 21,
+            }
+        )
+
+    score_1 = 25 if standards_count == 49 else 15
+    score_2 = 30 if manuscript_summary["page_count_valid"] and not empty_bodies else 18
+    score_3 = 10  # 20점 중 자동 확인 10점, 나머지는 원문·시각자료 인적 대조
+    score_4 = 25 if all_pages and not insufficient_activities else 15
     scores = {
-        "교육과정 정합성": 100 if standards_count == 49 else 70,
-        "목차·분량 균형": max(0, 100 - critical_count * 15),
-        "학년 적합성": 90,
-        "현장 실행 가능성": 90 if not missing_safety else 65,
-        "안전·포용성": 95 if not missing_safety else 55,
-        "원고 완결성": max(0, 100 - empty_bodies * 5),
+        "Ⅰ. 교육과정의 준수": score_1,
+        "Ⅱ. 내용의 선정 및 조직": score_2,
+        "Ⅲ. 내용의 정확성 및 공정성": score_3,
+        "Ⅳ. 학습 활동 및 평가 지원": score_4,
     }
-    overall = round(sum(scores.values()) / len(scores))
+    overall = sum(scores.values())
     return {
         "title": "독립 모의심사 결과",
-        "review_note": "앞 단계의 선택 근거와 선호 점수는 제외하고 공식 기준과 현재 산출물만 평가한다.",
+        "review_note": (
+            "앞 단계의 선택 근거와 선호 점수는 제외하고, 초등 체육 교과서 검정기준 "
+            "22개 항목으로 원고를 별도 심사한다. "
+            "내용 정확성·공정성 영역은 자동 판정으로 확정하지 않고 인적 대조 대상으로 표시한다."
+        ),
+        "criteria_source": {
+            "document_id": "체육_2022편찬상의_유의점_및_검정기준",
+            "pdf_pages": "20~21",
+            "item_count": 22,
+            "total_weight": 100,
+        },
+        "review_scope": {
+            "mode": requested_mode,
+            "label": scope_label,
+            "pages_reviewed": len(all_pages),
+            "grades": scope_grades,
+            "grade": requested_grade,
+            "start_page": requested_start,
+            "end_page": requested_end,
+        },
         "source_versions": {
             "outline": outline["version"],
             "design": design["version"],
@@ -2563,6 +3257,7 @@ def build_review_payload() -> dict:
         "overall_score": overall,
         "decision": "보완 후 통과" if findings else "통과",
         "scores": scores,
+        "criteria_results": criteria_results,
         "findings": findings,
         "hard_checks": {
             "achievement_standards": standards_count,
@@ -2719,12 +3414,52 @@ def workflow_stage_summary(stage_key: str, payload: dict | None = None) -> dict:
             for chapter in payload["chapters"]
             for section in chapter["sections"]
         ]
-        complete = sum(bool(section["body"].strip()) for section in sections)
+        small_units = [
+            activity
+            for section in sections
+            for activity in section.get("activities", [])
+        ]
+        spreads = [
+            spread
+            for activity in small_units
+            for spread in activity.get("spreads", [])
+        ]
+        complete = sum(
+            bool(activity.get("instruction", "").strip())
+            and len(activity.get("spreads", [])) * 2 == activity.get("target_pages")
+            and all(
+                spread.get("title", "").strip()
+                and spread.get("intro", "").strip()
+                and 2 <= len(spread.get("activities", [])) <= 3
+                and spread.get("wrap_up", "").strip()
+                for spread in activity.get("spreads", [])
+            )
+            for activity in small_units
+        )
+        target_pages = sum(chapter.get("target_pages", 0) for chapter in payload["chapters"])
+        generated_pages = sum(
+            len(chapter.get("opener_pages", []))
+            + sum(
+                len(activity.get("spreads", [])) * 2
+                for section in chapter["sections"]
+                for activity in section.get("activities", [])
+            )
+            for chapter in payload["chapters"]
+        )
         return {
             "chapters": len(payload["chapters"]),
             "sections": len(sections),
-            "complete_sections": complete,
-            "valid": bool(payload["chapters"]) and complete == len(sections),
+            "small_units": len(small_units),
+            "complete_small_units": complete,
+            "target_pages": target_pages,
+            "generated_pages": generated_pages,
+            "spreads": len(spreads),
+            "page_count_valid": target_pages == generated_pages,
+            "valid": (
+                bool(payload["chapters"])
+                and complete == len(small_units)
+                and target_pages == generated_pages
+            ),
         }
     return {
         "overall_score": payload["overall_score"],
@@ -2799,6 +3534,23 @@ def validate_workflow_payload(stage_key: str, payload: dict) -> dict:
                     section.get("body"), str
                 ):
                     raise ValueError("중단원명과 본문이 필요합니다.")
+                for activity in section.get("activities", []):
+                    target_pages = activity.get("target_pages")
+                    spreads = activity.get("spreads")
+                    if not isinstance(target_pages, int) or target_pages < 1:
+                        raise ValueError("소단원 목표 쪽수는 1 이상의 정수여야 합니다.")
+                    if (
+                        not isinstance(spreads, list)
+                        or len(spreads) * 2 != target_pages
+                    ):
+                        raise ValueError("소단원 펼침면이 지정 쪽수와 일치하지 않습니다.")
+                    for spread in spreads:
+                        if not isinstance(spread.get("intro"), str) or not isinstance(
+                            spread.get("activities"), list
+                        ):
+                            raise ValueError("펼침면 도입과 활동 구성이 필요합니다.")
+                        if not 2 <= len(spread["activities"]) <= 3:
+                            raise ValueError("각 펼침면에는 활동이 2~3개 필요합니다.")
     elif stage_key == "review":
         if not isinstance(clean.get("scores"), dict) or not isinstance(
             clean.get("findings"), list
@@ -2884,16 +3636,24 @@ def update_workflow_stage(stage_key: str, payload: dict) -> dict:
     )
 
 
-def regenerate_workflow_stage(stage_key: str) -> dict:
+def regenerate_workflow_stage(
+    stage_key: str,
+    generation_options: dict | None = None,
+) -> dict:
     generators = {
         "outline": generated_outline_payload,
         "design": generated_design_payload,
         "manuscript": generated_manuscript_payload,
         "review": build_review_payload,
     }
+    payload = (
+        build_review_payload(generation_options)
+        if stage_key == "review"
+        else generators[stage_key]()
+    )
     return store_workflow_stage(
         stage_key,
-        generators[stage_key](),
+        payload,
         (
             "독립 심사 엔진으로 현재 산출물 재검토"
             if stage_key == "review"
@@ -3068,12 +3828,13 @@ def payload_export_blocks(
     value: object,
     label: str = "",
     level: int = 2,
-) -> list[tuple[str, str, int]]:
-    blocks: list[tuple[str, str, int]] = []
+) -> list[tuple[str, object, int]]:
+    blocks: list[tuple[str, object, int]] = []
     heading_level = min(max(level, 1), 4)
     if isinstance(value, dict):
         if label:
             blocks.append(("heading", label, heading_level))
+        scalar_rows = [["항목", "내용"]]
         for key, child in value.items():
             if key in EXPORT_METADATA_FIELDS or child in (None, "", [], {}):
                 continue
@@ -3088,11 +3849,14 @@ def payload_export_blocks(
                 )
             else:
                 rendered = "예" if child is True else "아니요" if child is False else str(child)
-                blocks.append(("paragraph", f"{child_label}: {rendered}", heading_level))
+                scalar_rows.append([child_label, rendered])
+        if len(scalar_rows) > 1:
+            blocks.insert(1 if label else 0, ("table", scalar_rows, heading_level))
         return blocks
     if isinstance(value, list):
         if label:
             blocks.append(("heading", label, heading_level))
+        primitive_rows = [["번호", "내용"]]
         for index, item in enumerate(value, start=1):
             if isinstance(item, dict):
                 blocks.extend(
@@ -3111,7 +3875,9 @@ def payload_export_blocks(
                     )
                 )
             elif item not in (None, ""):
-                blocks.append(("bullet", str(item), heading_level))
+                primitive_rows.append([str(index), str(item)])
+        if len(primitive_rows) > 1:
+            blocks.append(("table", primitive_rows, heading_level))
         return blocks
     if value not in (None, ""):
         blocks.append(("paragraph", f"{label}: {value}" if label else str(value), heading_level))
@@ -3172,6 +3938,33 @@ def export_hwpx(scope: str) -> tuple[bytes, str]:
     content = build_hwpx(title, blocks)
     date_stamp = datetime.now().strftime("%Y%m%d")
     filename = f"{EXPORT_SCOPE_LABELS[scope].replace('·', '_')}_{date_stamp}.hwpx"
+    return content, filename
+
+
+def export_manuscript_small_unit_hwpx(
+    chapter_id: str,
+    section_index: int,
+    small_unit_index: int,
+) -> tuple[bytes, str]:
+    payload = manuscript_small_unit_payload(chapter_id, section_index, small_unit_index)
+    chapter = payload["chapter"]
+    section = payload["section"]
+    small_unit = {key: value for key, value in payload["small_unit"].items() if key != "index"}
+    project = project_payload()
+    unit_title = small_unit.get("title") or "소단원 원고"
+    title = f"{project.get('name', '교과서 제작')} · {unit_title}"
+    blocks: list[tuple[str, object, int]] = [
+        ("paragraph", f"교과: {project.get('subject', '')}", 1),
+        ("paragraph", f"대단원: {chapter.get('large_unit_title', '')} · {chapter.get('subtitle', '')}", 1),
+        ("paragraph", f"중단원: {section.get('title', '')}", 1),
+        ("paragraph", f"생성 시각: {utc_now()}", 1),
+    ]
+    blocks.append(("heading", unit_title, 1))
+    blocks.extend(payload_export_blocks(small_unit, level=2))
+    content = build_hwpx(title, blocks)
+    date_stamp = datetime.now().strftime("%Y%m%d")
+    safe_title = unit_title.replace("/", "_").replace("·", "_").strip() or "소단원"
+    filename = f"{safe_title}_원고초안_{date_stamp}.hwpx"
     return content, filename
 
 
@@ -3276,6 +4069,34 @@ class StudioHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/content/bootstrap":
             self.send_json(content_bootstrap_payload())
             return
+        if parsed.path == "/api/manuscript/bootstrap":
+            self.send_json(manuscript_catalog_record())
+            return
+        if parsed.path == "/api/manuscript/small-unit":
+            query = parse_qs(parsed.query)
+            try:
+                self.send_json(
+                    manuscript_small_unit_payload(
+                        query.get("chapter_id", [""])[0],
+                        int(query.get("section_index", ["-1"])[0]),
+                        int(query.get("small_unit_index", ["-1"])[0]),
+                    )
+                )
+            except (KeyError, ValueError) as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        if parsed.path == "/api/manuscript/small-unit/export/hwpx":
+            query = parse_qs(parsed.query)
+            try:
+                content, filename = export_manuscript_small_unit_hwpx(
+                    query.get("chapter_id", [""])[0],
+                    int(query.get("section_index", ["-1"])[0]),
+                    int(query.get("small_unit_index", ["-1"])[0]),
+                )
+                self.send_download(content, filename, "application/hwp+zip")
+            except (KeyError, ValueError) as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
         for stage_key in WORKFLOW_STAGE_ORDER:
             if parsed.path == f"/api/{stage_key}/bootstrap":
                 self.send_json(workflow_bootstrap_payload(stage_key))
@@ -3310,6 +4131,9 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self.send_json(
                     {"content": content, "summary": content_summary(content)}
                 )
+                return
+            if parsed.path == "/api/manuscript/small-unit":
+                self.send_json(update_manuscript_small_unit(payload))
                 return
             for stage_key in WORKFLOW_STAGE_ORDER:
                 if parsed.path == f"/api/{stage_key}":
@@ -3383,9 +4207,20 @@ class StudioHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/content/approve":
                 self.send_json({"content": approve_content()})
                 return
+            if parsed.path == "/api/manuscript/small-unit/generate":
+                self.send_json(
+                    update_manuscript_small_unit(
+                        self.read_json(),
+                        generate_with_ai=True,
+                    )
+                )
+                return
             for stage_key in WORKFLOW_STAGE_ORDER:
                 if parsed.path == f"/api/{stage_key}/generate":
-                    stage = regenerate_workflow_stage(stage_key)
+                    generation_options = (
+                        self.read_json() if stage_key == "review" else None
+                    )
+                    stage = regenerate_workflow_stage(stage_key, generation_options)
                     self.send_json(
                         {
                             "stage": stage,
@@ -3446,6 +4281,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             "/reset-password": "reset-password.html",
             "/editors": "editors.html",
             "/export": "export.html",
+            "/ai-journey": "journey.html",
         }
         relative = route_files.get(request_path, unquote(request_path.lstrip("/")))
         candidate = (STATIC_DIR / relative).resolve()

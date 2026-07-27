@@ -288,13 +288,71 @@ class StudioDataTests(unittest.TestCase):
             self.app.workflow_stage_summary("manuscript", manuscript)["valid"]
         )
 
+    def test_manuscript_catalog_does_not_send_all_page_drafts(self):
+        payload = self.app.manuscript_catalog_record()
+        self.assertNotIn("chapters", payload["stage"])
+        self.assertTrue(payload["catalog"])
+        first_small_unit = payload["catalog"][0]["sections"][0]["small_units"][0]
+        self.assertIn("title", first_small_unit)
+        self.assertIn("spread_count", first_small_unit)
+        self.assertNotIn("spreads", first_small_unit)
+
+    def test_manuscript_loads_only_selected_small_unit(self):
+        catalog = self.app.manuscript_catalog_record()["catalog"]
+        chapter = catalog[0]
+        selected = self.app.manuscript_small_unit_payload(
+            chapter["id"],
+            chapter["sections"][0]["index"],
+            chapter["sections"][0]["small_units"][0]["index"],
+        )
+        self.assertEqual(selected["chapter"]["id"], chapter["id"])
+        self.assertEqual(selected["section"]["index"], 0)
+        self.assertTrue(selected["small_unit"]["spreads"])
+        self.assertNotIn("sections", selected["chapter"])
+
+    def test_small_unit_hwpx_export_is_valid_zip_package(self):
+        catalog = self.app.manuscript_catalog_record()["catalog"]
+        chapter = catalog[0]
+        content, filename = self.app.export_manuscript_small_unit_hwpx(
+            chapter["id"],
+            chapter["sections"][0]["index"],
+            chapter["sections"][0]["small_units"][0]["index"],
+        )
+        self.assertTrue(content.startswith(b"PK"))
+        self.assertTrue(filename.endswith(".hwpx"))
+        self.assertGreater(len(content), 3000)
+
+    def test_selected_small_unit_can_be_saved_without_replacing_others(self):
+        catalog = self.app.manuscript_catalog_record()["catalog"]
+        chapter = catalog[0]
+        before = self.app.manuscript_small_unit_payload(chapter["id"], 0, 0)
+        sibling = self.app.manuscript_small_unit_payload(chapter["id"], 0, 1)
+        edited = deepcopy(before["small_unit"])
+        edited["instruction"] += " 선택 저장 테스트."
+        updated = self.app.update_manuscript_small_unit(
+            {
+                "chapter_id": chapter["id"],
+                "section_index": 0,
+                "small_unit_index": 0,
+                "expected_version": before["manuscript_version"],
+                "small_unit": edited,
+            }
+        )
+        self.assertTrue(
+            updated["small_unit"]["instruction"].endswith("선택 저장 테스트.")
+        )
+        sibling_after = self.app.manuscript_small_unit_payload(chapter["id"], 0, 1)
+        self.assertEqual(sibling["small_unit"], sibling_after["small_unit"])
+
     def test_review_is_independent_and_checks_current_outputs(self):
         review = self.app.workflow_stage_record("review")
         self.assertIn("앞 단계의 선택 근거와 선호 점수는 제외", review["review_note"])
         self.assertEqual(review["hard_checks"]["achievement_standards"], 49)
         self.assertTrue(review["hard_checks"]["grade_hours_valid"])
         self.assertTrue(review["hard_checks"]["grade_pages_valid"])
-        self.assertIn("교육과정 정합성", review["scores"])
+        self.assertIn("Ⅰ. 교육과정의 준수", review["scores"])
+        self.assertEqual(len(review["criteria_results"]), 22)
+        self.assertEqual(review["criteria_source"]["pdf_pages"], "20~21")
 
     def test_workflow_save_creates_version(self):
         current = self.app.workflow_stage_record("outline")

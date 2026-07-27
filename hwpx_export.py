@@ -6,7 +6,7 @@ from typing import Iterable
 from hwpx import HwpxDocument
 
 
-Block = tuple[str, str, int]
+Block = tuple[str, object, int]
 TEMPLATE_PATH = Path(__file__).resolve().parent / "assets" / "blank.hwpx"
 
 
@@ -31,6 +31,26 @@ def build_hwpx(title: str, blocks: Iterable[Block]) -> bytes:
     document.add_paragraph(title, char_pr_id_ref=title_style)
 
     for block_type, text, level in blocks:
+        if block_type == "table":
+            rows = [list(map(str, row)) for row in text] if isinstance(text, list) else []
+            if not rows:
+                continue
+            column_count = max(len(row) for row in rows)
+            table = document.add_table(
+                len(rows),
+                column_count,
+                width=42000,
+                char_pr_id_ref=body_style,
+            )
+            for row_index, row in enumerate(rows):
+                for column_index in range(column_count):
+                    value = row[column_index] if column_index < len(row) else ""
+                    table.set_cell_text(row_index, column_index, value)
+                    if row_index == 0:
+                        table.set_cell_shading(row_index, column_index, "#DDEBE3")
+                    elif row_index % 2 == 0:
+                        table.set_cell_shading(row_index, column_index, "#F5F7F5")
+            continue
         clean_text = str(text).strip()
         if not clean_text:
             continue

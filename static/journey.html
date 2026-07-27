@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="교과서 편집자가 실제 질문을 통해 전처리 자료를 웹서비스로 발전시킨 과정"
+    />
+    <title>내 질문으로 만든 Textbook Studio</title>
+    <link rel="stylesheet" href="/journey.css?v=2" />
+  </head>
+  <body id="top">
+    <header class="site-header">
+      <a class="wordmark" href="/ai-journey" aria-label="처음으로">
+        <span class="wordmark-dot"></span>
+        TEXTBOOK STUDIO
+      </a>
+      <div class="header-actions">
+        <span class="page-status"><b id="currentNumber">1</b> / 7</span>
+        <a class="studio-link" href="/login">제작 도구로 이동 <span>↗</span></a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">MY PROJECT · MY QUESTIONS</p>
+          <h1>
+            전처리 데이터는 있는데,<br />
+            <em>이걸로 무엇을 만들 수 있을까?</em>
+          </h1>
+          <p class="hero-description">
+            내가 실제로 막혔던 순간과 AI에게 건넨 질문을 따라가며 만든
+            교과서 초안 제작 웹서비스의 기록
+          </p>
+        </div>
+        <aside class="hero-principle">
+          <p>나의 출발점</p>
+          <dl>
+            <div><dt>가지고 있던 것</dt><dd>교육과정 PDF · 전처리 데이터</dd></div>
+            <div><dt>알고 있던 것</dt><dd>교과서 편집 공정 · 목차 구성 원리</dd></div>
+            <div><dt>몰랐던 것</dt><dd>데이터 활용법 · 웹 개발 · 배포</dd></div>
+          </dl>
+          <strong>모르는 지점마다, 구체적으로 물었다.</strong>
+        </aside>
+      </section>
+
+      <section class="story-shell" aria-labelledby="storyTitle">
+        <div class="story-heading">
+          <div>
+            <p class="eyebrow">7 ACTUAL CONVERSATIONS</p>
+            <h2 id="storyTitle">내 프로젝트를 앞으로 움직인 질문들</h2>
+          </div>
+          <p>대화 캡처를 중심으로 살펴보세요.</p>
+        </div>
+
+        <div class="tab-scroller">
+          <div class="tabs" role="tablist" aria-label="프로젝트 단계">
+            <button class="tab active" id="tab-1" role="tab" aria-selected="true" aria-controls="panel-1" data-step="1">
+              <small>01</small><span>전처리 데이터</span>
+            </button>
+            <button class="tab" id="tab-2" role="tab" aria-selected="false" aria-controls="panel-2" data-step="2" tabindex="-1">
+              <small>02</small><span>AI 초안 공정</span>
+            </button>
+            <button class="tab" id="tab-3" role="tab" aria-selected="false" aria-controls="panel-3" data-step="3" tabindex="-1">
+              <small>03</small><span>편집 규칙</span>
+            </button>
+            <button class="tab" id="tab-4" role="tab" aria-selected="false" aria-controls="panel-4" data-step="4" tabindex="-1">
+              <small>04</small><span>화면 수정</span>
+            </button>
+            <button class="tab" id="tab-5" role="tab" aria-selected="false" aria-controls="panel-5" data-step="5" tabindex="-1">
+              <small>05</small><span>독립 심사</span>
+            </button>
+            <button class="tab" id="tab-6" role="tab" aria-selected="false" aria-controls="panel-6" data-step="6" tabindex="-1">
+              <small>06</small><span>HWPX 출력</span>
+            </button>
+            <button class="tab" id="tab-7" role="tab" aria-selected="false" aria-controls="panel-7" data-step="7" tabindex="-1">
+              <small>07</small><span>공동 사용·배포</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="panels">
+          <article class="story-panel active" id="panel-1" role="tabpanel" aria-labelledby="tab-1" data-step="1">
+            <div class="panel-index">01</div>
+            <div class="prompt-column">
+              <p class="stage-label">전처리 자료를 다시 출발점으로</p>
+              <h3>이미 만든 데이터를<br />어디에, 어떻게 쓸까?</h3>
+              <figure class="prompt-shot">
+                <figcaption><i></i><span>실제 대화 · 나의 요청</span><time>프로젝트 시작</time></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>이 폴더에서 이전에 진행한 PDF 전처리 파일과 processed 폴더를 확인해 줘. 기존 결과를 우선 활용해서 질문에 답하고, 전처리가 미완료라면 이어서 완료해 줘.</p>
+                </div>
+              </figure>
+              <figure class="prompt-shot compact-shot">
+                <figcaption><i></i><span>기준을 이해하기 위한 확인 질문</span></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>본문·부록이 108~132쪽, 기타 부속이 10쪽이면 최대 142쪽까지 가능한 거야?</p>
+                </div>
+              </figure>
+            </div>
+            <aside class="case-summary">
+              <div>
+                <span>막힌 지점</span>
+                <ul><li>전처리 결과의 활용법</li><li>공식 기준의 실제 적용</li></ul>
+              </div>
+              <div>
+                <span>내가 확인한 것</span>
+                <ul><li>기존 데이터부터 재사용</li><li>원문·쪽수 근거 함께 보존</li></ul>
+              </div>
+              <div class="decision"><span>결정</span><strong>PDF를 다시 읽히지 않고<br />전처리 데이터를 공통 기준으로 사용</strong></div>
+            </aside>
+          </article>
+
+          <article class="story-panel" id="panel-2" role="tabpanel" aria-labelledby="tab-2" data-step="2" hidden>
+            <div class="panel-index">02</div>
+            <div class="prompt-column">
+              <p class="stage-label">전처리 이후의 쓰임을 설계</p>
+              <h3>회의 전에 AI가<br />초안을 만들 수 있을까?</h3>
+              <figure class="prompt-shot">
+                <figcaption><i></i><span>실제 대화 · 핵심 아이디어</span><time>서비스 구상</time></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>전처리한 데이터로 교과서 초안 만들기까지 가이드하는 웹 서비스를 만들고 싶어. 교육과정 분석부터 초안까지 여러 단계가 필요한데, 초안이 나온 뒤 의미 있는 회의를 진행하는 게 낫겠다 싶거든.</p>
+                </div>
+              </figure>
+              <figure class="prompt-shot compact-shot">
+                <figcaption><i></i><span>서비스 방식 구체화</span></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>각 단계에서 AI가 초안을 생성하고 편집팀이 웹에서 수정하게 해줘. 이전 단계로 가서도 수정할 수 있으면 좋겠어.</p>
+                </div>
+              </figure>
+            </div>
+            <aside class="case-summary">
+              <div>
+                <span>기존 방식</span>
+                <ul><li>초안 전 반복 회의</li><li>논의 결과가 흩어짐</li></ul>
+              </div>
+              <div>
+                <span>바꾼 방식</span>
+                <ul><li>AI 초안 → 편집자 수정</li><li>수정 결과 → 다음 단계</li></ul>
+              </div>
+              <div class="decision"><span>결정</span><strong>AI를 원고 작성자가 아니라<br />단계별 첫 안을 만드는 도구로 사용</strong></div>
+            </aside>
+          </article>
+
+          <article class="story-panel" id="panel-3" role="tabpanel" aria-labelledby="tab-3" data-step="3" hidden>
+            <div class="panel-index">03</div>
+            <div class="prompt-column">
+              <p class="stage-label">내가 아는 편집 원리를 데이터 구조로</p>
+              <h3>목차가 만들어지는 규칙을<br />어떻게 설명할까?</h3>
+              <figure class="prompt-shot">
+                <figcaption><i></i><span>실제 대화 · 편집 규칙 설명</span><time>내용·종목 선정</time></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>‘영역’의 운동·스포츠·표현은 대단원명이 돼. ‘세부영역’은 대단원의 부제가 되고, ‘신체활동 예시’는 중단원명의 토대가 돼. 괄호 안의 내용은 소단원의 내용이 되고.</p>
+                </div>
+              </figure>
+              <figure class="prompt-shot compact-shot">
+                <figcaption><i></i><span>예외를 발견한 뒤의 수정 요청</span></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>상황에 따라 유연하게 중단원·소단원명 카드를 복붙해서 목차를 구성할 수 있어? 3~4학년도 중복 가능하게 해줘.</p>
+                </div>
+              </figure>
+            </div>
+            <aside class="case-summary">
+              <div>
+                <span>내 편집 기준</span>
+                <ul><li>영역 → 대단원</li><li>예시 → 중·소단원 토대</li></ul>
+              </div>
+              <div>
+                <span>발견한 예외</span>
+                <ul><li>학년별 종목은 중복 불가</li><li>단원명 중복은 필요할 수 있음</li></ul>
+              </div>
+              <div class="decision"><span>결정</span><strong>고정된 자동 목차보다<br />편집자가 복제·수정하는 구조</strong></div>
+            </aside>
+          </article>
+
+          <article class="story-panel" id="panel-4" role="tabpanel" aria-labelledby="tab-4" data-step="4" hidden>
+            <div class="panel-index">04</div>
+            <div class="prompt-column">
+              <p class="stage-label">화면을 보며 업무 의미를 재확인</p>
+              <h3>기능은 되는데,<br />왜 실제로 쓰기 어려울까?</h3>
+              <figure class="prompt-shot">
+                <figcaption><i></i><span>실제 대화 · 화면 피드백</span><time>사용성 점검</time></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>전반적으로 글씨가 너무 작아서 가독성이 떨어져. 지금까지 했던 페이지의 글씨를 좀 더 크게 할 수 있어?</p>
+                </div>
+              </figure>
+              <figure class="prompt-shot compact-shot">
+                <figcaption><i></i><span>선택 상태의 의미 확인</span></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>3학년, 4학년 둘 다 ‘선정됨’으로 보이는 건 왜 그렇지? 그럼 내용이 두 학년에 다 적용되는 거 아냐? 공통 선정될 수는 없어.</p>
+                </div>
+              </figure>
+            </div>
+            <aside class="case-summary">
+              <div>
+                <span>검토 방법</span>
+                <ul><li>직접 화면 사용</li><li>캡처에 위치 표시</li></ul>
+              </div>
+              <div>
+                <span>수정 기준</span>
+                <ul><li>글자 위계·크기 통일</li><li>선택 결과의 의미 명확화</li></ul>
+              </div>
+              <div class="decision"><span>결정</span><strong>‘작동 여부’보다<br />편집자가 오해하지 않는 화면</strong></div>
+            </aside>
+          </article>
+
+          <article class="story-panel" id="panel-5" role="tabpanel" aria-labelledby="tab-5" data-step="5" hidden>
+            <div class="panel-index">05</div>
+            <div class="prompt-column">
+              <p class="stage-label">제작과 평가의 관점 분리</p>
+              <h3>앞의 판단을 따르면서도<br />객관적으로 심사할 수 있을까?</h3>
+              <figure class="prompt-shot">
+                <figcaption><i></i><span>실제 대화 · 검증 방식 요청</span><time>자동검증·최종검토</time></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>8단계 자동검증과 최종검토는 모의심사 도구처럼 작동하면 좋겠어. 앞의 기준대로 했지만, 이것과 별개로 객관적으로 판단할 수 있으면 좋겠어.</p>
+                </div>
+              </figure>
+              <figure class="prompt-shot compact-shot">
+                <figcaption><i></i><span>서비스 관계 확인</span></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>초안 생성 웹서비스와 독립적 모의심사 웹서비스를 따로 만들고, 전처리했던 파일은 공통으로 사용하는 거지?</p>
+                </div>
+              </figure>
+            </div>
+            <aside class="case-summary">
+              <div>
+                <span>자동검증</span>
+                <ul><li>쪽수·차시 확인</li><li>기준 연결 누락 확인</li></ul>
+              </div>
+              <div>
+                <span>모의심사</span>
+                <ul><li>앞선 선택과 거리 두기</li><li>완성 결과를 별도 평가</li></ul>
+              </div>
+              <div class="decision"><span>결정</span><strong>자료는 공유하되<br />제작과 심사의 판단 맥락은 분리</strong></div>
+            </aside>
+          </article>
+
+          <article class="story-panel" id="panel-6" role="tabpanel" aria-labelledby="tab-6" data-step="6" hidden>
+            <div class="panel-index">06</div>
+            <div class="prompt-column">
+              <p class="stage-label">웹 결과를 실제 편집 문서로</p>
+              <h3>만든 초안을<br />한글에서 이어서 편집하려면?</h3>
+              <figure class="prompt-shot">
+                <figcaption><i></i><span>실제 대화 · 추가 요구</span><time>배포 전 실무 연결</time></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>현재 프로젝트를 조금 더 수정해야 하는데, 분석 및 초안 데이터를 HWP 파일로 생성하고 싶어.</p>
+                </div>
+              </figure>
+              <figure class="prompt-shot compact-shot">
+                <figcaption><i></i><span>가능한 형식으로 범위 조정</span></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>HWPX여도 돼.</p>
+                </div>
+              </figure>
+            </div>
+            <aside class="case-summary">
+              <div>
+                <span>필요한 결과</span>
+                <ul><li>웹 화면으로 끝나지 않기</li><li>편집 가능한 문서 전달</li></ul>
+              </div>
+              <div>
+                <span>현실적인 선택</span>
+                <ul><li>HWPX 형식 채택</li><li>한컴오피스 열림 확인</li></ul>
+              </div>
+              <div class="decision"><span>결정</span><strong>분석·목차·원고를<br />다음 편집 공정으로 넘기는 출력 기능</strong></div>
+            </aside>
+          </article>
+
+          <article class="story-panel" id="panel-7" role="tabpanel" aria-labelledby="tab-7" data-step="7" hidden>
+            <div class="panel-index">07</div>
+            <div class="prompt-column">
+              <p class="stage-label">내 컴퓨터 밖에서 함께 사용</p>
+              <h3>무료로 배포하면서<br />편집 데이터를 계속 쌓을 수 있을까?</h3>
+              <figure class="prompt-shot">
+                <figcaption><i></i><span>실제 대화 · 운영 조건</span><time>공동 사용 설계</time></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>프로젝트 코드는 내가 계속 수정하고, 최종 프로젝트를 배포한 후에는 교과서 편집자들이 같이 사용할 수도 있어야 돼. 서버형 호스팅은 이용할 수 없고 Vercel이나 무료 계정을 통해 처리하고 싶어.</p>
+                </div>
+              </figure>
+              <figure class="prompt-shot compact-shot">
+                <figcaption><i></i><span>AI에게 실행까지 요청</span></figcaption>
+                <div class="chat-line">
+                  <span class="avatar">나</span>
+                  <p>근데 왜 파워셀 하는 건 내가 해야 돼? 네가 해도 되지 않아?</p>
+                </div>
+              </figure>
+            </div>
+            <aside class="case-summary">
+              <div>
+                <span>나의 조건</span>
+                <ul><li>별도 유료 서버 없음</li><li>계속 수정 가능한 코드</li></ul>
+              </div>
+              <div>
+                <span>연결한 도구</span>
+                <ul><li>GitHub · Vercel</li><li>Supabase 로그인·DB</li></ul>
+              </div>
+              <div class="decision"><span>결정</span><strong>설명만 듣지 않고<br />AI와 실제 인증·배포까지 실행</strong></div>
+            </aside>
+          </article>
+        </div>
+
+        <div class="story-controls">
+          <button class="control-button" id="prevButton" type="button" disabled><span>←</span> 이전 질문</button>
+          <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+          <button class="control-button primary" id="nextButton" type="button">다음 질문 <span>→</span></button>
+        </div>
+      </section>
+
+      <section class="closing">
+        <p class="eyebrow">WHAT MADE THIS PROJECT MINE</p>
+        <h2>내 프로젝트를 결정한<br /><em>세 가지 질문</em></h2>
+        <div class="closing-questions">
+          <article><span>01</span><strong>전처리 데이터를<br />그대로 활용할 수 있나?</strong><small>PDF 자료 → 공통 기준 데이터</small></article>
+          <article><span>02</span><strong>회의 전에 AI가<br />초안을 만들 수 있나?</strong><small>분석 → 선택 → 목차 → 원고</small></article>
+          <article><span>03</span><strong>무료 환경에서도<br />여럿이 함께 쓸 수 있나?</strong><small>HWPX → 로그인 → 공동 데이터</small></article>
+        </div>
+        <p class="closing-note">
+          이 세 질문이 흩어져 있던 전처리 자료를
+          <strong>실제로 편집자가 사용하는 제작 흐름</strong>으로 연결했다.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <span>TEXTBOOK STUDIO · 2026</span>
+      <p>내 질문으로 만든 교과서 초안 제작 웹서비스</p>
+      <a href="#top" id="topLink">맨 위로 ↑</a>
+    </footer>
+
+    <script src="/journey.js?v=2"></script>
+  </body>
+</html>

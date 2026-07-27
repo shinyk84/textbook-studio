@@ -59,3 +59,29 @@
   margin: 14px 0 0;
   color: #9b3a35;
 }
+
+.journey-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e1e7e2;
+  color: #263d33;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.journey-link span {
+  color: #75827c;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+}
+
+.journey-link::after {
+  content: "→";
+  color: #176b4f;
+  font-size: 20px;
+}
