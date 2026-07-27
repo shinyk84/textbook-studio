@@ -42,6 +42,8 @@ def build_hwpx(title: str, blocks: Iterable[Block]) -> bytes:
                 width=42000,
                 char_pr_id_ref=body_style,
             )
+            if column_count == 2:
+                table.set_column_widths([1, 3])
             for row_index, row in enumerate(rows):
                 for column_index in range(column_count):
                     value = row[column_index] if column_index < len(row) else ""
