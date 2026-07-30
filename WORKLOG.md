@@ -40,7 +40,7 @@
 - 보존 항목: 전처리 데이터, 원본 연동 구조, `data/studio.db`, 백업 DB, `.env.local`, `.vercel`, HWPX 템플릿.
 - 수정·삭제 파일: `static/journey.*`, `static/login.html`, `static/login.css`, `app.py`, `HANDOFF.md`, `WORKLOG.md`; 로컬 `__pycache__`와 빈 로그.
 - 검증: 발표용 경로·파일·스타일 참조 0건. 전체 자동 테스트 33개, Python·JavaScript 구문 검사, `git diff --check` 통과. 테스트가 다시 만든 Python 캐시도 재삭제함.
-- Git: 이전의 전처리 데이터 내장 변경과 함께 사용자 요청 시 커밋·푸시.
+- Git: `agent/supabase-collaboration` 브랜치의 `5c8d18c` 커밋에 포함하여 `origin/agent/supabase-collaboration`로 푸시 완료.
 - 남은 문제: 없음.
 - 다음 시작점: 실제 제작 화면과 공동 편집 흐름만 유지하며 계속 검증.
 
@@ -52,7 +52,7 @@
 - 수행 방법·판단: 원본 PDF 45MB는 저장소에서 제외하고, 실행에 필요한 전처리 산출물 약 8MB만 `official-data/processed`에 포함. 원본이 있으면 SHA-256을 검증하고, 없으면 `processed_only` 상태로 구분해 제작 기능을 허용함.
 - 수정 파일: `official-data/**`, `scripts/sync_official_data.py`, `app.py`, `static/app.js`, `vercel.json`, `README.md`, `HANDOFF.md`, `WORKLOG.md`, 테스트.
 - 검증: 5종·1,213쪽·3,973청크 동기화 완료. 개인 컴퓨터 절대경로 0건 확인. 원본 없는 환경에서 5종 모두 `processed_only`로 사용 가능함을 모사. 현재 환경에서 원본 해시 5종 확인 및 성취기준 49개 로드. 전체 자동 테스트 33개 통과, Python·JavaScript 구문 및 `git diff --check` 통과.
-- Git: 작업 완료 후 사용자 요청 시 기록과 함께 커밋·푸시.
+- Git: `agent/supabase-collaboration` 브랜치의 `5c8d18c` 커밋에 포함하여 `origin/agent/supabase-collaboration`로 푸시 완료.
 - 남은 문제: 원본 PDF 대조는 `criteria`를 별도로 둔 컴퓨터에서만 가능.
 - 다음 시작점: 새 컴퓨터에서 pull 후 `start-studio.cmd` 실행 → 공식자료 5종 표시 확인.
 
