@@ -39,7 +39,7 @@
 - 수행 방법·판단: AI 작업 규칙은 대화와 diff를 읽어 의미 있는 기록을 작성하도록 `AGENTS.md`에 명시함. Git Hook은 작업 의미를 추측하지 않고 `WORKLOG.md` 누락만 검사하는 안전장치로 분리함.
 - 수정 파일: `.githooks/pre-push`, `setup-hooks.cmd`, `AGENTS.md`, `HANDOFF.md`, `WORKLOG.md`
 - 검증: `pre-push` 구문 확인. 기록 없이 코드 변경이 있는 과거 커밋 범위는 종료 코드 1로 차단하고, 변경이 없는 범위는 종료 코드 0으로 통과함을 확인. 현재 저장소의 `core.hooksPath=.githooks` 설정 완료.
-- Git: GitHub CLI 재인증 완료. 핸드오프 문서와 함께 `agent/supabase-collaboration` 브랜치에 커밋·푸시 진행.
+- Git: `ba02d86 Add durable handoff and push logging` 커밋을 `origin/agent/supabase-collaboration`에 푸시 완료.
 - 남은 문제: 새 컴퓨터에서는 `setup-hooks.cmd`를 한 번 실행해야 로컬 Hook이 활성화됨.
 - 다음 시작점: 이후 “깃푸시해줘” 요청부터 별도 설명 없이 작업 기록 갱신 → 검증 → 커밋 → 푸시 순서로 처리.
 
@@ -50,7 +50,7 @@
 - 수행 방법·판단: 전처리 5종의 매니페스트·보고서, 저장소 README, 현재 코드, Git 커밋 이력을 대조함. 추정 내용은 배제하고 확인 가능한 사실과 현재 미해결 문제를 기록함.
 - 수정 파일: `AGENTS.md`, `HANDOFF.md`, `WORKLOG.md`, `README.md`
 - 검증: 민감정보 값 미기록, 전처리 문서 수·쪽수·청크 수·경고 수 대조, 브랜치·원격 커밋 대조.
-- Git: 문서 작성 완료. GitHub CLI 재인증을 완료하여 자동화 파일과 함께 커밋·푸시 진행.
+- Git: `ba02d86` 커밋에 포함하여 `origin/agent/supabase-collaboration`에 푸시 완료.
 - 남은 문제: OpenAI API 쿼터 부족으로 실제 원고 생성이 아직 성공하지 않음.
 - 다음 시작점: 사용자가 다음 “작업 시작”을 알리면 이 문서에 세션을 만들고 작업을 이어감.
 
