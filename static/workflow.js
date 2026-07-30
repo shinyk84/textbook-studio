@@ -19,9 +19,9 @@ const configs = {
   manuscript: {
     number: "08",
     heading: "원고 초안",
-    subtitle: "승인된 단원 설계를 근거로 도입·본문·활동·평가·안전 원고를 편집합니다.",
-    editorTitle: "교과서 원고 편집",
-    generate: "✦ AI 원고 재생성",
+    subtitle: "원하는 소단원만 불러와 펼침면 원고를 편집하고 AI로 다시 생성합니다.",
+    editorTitle: "선택 소단원 원고 편집",
+    generate: "✦ 선택 소단원 AI 생성",
     approve: "원고 초안 확정",
   },
   review: {
@@ -41,6 +41,10 @@ const state = {
   prerequisite: null,
   project: null,
   grade: 3,
+  catalog: [],
+  selectedSmallUnit: null,
+  selection: { chapterId: "", sectionIndex: 0, smallUnitIndex: 0 },
+  ai: null,
 };
 
 function escapeHtml(value) {
@@ -107,7 +111,14 @@ function renderGradeFilters() {
   container.querySelectorAll("button").forEach((button) => {
     button.addEventListener("click", () => {
       state.grade = Number(button.dataset.grade);
-      renderAll();
+      if (stageKey === "manuscript") {
+        state.selection = { chapterId: "", sectionIndex: 0, smallUnitIndex: 0 };
+        state.selectedSmallUnit = null;
+        renderAll();
+        loadSelectedSmallUnit().catch((error) => showToast(error.message));
+      } else {
+        renderAll();
+      }
     });
   });
 }
@@ -134,8 +145,9 @@ function renderSummary() {
   } else if (stageKey === "manuscript") {
     container.innerHTML = `
       <article class="summary-card"><span>대단원 원고</span><strong>${state.summary.chapters}</strong><small>학년별 목차 연결</small></article>
-      <article class="summary-card ${state.summary.valid ? "" : "invalid"}"><span>중단원 본문</span><strong>${state.summary.complete_sections}/${state.summary.sections}</strong><small>본문 작성 상태</small></article>`;
-    document.querySelector("#sidebarSummary").textContent = `${state.summary.complete_sections}/${state.summary.sections}개 본문`;
+      <article class="summary-card ${state.summary.page_count_valid ? "" : "invalid"}"><span>생성 쪽수</span><strong>${state.summary.generated_pages}/${state.summary.target_pages}</strong><small>목차 지정 쪽수와 대조</small></article>
+      <article class="summary-card ${state.summary.valid ? "" : "invalid"}"><span>소단원 원고</span><strong>${state.summary.complete_small_units}/${state.summary.small_units}</strong><small>본문·활동·정리 포함</small></article>`;
+    document.querySelector("#sidebarSummary").textContent = `${state.summary.generated_pages}/${state.summary.target_pages}쪽 생성`;
   } else {
     container.innerHTML = `
       <article class="summary-card ${state.summary.valid ? "" : "invalid"}"><span>종합 점수</span><strong>${state.summary.overall_score}</strong><small>100점 기준</small></article>
@@ -255,54 +267,203 @@ function renderDesign() {
 }
 
 function renderManuscript() {
-  const chapters = state.stage.chapters.filter((chapter) => chapter.grade === state.grade);
   const container = document.querySelector("#workflowWorkspace");
-  container.innerHTML = `<div class="chapter-stack">${chapters.map((chapter) => `
-    <article class="manuscript-chapter" data-id="${escapeHtml(chapter.id)}">
-      <div class="chapter-heading"><div><span class="domain-chip">${chapter.grade}학년 · ${escapeHtml(chapter.domain)}</span><h3>${escapeHtml(chapter.large_unit_title)} · ${escapeHtml(chapter.subtitle)}</h3></div></div>
-      <div class="manuscript-field"><label>대단원 도입</label><textarea data-field="opening">${escapeHtml(chapter.opening)}</textarea></div>
-      ${chapter.sections.map((section, sectionIndex) => `
-        <section class="manuscript-section" data-section-index="${sectionIndex}">
-          <input class="section-title" value="${escapeHtml(section.title)}" aria-label="중단원명" />
-          <div class="manuscript-field"><label>중단원 본문</label><textarea class="section-body">${escapeHtml(section.body)}</textarea></div>
-          ${section.activities.map((activity, activityIndex) => `
-            <div class="activity-draft" data-activity-index="${activityIndex}">
-              <input class="activity-title" value="${escapeHtml(activity.title)}" aria-label="소단원명" />
-              <textarea class="activity-instruction">${escapeHtml(activity.instruction)}</textarea>
-            </div>`).join("")}
-        </section>`).join("")}
-      <div class="design-grid">
-        <label><span>평가 상자</span><textarea data-field="assessment_box">${escapeHtml(chapter.assessment_box)}</textarea></label>
-        <label><span>안전 상자</span><textarea data-field="safety_box">${escapeHtml(chapter.safety_box)}</textarea></label>
-      </div>
-    </article>`).join("")}</div>`;
-  container.querySelectorAll(".manuscript-chapter").forEach((card) => {
-    const chapter = state.stage.chapters.find((item) => item.id === card.dataset.id);
-    card.querySelectorAll(":scope > [data-field], :scope > .design-grid [data-field], :scope > .manuscript-field [data-field]").forEach((input) => {
-      input.addEventListener("input", () => { chapter[input.dataset.field] = input.value; });
+  const chapters = state.catalog.filter((chapter) => chapter.grade === state.grade);
+  if (!state.selection.chapterId && chapters.length) state.selection.chapterId = chapters[0].id;
+  const selectedChapter = chapters.find((chapter) => chapter.id === state.selection.chapterId) || chapters[0];
+  const sections = selectedChapter?.sections || [];
+  const selectedSection = sections[state.selection.sectionIndex] || sections[0];
+  const smallUnits = selectedSection?.small_units || [];
+  if (!smallUnits[state.selection.smallUnitIndex]) state.selection.smallUnitIndex = 0;
+  const aiStatus = state.ai?.enabled
+    ? `<span class="ai-ready">AI 연결됨 · ${escapeHtml(state.ai.model)}</span>`
+    : '<span class="ai-missing">AI 키를 확인해 주세요</span>';
+  const selector = `
+    <section class="manuscript-selector">
+      <div><p class="section-kicker">LOAD ONE SMALL UNIT</p><h2>편집할 소단원 선택</h2><small>선택한 소단원의 펼침면 원고만 불러옵니다.</small></div>
+      <label><span>대단원</span><select id="chapterSelect">${chapters.map((chapter) => `<option value="${escapeHtml(chapter.id)}" ${chapter.id === selectedChapter?.id ? "selected" : ""}>${escapeHtml(chapter.large_unit_title)} · ${escapeHtml(chapter.subtitle)}</option>`).join("")}</select></label>
+      <label><span>중단원</span><select id="sectionSelect">${sections.map((section) => `<option value="${section.index}" ${section.index === state.selection.sectionIndex ? "selected" : ""}>${escapeHtml(section.title)}</option>`).join("")}</select></label>
+      <label><span>소단원</span><select id="smallUnitSelect">${smallUnits.map((unit) => `<option value="${unit.index}" ${unit.index === state.selection.smallUnitIndex ? "selected" : ""}>${escapeHtml(unit.title)} · ${unit.target_pages}쪽</option>`).join("")}</select></label>
+      ${aiStatus}
+      <button class="secondary-button" id="smallUnitExportButton" type="button" ${state.selectedSmallUnit ? "" : "disabled"}>⇩ 선택 소단원 HWPX 저장</button>
+    </section>`;
+  if (!state.selectedSmallUnit) {
+    container.innerHTML = `${selector}<div class="small-unit-loading"><span class="loading-ring"></span><strong>선택한 소단원을 불러오는 중입니다.</strong></div>`;
+    bindManuscriptSelectors(container);
+    return;
+  }
+  const chapter = state.selectedSmallUnit.chapter;
+  const section = state.selectedSmallUnit.section;
+  const activity = state.selectedSmallUnit.small_unit;
+  container.innerHTML = `${selector}
+    <div class="chapter-stack"><article class="manuscript-chapter">
+      <div class="chapter-heading"><div><span class="domain-chip">${chapter.grade}학년 · ${escapeHtml(chapter.domain)}</span><h3>${escapeHtml(chapter.large_unit_title)} · ${escapeHtml(chapter.subtitle)}</h3></div><span class="page-match">${activity.spreads?.length || 0}개 펼침면 · ${activity.target_pages}쪽</span></div>
+      <section class="manuscript-section">
+        <input class="section-title" value="${escapeHtml(section.title)}" aria-label="중단원명" disabled />
+        <div class="manuscript-field"><label>중단원 본문</label><textarea class="section-body" disabled>${escapeHtml(section.body)}</textarea></div>
+        <div class="activity-draft">
+          <div class="small-unit-heading"><input class="activity-title" value="${escapeHtml(activity.title)}" aria-label="소단원명" /><span>${activity.spreads?.length || 0}개 펼침면 · ${activity.target_pages}쪽</span></div>
+          <textarea class="activity-instruction">${escapeHtml(activity.instruction)}</textarea>
+          <div class="spread-drafts selected-spreads">
+            ${(activity.spreads || []).map((spread, spreadIndex) => `
+              <article class="spread-draft" data-spread-index="${spreadIndex}">
+                <div class="spread-heading">
+                  <div><b>${spread.left_page}~${spread.right_page}쪽</b><span>${escapeHtml(spread.role)}</span></div>
+                  <select class="spread-template" aria-label="펼침면 유형">${["기본 기능형","게임·적용형","탐구·평가형"].map((template) => `<option ${spread.layout_template === template ? "selected" : ""}>${template}</option>`).join("")}</select>
+                </div>
+                <input class="spread-title" value="${escapeHtml(spread.title)}" aria-label="펼침면 제목" />
+                <textarea class="spread-intro" aria-label="펼침면 도입">${escapeHtml(spread.intro)}</textarea>
+                <div class="spread-canvas">
+                  ${["left", "right"].map((side) => `<section class="book-page ${side}">
+                    <span class="book-page-number">${side === "left" ? spread.left_page : spread.right_page}쪽</span>
+                    <div class="spread-activity-list">${spread.activities.filter((item) => item.placement === side).map((item) => {
+                      const itemIndex = spread.activities.indexOf(item);
+                      return `<article class="spread-activity" data-activity-index="${itemIndex}"><b>활동 ${item.number}</b><input class="spread-activity-title" value="${escapeHtml(item.title)}" /><textarea class="spread-activity-objective">${escapeHtml(item.objective)}</textarea><textarea class="spread-activity-method">${escapeHtml(item.method.join("\n"))}</textarea></article>`;
+                    }).join("")}</div>
+                    <div class="support-box-list">${spread.support_boxes.filter((_, index) => index % 2 === (side === "left" ? 0 : 1)).map((box) => {
+                      const boxIndex = spread.support_boxes.indexOf(box);
+                      return `<label class="support-box" data-support-index="${boxIndex}"><span>${escapeHtml(box.type)}</span><textarea>${escapeHtml(box.content)}</textarea></label>`;
+                    }).join("")}</div>
+                  </section>`).join("")}
+                  <div class="across-spread">${spread.activities.filter((item) => item.placement === "across").map((item) => {
+                    const itemIndex = spread.activities.indexOf(item);
+                    return `<article class="spread-activity" data-activity-index="${itemIndex}"><b>활동 ${item.number} · 펼침면 공통</b><input class="spread-activity-title" value="${escapeHtml(item.title)}" /><textarea class="spread-activity-objective">${escapeHtml(item.objective)}</textarea><textarea class="spread-activity-method">${escapeHtml(item.method.join("\n"))}</textarea></article>`;
+                  }).join("")}</div>
+                </div>
+                <textarea class="spread-wrap-up" aria-label="펼침면 정리">${escapeHtml(spread.wrap_up)}</textarea>
+              </article>`).join("")}
+          </div>
+        </div>
+      </section>
+    </article></div>`;
+  bindManuscriptSelectors(container);
+  container.querySelector(".activity-title").addEventListener("input", (event) => { activity.title = event.target.value; });
+  container.querySelector(".activity-instruction").addEventListener("input", (event) => { activity.instruction = event.target.value; });
+  container.querySelectorAll(".spread-draft").forEach((spreadElement) => {
+    const spread = activity.spreads[Number(spreadElement.dataset.spreadIndex)];
+    spreadElement.querySelector(".spread-template").addEventListener("change", (event) => { spread.layout_template = event.target.value; });
+    spreadElement.querySelector(".spread-title").addEventListener("input", (event) => { spread.title = event.target.value; });
+    spreadElement.querySelector(".spread-intro").addEventListener("input", (event) => { spread.intro = event.target.value; });
+    spreadElement.querySelector(".spread-wrap-up").addEventListener("input", (event) => { spread.wrap_up = event.target.value; });
+    spreadElement.querySelectorAll(".spread-activity").forEach((itemElement) => {
+      const item = spread.activities[Number(itemElement.dataset.activityIndex)];
+      itemElement.querySelector(".spread-activity-title").addEventListener("input", (event) => { item.title = event.target.value; });
+      itemElement.querySelector(".spread-activity-objective").addEventListener("input", (event) => { item.objective = event.target.value; });
+      itemElement.querySelector(".spread-activity-method").addEventListener("input", (event) => { item.method = event.target.value.split("\n").filter(Boolean); });
     });
-    card.querySelectorAll(".manuscript-section").forEach((sectionElement) => {
-      const section = chapter.sections[Number(sectionElement.dataset.sectionIndex)];
-      sectionElement.querySelector(".section-title").addEventListener("input", (event) => { section.title = event.target.value; });
-      sectionElement.querySelector(".section-body").addEventListener("input", (event) => { section.body = event.target.value; });
-      sectionElement.querySelectorAll(".activity-draft").forEach((activityElement) => {
-        const activity = section.activities[Number(activityElement.dataset.activityIndex)];
-        activityElement.querySelector(".activity-title").addEventListener("input", (event) => { activity.title = event.target.value; });
-        activityElement.querySelector(".activity-instruction").addEventListener("input", (event) => { activity.instruction = event.target.value; });
-      });
+    spreadElement.querySelectorAll(".support-box").forEach((boxElement) => {
+      const box = spread.support_boxes[Number(boxElement.dataset.supportIndex)];
+      boxElement.querySelector("textarea").addEventListener("input", (event) => { box.content = event.target.value; });
     });
   });
+}
+
+function bindManuscriptSelectors(container) {
+  const chapterSelect = container.querySelector("#chapterSelect");
+  const sectionSelect = container.querySelector("#sectionSelect");
+  const smallUnitSelect = container.querySelector("#smallUnitSelect");
+  chapterSelect?.addEventListener("change", () => {
+    state.selection = { chapterId: chapterSelect.value, sectionIndex: 0, smallUnitIndex: 0 };
+    state.selectedSmallUnit = null;
+    renderManuscript();
+    loadSelectedSmallUnit().catch((error) => showToast(error.message));
+  });
+  sectionSelect?.addEventListener("change", () => {
+    state.selection.sectionIndex = Number(sectionSelect.value);
+    state.selection.smallUnitIndex = 0;
+    state.selectedSmallUnit = null;
+    renderManuscript();
+    loadSelectedSmallUnit().catch((error) => showToast(error.message));
+  });
+  smallUnitSelect?.addEventListener("change", () => {
+    state.selection.smallUnitIndex = Number(smallUnitSelect.value);
+    state.selectedSmallUnit = null;
+    renderManuscript();
+    loadSelectedSmallUnit().catch((error) => showToast(error.message));
+  });
+  container.querySelector("#smallUnitExportButton")?.addEventListener("click", (event) => {
+    exportSelectedSmallUnitHwpx(event.currentTarget);
+  });
+}
+
+async function exportSelectedSmallUnitHwpx(button) {
+  if (!state.selectedSmallUnit) return;
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "HWPX 생성 중…";
+  try {
+    const query = new URLSearchParams({
+      chapter_id: state.selection.chapterId,
+      section_index: state.selection.sectionIndex,
+      small_unit_index: state.selection.smallUnitIndex,
+    });
+    const response = await fetch(`/api/manuscript/small-unit/export/hwpx?${query}`);
+    if (!response.ok) {
+      const payload = await response.json();
+      throw new Error(payload.error || "HWPX 문서를 만들지 못했습니다.");
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get("Content-Disposition") || "";
+    const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+    const filename = encoded ? decodeURIComponent(encoded) : "소단원_원고초안.hwpx";
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast("선택한 소단원 원고를 HWPX로 저장했습니다.");
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
+}
+
+async function loadSelectedSmallUnit() {
+  if (stageKey !== "manuscript") return;
+  const chapters = state.catalog.filter((chapter) => chapter.grade === state.grade);
+  const chapter = chapters.find((item) => item.id === state.selection.chapterId) || chapters[0];
+  if (!chapter) return;
+  state.selection.chapterId = chapter.id;
+  const section = chapter.sections[state.selection.sectionIndex] || chapter.sections[0];
+  state.selection.sectionIndex = section.index;
+  const smallUnit = section.small_units[state.selection.smallUnitIndex] || section.small_units[0];
+  state.selection.smallUnitIndex = smallUnit.index;
+  const query = new URLSearchParams({
+    chapter_id: state.selection.chapterId,
+    section_index: state.selection.sectionIndex,
+    small_unit_index: state.selection.smallUnitIndex,
+  });
+  state.selectedSmallUnit = await request(`/api/manuscript/small-unit?${query}`);
+  renderManuscript();
 }
 
 function renderReview() {
   const container = document.querySelector("#workflowWorkspace");
   const severityLabel = { critical: "중대", major: "주요", minor: "권고" };
+  const criterionStatus = { pass: "자동 확인", supplement: "보완 필요", manual: "인적 확인" };
+  const scope = state.stage.review_scope || {};
+  const scopeMode = ["all", "grade", "range"].includes(scope.mode) ? scope.mode : "all";
   container.innerHTML = `
+    <section class="review-scope">
+      <div><p class="section-kicker">REVIEW SCOPE</p><h2>심사할 원고 범위</h2><small>범위를 선택한 뒤 상단의 ‘모의심사 다시 실행’을 누르세요.</small></div>
+      <label><span>범위</span><select id="reviewScopeMode"><option value="all" ${scopeMode === "all" ? "selected" : ""}>3~6학년 전체 원고</option><option value="grade" ${scopeMode === "grade" ? "selected" : ""}>한 학년 전체</option><option value="range" ${scopeMode === "range" ? "selected" : ""}>특정 쪽 범위</option></select></label>
+      <label><span>학년</span><select id="reviewScopeGrade">${[3,4,5,6].map((grade) => `<option value="${grade}" ${Number(scope.grade || 3) === grade ? "selected" : ""}>${grade}학년</option>`).join("")}</select></label>
+      <label><span>시작 쪽</span><input id="reviewStartPage" type="number" min="1" max="132" value="${scope.start_page || 1}" /></label>
+      <label><span>끝 쪽</span><input id="reviewEndPage" type="number" min="1" max="132" value="${scope.end_page || 120}" /></label>
+    </section>
     <div class="review-overall">
       <div class="review-score">${state.stage.overall_score}</div>
-      <div><p class="section-kicker">INDEPENDENT VERDICT</p><h2>${escapeHtml(state.stage.decision)}</h2><p>${escapeHtml(state.stage.review_note)}</p></div>
+      <div><p class="section-kicker">OFFICIAL CRITERIA REVIEW</p><h2>${escapeHtml(state.stage.decision)}</h2><p>${escapeHtml(state.stage.review_note)}</p><small>심사 범위: ${escapeHtml(state.stage.review_scope?.label || "전체 원고")} · ${state.stage.review_scope?.pages_reviewed || 0}쪽 · 기준표 PDF ${escapeHtml(state.stage.criteria_source?.pdf_pages || "")}쪽 · ${state.stage.criteria_source?.item_count || 0}개 항목</small></div>
     </div>
-    <div class="score-grid">${Object.entries(state.stage.scores).map(([label, score]) => `<article class="score-card"><span>${escapeHtml(label)}</span><strong>${score}</strong></article>`).join("")}</div>
+    <div class="score-grid official-scores">${Object.entries(state.stage.scores).map(([label, score]) => `<article class="score-card"><span>${escapeHtml(label)}</span><strong>${score}<small>점</small></strong></article>`).join("")}</div>
+    <section class="review-section">
+      <div class="review-heading"><div><p class="section-kicker">22 REVIEW ITEMS</p><h2>검정기준 항목별 대조</h2></div><span>${state.stage.criteria_results?.length || 0}개</span></div>
+      <div class="criteria-table-wrap"><table class="criteria-table"><thead><tr><th>번호</th><th>심사 영역·항목</th><th>판정</th><th>대조 근거</th></tr></thead><tbody>${(state.stage.criteria_results || []).map((item) => `
+        <tr><td>${item.number}</td><td><small>${escapeHtml(item.area)}</small><strong>${escapeHtml(item.criterion)}</strong></td><td><span class="criterion-status ${item.status}">${criterionStatus[item.status]}</span></td><td>${escapeHtml(item.evidence)}<small>기준표 PDF ${item.source_page}쪽</small></td></tr>`).join("")}</tbody></table></div>
+    </section>
     <section class="review-section">
       <div class="review-heading"><div><p class="section-kicker">FINDINGS</p><h2>심사 지적 사항</h2></div><span>${state.stage.findings.length}건</span></div>
       <div class="finding-list">${state.stage.findings.length ? state.stage.findings.map((finding) => `
@@ -313,6 +474,14 @@ function renderReview() {
     </section>
     <section class="review-section"><p class="section-kicker">REVIEW MEMO</p><label class="manuscript-field"><span>최종 검토 메모</span><textarea id="reviewNote">${escapeHtml(state.stage.review_note)}</textarea></label></section>`;
   document.querySelector("#reviewNote").addEventListener("input", (event) => { state.stage.review_note = event.target.value; });
+  const syncScopeInputs = () => {
+    const mode = document.querySelector("#reviewScopeMode").value;
+    document.querySelector("#reviewScopeGrade").disabled = mode === "all";
+    document.querySelector("#reviewStartPage").disabled = mode !== "range";
+    document.querySelector("#reviewEndPage").disabled = mode !== "range";
+  };
+  document.querySelector("#reviewScopeMode").addEventListener("change", syncScopeInputs);
+  syncScopeInputs();
 }
 
 function renderWorkspace() {
@@ -343,13 +512,37 @@ async function load() {
   state.versions = payload.versions;
   state.prerequisite = payload.prerequisite;
   state.project = payload.project;
+  state.catalog = payload.catalog || [];
+  state.ai = payload.ai || null;
   renderAll();
+  if (stageKey === "manuscript") {
+    await loadSelectedSmallUnit();
+    document.querySelector("#generateButton").disabled = !state.ai?.enabled;
+  }
 }
 
 async function save() {
   document.querySelector("#saveState").textContent = "저장 중…";
   try {
+    if (stageKey === "manuscript") {
+      if (!state.selectedSmallUnit) throw new Error("저장할 소단원을 먼저 선택해 주세요.");
+      const body = {
+        ...state.selection,
+        chapter_id: state.selection.chapterId,
+        section_index: state.selection.sectionIndex,
+        small_unit_index: state.selection.smallUnitIndex,
+        expected_version: state.selectedSmallUnit.manuscript_version,
+        change_note: document.querySelector("#changeNote").value,
+        small_unit: state.selectedSmallUnit.small_unit,
+      };
+      await request("/api/manuscript/small-unit", { method: "PATCH", body: JSON.stringify(body) });
+      document.querySelector("#changeNote").value = "";
+      await load();
+      showToast(`선택한 소단원 원고를 v${state.stage.version}으로 저장했습니다.`);
+      return;
+    }
     const body = JSON.parse(JSON.stringify(state.stage));
+    body.expected_version = state.stage.version;
     body.change_note = document.querySelector("#changeNote").value;
     const payload = await request(`/api/${stageKey}`, { method: "PATCH", body: JSON.stringify(body) });
     state.stage = payload.stage;
@@ -364,11 +557,39 @@ async function save() {
 }
 
 async function regenerate() {
-  if (!confirm(`${configs[stageKey].heading} 초안을 현재 상위 단계 기준으로 다시 생성할까요?`)) return;
+  const selectedTitle = state.selectedSmallUnit?.small_unit?.title;
+  const confirmation = stageKey === "manuscript"
+    ? `‘${selectedTitle || "선택 소단원"}’ ${state.selectedSmallUnit?.small_unit?.target_pages || ""}쪽 원고만 AI로 다시 생성할까요?`
+    : `${configs[stageKey].heading} 초안을 현재 상위 단계 기준으로 다시 생성할까요?`;
+  if (!confirm(confirmation)) return;
   try {
-    await request(`/api/${stageKey}/generate`, { method: "POST" });
+    const options = { method: "POST" };
+    let url = `/api/${stageKey}/generate`;
+    if (stageKey === "manuscript") {
+      if (!state.ai?.enabled) throw new Error("서버의 OpenAI API 키를 확인해 주세요.");
+      if (!state.selectedSmallUnit) throw new Error("AI로 생성할 소단원을 먼저 선택해 주세요.");
+      url = "/api/manuscript/small-unit/generate";
+      options.body = JSON.stringify({
+        chapter_id: state.selection.chapterId,
+        section_index: state.selection.sectionIndex,
+        small_unit_index: state.selection.smallUnitIndex,
+        expected_version: state.selectedSmallUnit.manuscript_version,
+      });
+    } else if (stageKey === "review") {
+      options.body = JSON.stringify({
+        mode: document.querySelector("#reviewScopeMode").value,
+        grade: Number(document.querySelector("#reviewScopeGrade").value),
+        start_page: Number(document.querySelector("#reviewStartPage").value),
+        end_page: Number(document.querySelector("#reviewEndPage").value),
+      });
+    }
+    await request(url, options);
     await load();
-    showToast(stageKey === "review" ? "독립 모의심사를 다시 실행했습니다." : "AI 초안을 다시 생성했습니다.");
+    showToast(stageKey === "review"
+      ? "독립 모의심사를 다시 실행했습니다."
+      : stageKey === "manuscript"
+        ? "선택한 소단원의 펼침면 원고를 AI로 생성했습니다."
+        : "AI 초안을 다시 생성했습니다.");
   } catch (error) { showToast(error.message); }
 }
 

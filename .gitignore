@@ -4,3 +4,9 @@ data/*.db
 data/*.db-shm
 data/*.db-wal
 data/*.log
+backups/*.db
+
+.vercel
+.env*
+.agents/
+skills-lock.json

@@ -1,12 +1,17 @@
 # 교과서 제작 스튜디오
 
-초등 체육 3~6학년 교과서 제작 웹서비스의 1~5단계입니다.
+초등 체육 3~6학년 교과서 제작 웹서비스의 1~9단계입니다.
+
+작업을 이어받거나 새 대화·컴퓨터에서 재개할 때는 먼저
+[`HANDOFF.md`](HANDOFF.md)와 [`WORKLOG.md`](WORKLOG.md)를 확인합니다.
+새 컴퓨터에서는 `setup-hooks.cmd`를 한 번 실행하면 기록 누락 방지 Hook이 활성화됩니다.
 
 현재 구현 범위:
 
 - 프로젝트 기본 설정
 - 교과서 쪽수와 학년군 시수 규칙
-- `../criteria`, `../processed` 공식 자료 자동 연결
+- 저장소의 `official-data/processed` 공식 전처리 자료 5종 자동 연결
+- 원본 PDF가 있으면 SHA-256 대조, 없으면 전처리 자료만으로 바로 실행
 - 원본 SHA-256과 전처리 산출물 무결성 확인
 - 공식 자료 관리자 검수·메모
 - 변경 이력과 다음 단계 준비 상태
@@ -54,7 +59,15 @@ python app.py
 - 8단계 원고 초안: `http://127.0.0.1:8000/manuscript`
 - 9단계 자동 검증·모의심사: `http://127.0.0.1:8000/review`
 
-별도 데이터 폴더를 사용할 때는 `TEXTBOOK_DATA_ROOT` 환경 변수를 지정할 수 있습니다.
+전처리 자료는 저장소에 포함되어 있어 다른 컴퓨터에서 Git pull 후 별도 복사 없이 사용할 수 있습니다.
+원본 PDF까지 대조하려면 저장소 상위의 `criteria` 또는 `official-data/criteria`에 원본을 둡니다.
+
+기존 외부 데이터 폴더를 사용하려면 `TEXTBOOK_DATA_ROOT` 환경 변수를 지정할 수 있습니다.
+전처리 결과를 저장소에 다시 동기화할 때는 다음 명령을 실행합니다.
+
+```powershell
+python scripts\sync_official_data.py --source-root ..
+```
 
 ## 테스트
 
@@ -64,3 +77,40 @@ python -m unittest discover -s tests -v
 ```
 
 실행 중 생성되는 SQLite 데이터베이스는 `data/studio.db`에 저장됩니다. 원본 PDF와 전처리 결과는 수정하지 않습니다.
+
+## 공동 편집 배포
+
+배포 환경에서는 Vercel Python Functions와 Supabase Postgres/Auth를 사용합니다.
+
+- 로컬 실행: SQLite
+- Vercel 배포: `POSTGRES_URL`이 있으면 Supabase Postgres 자동 사용
+- 사용자 인증: Supabase 이메일·비밀번호 로그인
+- 접근 권한: `STUDIO_OWNER_EMAIL` 관리자와 관리자가 등록한 편집자만 허용
+- 동시 수정: 화면을 연 버전보다 새 버전이 저장된 경우 `409 Conflict`로 덮어쓰기 차단
+- 비밀 정보: `.env.local`은 Git에 포함하지 않음
+
+현재 SQLite 데이터를 연결된 Supabase로 이전할 때:
+
+```powershell
+vercel env run -- python scripts\migrate_sqlite_to_postgres.py --confirm
+```
+
+이전 도구는 대상 테이블을 하나의 트랜잭션 안에서 교체하므로, 실패하면 변경 전체가 취소됩니다.
+
+관리자는 배포 사이트의 `/editors`에서 편집자 이메일을 등록합니다. 등록된 편집자는 `/login`에서 같은 이메일로 최초 계정을 만든 뒤 공동 편집할 수 있습니다.
+
+## HWPX 내보내기
+
+배포 사이트의 `/export`에서 현재 저장된 데이터를 HWPX로 다운로드할 수 있습니다.
+
+- 교육과정 분석과 49개 성취기준·해설
+- 교과서 개발 방향
+- 성취기준·차시 배분
+- 내용·종목 선정
+- 목차·쪽수·차시 설계
+- 단원 설계
+- 교과서 원고 초안
+- 자동검증·모의심사
+- 위 결과를 합친 전체 문서
+
+한글 2024에서 만든 내용 없는 기본 HWPX를 기반으로 순수 Python에서 문서를 구성합니다. 내보낸 파일은 한글 2024 열기와 본문 추출 검사를 거칩니다.

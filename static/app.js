@@ -22,6 +22,7 @@ const statusLabels = {
 
 const integrityLabels = {
   verified: "무결성 확인",
+  processed_only: "전처리 자료 사용 가능",
   outputs_missing: "산출물 누락",
   source_missing: "원본 없음",
   hash_mismatch: "해시 불일치",
@@ -138,7 +139,9 @@ function renderReadiness() {
     ? "1단계가 완료되었습니다."
     : "공식 자료의 관리자 검수가 필요합니다.";
   document.querySelector("#statusDescription").textContent = readiness.is_ready
-    ? "교육과정 분석 단계로 이동할 준비가 되었습니다."
+    ? readiness.processed_only
+      ? `전처리 자료 ${readiness.processed_only}종으로 작업할 수 있습니다. 원본 PDF 대조는 원본이 있는 컴퓨터에서 진행하세요.`
+      : "원본 PDF 해시까지 확인했습니다. 교육과정 분석 단계로 이동할 준비가 되었습니다."
     : `무결성 ${readiness.integrity_verified}/${readiness.total} 확인 · 승인되지 않은 자료 ${readiness.total - readiness.approved}건`;
   document.querySelector("#statusCount").textContent = `${readiness.approved} / ${readiness.total}`;
   document.querySelector(".status-icon").textContent = readiness.is_ready ? "✓" : "1";

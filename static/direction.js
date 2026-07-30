@@ -270,6 +270,7 @@ function collectDirection() {
     success_criteria: [...document.querySelectorAll("#successList input")].map(
       (input) => input.value,
     ),
+    expected_version: state.direction.version,
     change_note: document.querySelector("#directionChangeNote").value,
   };
 }

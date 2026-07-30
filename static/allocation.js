@@ -267,6 +267,7 @@ function collectAllocation() {
     planning_note: document.querySelector("#planningNote").value,
     target_hours: state.allocation.target_hours,
     assignments: state.allocation.assignments,
+    expected_version: state.allocation.version,
     change_note: document.querySelector("#allocationChangeNote").value,
   };
 }
