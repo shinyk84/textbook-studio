@@ -20,7 +20,15 @@ from hwpx_export import build_hwpx
 
 
 APP_DIR = Path(__file__).resolve().parent
-WORKSPACE_DIR = Path(os.environ.get("TEXTBOOK_DATA_ROOT", APP_DIR.parent)).resolve()
+BUNDLED_WORKSPACE_DIR = APP_DIR / "official-data"
+DEFAULT_WORKSPACE_DIR = (
+    BUNDLED_WORKSPACE_DIR
+    if (BUNDLED_WORKSPACE_DIR / "processed").is_dir()
+    else APP_DIR.parent
+)
+WORKSPACE_DIR = Path(
+    os.environ.get("TEXTBOOK_DATA_ROOT", DEFAULT_WORKSPACE_DIR)
+).resolve()
 PROCESSED_DIR = WORKSPACE_DIR / "processed"
 STATIC_DIR = APP_DIR / "static"
 DB_PATH = Path(os.environ.get("TEXTBOOK_STUDIO_DB", APP_DIR / "data" / "studio.db")).resolve()
@@ -533,21 +541,42 @@ def source_title(manifest: dict, folder: Path) -> str:
     return source_name or folder.name
 
 
+def manifest_source_path(manifest: dict) -> Path | None:
+    configured = Path(str(manifest.get("source_file", "")))
+    candidates = [configured]
+    if not configured.is_absolute():
+        candidates.extend(
+            (
+                WORKSPACE_DIR / configured,
+                APP_DIR.parent / configured,
+            )
+        )
+    candidates.extend(
+        (
+            WORKSPACE_DIR / "criteria" / configured.name,
+            APP_DIR.parent / "criteria" / configured.name,
+        )
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate.resolve()
+    return None
+
+
 def determine_integrity(manifest: dict, folder: Path) -> str:
     outputs = manifest.get("outputs", [])
     if any(not (folder / output).is_file() for output in outputs):
         return "outputs_missing"
 
-    source_path = Path(manifest.get("source_file", ""))
-    if not source_path.is_file():
-        return "source_missing"
-
-    expected_hash = manifest.get("source_sha256", "").lower()
-    if not expected_hash or sha256_file(source_path) != expected_hash:
-        return "hash_mismatch"
-
     if len(manifest.get("pages", [])) != int(manifest.get("page_count", 0)):
         return "page_mismatch"
+
+    expected_hash = manifest.get("source_sha256", "").lower()
+    source_path = manifest_source_path(manifest)
+    if source_path is None:
+        return "processed_only" if expected_hash else "source_missing"
+    if not expected_hash or sha256_file(source_path) != expected_hash:
+        return "hash_mismatch"
     return "verified"
 
 
@@ -1337,13 +1366,20 @@ def recent_audit_rows() -> list[dict]:
 
 def readiness(sources: list[dict]) -> dict:
     total = len(sources)
-    integrity_verified = sum(s["integrity_status"] == "verified" for s in sources)
+    usable_statuses = {"verified", "processed_only"}
+    integrity_verified = sum(
+        s["integrity_status"] in usable_statuses for s in sources
+    )
+    source_verified = sum(s["integrity_status"] == "verified" for s in sources)
+    processed_only = sum(s["integrity_status"] == "processed_only" for s in sources)
     approved = sum(s["review_status"] == "approved" for s in sources)
     rejected = sum(s["review_status"] == "rejected" for s in sources)
     is_ready = total > 0 and integrity_verified == total and approved == total
     return {
         "total": total,
         "integrity_verified": integrity_verified,
+        "source_verified": source_verified,
+        "processed_only": processed_only,
         "approved": approved,
         "rejected": rejected,
         "is_ready": is_ready,
@@ -3804,7 +3840,10 @@ def update_source(document_id: str, payload: dict) -> dict:
         ).fetchone()
         if previous is None:
             raise KeyError("공식 자료를 찾을 수 없습니다.")
-        if status == "approved" and previous["integrity_status"] != "verified":
+        if (
+            status == "approved"
+            and previous["integrity_status"] not in {"verified", "processed_only"}
+        ):
             raise ValueError("무결성 확인이 완료되지 않은 자료는 승인할 수 없습니다.")
 
         reviewed_at = now if status in {"approved", "rejected"} else None
@@ -4310,7 +4349,6 @@ class StudioHandler(BaseHTTPRequestHandler):
             "/reset-password": "reset-password.html",
             "/editors": "editors.html",
             "/export": "export.html",
-            "/ai-journey": "journey.html",
         }
         relative = route_files.get(request_path, unquote(request_path.lstrip("/")))
         candidate = (STATIC_DIR / relative).resolve()

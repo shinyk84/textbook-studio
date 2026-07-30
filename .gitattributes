@@ -1,0 +1,4 @@
+.githooks/* text eol=lf
+official-data/** text eol=lf
+*.jsonl text eol=lf
+*.cmd text eol=crlf

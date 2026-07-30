@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "document_id": "체육_2022편찬상의_유의점_및_검정기준",
+  "document_type": "textbook_review_criteria",
+  "source_file": "criteria/체육_2022편찬상의 유의점 및 검정기준.pdf",
+  "source_sha256": "b11380e004793dc4061e5cf72f8eeed237cd867397218768b5d56a92c1802071",
+  "source_size_bytes": 761095,
+  "processed_at": "2026-07-16T02:39:52.096101+00:00",
+  "pymupdf_version": "1.28.0",
+  "page_count": 25,
+  "chunk_count": 108,
+  "table_count": 5,
+  "warning_page_count": 1,
+  "outputs": [
+    "document.md",
+    "chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ],
+  "pages": [
+    {
+      "source_page": 1,
+      "printed_page": null,
+      "extraction_method": "native_text",
+      "native_char_count": 1167,
+      "final_char_count": 1452,
+      "image_count": 4,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 2,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "FRONT_MATTER_BLANK"
+      ]
+    },
+    {
+      "source_page": 3,
+      "printed_page": null,
+      "extraction_method": "native_text",
+      "native_char_count": 2406,
+      "final_char_count": 2520,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 4,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "FRONT_MATTER_BLANK"
+      ]
+    },
+    {
+      "source_page": 5,
+      "printed_page": null,
+      "extraction_method": "native_text",
+      "native_char_count": 60,
+      "final_char_count": 76,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 6,
+      "printed_page": "6",
+      "extraction_method": "native_text",
+      "native_char_count": 385,
+      "final_char_count": 482,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 7,
+      "printed_page": "7",
+      "extraction_method": "native_text",
+      "native_char_count": 621,
+      "final_char_count": 798,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 8,
+      "printed_page": "8",
+      "extraction_method": "native_text",
+      "native_char_count": 352,
+      "final_char_count": 448,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 9,
+      "printed_page": "9",
+      "extraction_method": "native_text",
+      "native_char_count": 552,
+      "final_char_count": 703,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 10,
+      "printed_page": "10",
+      "extraction_method": "native_text",
+      "native_char_count": 644,
+      "final_char_count": 819,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 11,
+      "printed_page": "11",
+      "extraction_method": "native_text",
+      "native_char_count": 747,
+      "final_char_count": 950,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 12,
+      "printed_page": "12",
+      "extraction_method": "native_text",
+      "native_char_count": 531,
+      "final_char_count": 785,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 13,
+      "printed_page": "13",
+      "extraction_method": "native_text",
+      "native_char_count": 844,
+      "final_char_count": 1230,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 14,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "NO_TEXT"
+      ]
+    },
+    {
+      "source_page": 15,
+      "printed_page": null,
+      "extraction_method": "native_text",
+      "native_char_count": 109,
+      "final_char_count": 136,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 16,
+      "printed_page": "42",
+      "extraction_method": "native_text",
+      "native_char_count": 529,
+      "final_char_count": 670,
+      "image_count": 1,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 17,
+      "printed_page": "43",
+      "extraction_method": "native_text",
+      "native_char_count": 777,
+      "final_char_count": 998,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 18,
+      "printed_page": "44",
+      "extraction_method": "native_text",
+      "native_char_count": 835,
+      "final_char_count": 1078,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 19,
+      "printed_page": "45",
+      "extraction_method": "native_text",
+      "native_char_count": 590,
+      "final_char_count": 751,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 20,
+      "printed_page": "46",
+      "extraction_method": "native_text",
+      "native_char_count": 1167,
+      "final_char_count": 1807,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 21,
+      "printed_page": "47",
+      "extraction_method": "native_text",
+      "native_char_count": 239,
+      "final_char_count": 407,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 22,
+      "printed_page": "48",
+      "extraction_method": "native_text",
+      "native_char_count": 709,
+      "final_char_count": 911,
+      "image_count": 1,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 23,
+      "printed_page": "49",
+      "extraction_method": "native_text",
+      "native_char_count": 860,
+      "final_char_count": 1122,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 24,
+      "printed_page": "50",
+      "extraction_method": "native_text",
+      "native_char_count": 610,
+      "final_char_count": 788,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 25,
+      "printed_page": "51",
+      "extraction_method": "native_text",
+      "native_char_count": 901,
+      "final_char_count": 1421,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    }
+  ]
+}

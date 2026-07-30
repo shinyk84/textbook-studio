@@ -10,7 +10,8 @@
 
 - 프로젝트 기본 설정
 - 교과서 쪽수와 학년군 시수 규칙
-- `../criteria`, `../processed` 공식 자료 자동 연결
+- 저장소의 `official-data/processed` 공식 전처리 자료 5종 자동 연결
+- 원본 PDF가 있으면 SHA-256 대조, 없으면 전처리 자료만으로 바로 실행
 - 원본 SHA-256과 전처리 산출물 무결성 확인
 - 공식 자료 관리자 검수·메모
 - 변경 이력과 다음 단계 준비 상태
@@ -58,7 +59,15 @@ python app.py
 - 8단계 원고 초안: `http://127.0.0.1:8000/manuscript`
 - 9단계 자동 검증·모의심사: `http://127.0.0.1:8000/review`
 
-별도 데이터 폴더를 사용할 때는 `TEXTBOOK_DATA_ROOT` 환경 변수를 지정할 수 있습니다.
+전처리 자료는 저장소에 포함되어 있어 다른 컴퓨터에서 Git pull 후 별도 복사 없이 사용할 수 있습니다.
+원본 PDF까지 대조하려면 저장소 상위의 `criteria` 또는 `official-data/criteria`에 원본을 둡니다.
+
+기존 외부 데이터 폴더를 사용하려면 `TEXTBOOK_DATA_ROOT` 환경 변수를 지정할 수 있습니다.
+전처리 결과를 저장소에 다시 동기화할 때는 다음 명령을 실행합니다.
+
+```powershell
+python scripts\sync_official_data.py --source-root ..
+```
 
 ## 테스트
 

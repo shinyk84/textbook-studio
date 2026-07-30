@@ -1,0 +1,65 @@
+﻿source_page,code,severity,message,extraction_method
+1,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+2,FRONT_MATTER_BLANK,info,추출된 본문이 없습니다.,none
+6,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+6,FRONT_MATTER_BLANK,info,추출된 본문이 없습니다.,none
+8,FRONT_MATTER_BLANK,info,추출된 본문이 없습니다.,none
+9,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+9,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+10,NO_TEXT,warning,추출된 본문이 없습니다.,none
+55,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+55,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+56,NO_TEXT,warning,추출된 본문이 없습니다.,none
+70,NO_TEXT,warning,추출된 본문이 없습니다.,none
+71,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+71,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+72,NO_TEXT,warning,추출된 본문이 없습니다.,none
+86,NO_TEXT,warning,추출된 본문이 없습니다.,none
+87,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+87,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+88,NO_TEXT,warning,추출된 본문이 없습니다.,none
+103,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+103,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+104,NO_TEXT,warning,추출된 본문이 없습니다.,none
+111,TABLE_SUSPICIOUS,warning,표 1에 빈 셀이 많아 원문 확인이 필요합니다.,native_text
+153,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+153,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+154,NO_TEXT,warning,추출된 본문이 없습니다.,none
+157,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+157,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+196,NO_TEXT,warning,추출된 본문이 없습니다.,none
+197,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+197,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+198,NO_TEXT,warning,추출된 본문이 없습니다.,none
+215,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+215,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+216,NO_TEXT,warning,추출된 본문이 없습니다.,none
+219,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+219,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+254,NO_TEXT,warning,추출된 본문이 없습니다.,none
+255,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+255,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+256,NO_TEXT,warning,추출된 본문이 없습니다.,none
+299,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+299,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+300,NO_TEXT,warning,추출된 본문이 없습니다.,none
+324,NO_TEXT,warning,추출된 본문이 없습니다.,none
+325,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+325,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+326,NO_TEXT,warning,추출된 본문이 없습니다.,none
+365,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+365,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+366,NO_TEXT,warning,추출된 본문이 없습니다.,none
+388,NO_TEXT,warning,추출된 본문이 없습니다.,none
+389,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+389,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+390,NO_TEXT,warning,추출된 본문이 없습니다.,none
+411,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+411,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+412,NO_TEXT,warning,추출된 본문이 없습니다.,none
+439,TABLE_SUSPICIOUS,warning,표 1에 빈 셀이 많아 원문 확인이 필요합니다.,native_text
+441,TABLE_SUSPICIOUS,warning,표 1에 빈 셀이 많아 원문 확인이 필요합니다.,native_text
+502,NO_TEXT,warning,추출된 본문이 없습니다.,none
+503,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+503,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+504,NO_TEXT,warning,추출된 본문이 없습니다.,none

@@ -1,0 +1,15 @@
+﻿source_page,code,severity,message,extraction_method
+1,OCR_UNAVAILABLE,warning,OCR을 실행하지 못했습니다: RuntimeError,none
+1,FRONT_MATTER_BLANK,info,추출된 본문이 없습니다.,none
+2,FRONT_MATTER_BLANK,info,추출된 본문이 없습니다.,none
+30,NO_TEXT,warning,추출된 본문이 없습니다.,none
+46,NO_TEXT,warning,추출된 본문이 없습니다.,none
+67,TABLE_SUSPICIOUS,warning,표 3에 빈 셀이 많아 원문 확인이 필요합니다.,native_text
+68,TABLE_SUSPICIOUS,warning,표 1에 빈 셀이 많아 원문 확인이 필요합니다.,native_text
+86,NO_TEXT,warning,추출된 본문이 없습니다.,none
+138,NO_TEXT,warning,추출된 본문이 없습니다.,none
+181,LOW_TEXT,info,추출된 글자 수가 적어 구분 면인지 확인할 수 있습니다.,native_text
+182,NO_TEXT,warning,추출된 본문이 없습니다.,none
+204,NO_TEXT,warning,추출된 본문이 없습니다.,none
+318,NO_TEXT,warning,추출된 본문이 없습니다.,none
+481,TABLE_SUSPICIOUS,warning,표 1에 빈 셀이 많아 원문 확인이 필요합니다.,native_text

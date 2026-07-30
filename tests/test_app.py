@@ -26,6 +26,40 @@ class StudioDataTests(unittest.TestCase):
         self.assertEqual(payload["readiness"]["total"], 5)
         self.assertEqual(payload["readiness"]["integrity_verified"], 5)
 
+    def test_uses_bundled_processed_data_by_default(self):
+        self.assertEqual(
+            self.app.PROCESSED_DIR,
+            self.app.APP_DIR / "official-data" / "processed",
+        )
+        self.assertTrue(self.app.PROCESSED_DIR.is_dir())
+
+    def test_processed_data_remains_usable_without_original_pdf(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            folder = Path(temp_dir)
+            (folder / "document.md").write_text("공식 전처리 내용", encoding="utf-8")
+            manifest = {
+                "outputs": ["document.md"],
+                "pages": [{"source_page": 1}],
+                "page_count": 1,
+                "source_file": "criteria/not-present-anywhere.pdf",
+                "source_sha256": "a" * 64,
+            }
+            self.assertEqual(
+                self.app.determine_integrity(manifest, folder),
+                "processed_only",
+            )
+        ready = self.app.readiness(
+            [
+                {
+                    "integrity_status": "processed_only",
+                    "review_status": "approved",
+                }
+            ]
+        )
+        self.assertTrue(ready["is_ready"])
+        self.assertEqual(ready["processed_only"], 1)
+        self.assertEqual(ready["source_verified"], 0)
+
     def test_default_project_constraints(self):
         project = self.app.project_payload()
         self.assertEqual(project["page_baseline"], 120)

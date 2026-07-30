@@ -1,0 +1,1308 @@
+{
+  "schema_version": 1,
+  "document_id": "체육과_교육과정",
+  "document_type": "curriculum",
+  "source_file": "criteria/[별책11] 체육과 교육과정.pdf",
+  "source_sha256": "e5d2e75e6136bd4e5c5001f65bfe36cbe34c4b306d3dc7a9332dc27ffd48a5ab",
+  "source_size_bytes": 2244773,
+  "processed_at": "2026-07-16T02:15:35.810666+00:00",
+  "pymupdf_version": "1.28.0",
+  "page_count": 125,
+  "chunk_count": 373,
+  "table_count": 26,
+  "warning_page_count": 10,
+  "outputs": [
+    "document.md",
+    "chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ],
+  "pages": [
+    {
+      "source_page": 1,
+      "printed_page": null,
+      "extraction_method": "native_text",
+      "native_char_count": 27,
+      "final_char_count": 32,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "LOW_TEXT"
+      ]
+    },
+    {
+      "source_page": 2,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "FRONT_MATTER_BLANK"
+      ]
+    },
+    {
+      "source_page": 3,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 1,
+      "table_count": 0,
+      "review_flags": [
+        "OCR_UNAVAILABLE",
+        "FRONT_MATTER_BLANK"
+      ]
+    },
+    {
+      "source_page": 4,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "FRONT_MATTER_BLANK"
+      ]
+    },
+    {
+      "source_page": 5,
+      "printed_page": null,
+      "extraction_method": "native_text",
+      "native_char_count": 1043,
+      "final_char_count": 1063,
+      "image_count": 9,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 6,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "FRONT_MATTER_BLANK"
+      ]
+    },
+    {
+      "source_page": 7,
+      "printed_page": "1",
+      "extraction_method": "native_text",
+      "native_char_count": 13,
+      "final_char_count": 15,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": [
+        "OCR_UNAVAILABLE",
+        "LOW_TEXT"
+      ]
+    },
+    {
+      "source_page": 8,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "FRONT_MATTER_BLANK"
+      ]
+    },
+    {
+      "source_page": 9,
+      "printed_page": "3",
+      "extraction_method": "native_text",
+      "native_char_count": 861,
+      "final_char_count": 1090,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 10,
+      "printed_page": "4",
+      "extraction_method": "native_text",
+      "native_char_count": 1026,
+      "final_char_count": 1501,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 11,
+      "printed_page": "5",
+      "extraction_method": "native_text",
+      "native_char_count": 1110,
+      "final_char_count": 1430,
+      "image_count": 1,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 12,
+      "printed_page": "6",
+      "extraction_method": "native_text",
+      "native_char_count": 317,
+      "final_char_count": 395,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 13,
+      "printed_page": "7",
+      "extraction_method": "native_text",
+      "native_char_count": 678,
+      "final_char_count": 1129,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 14,
+      "printed_page": "8",
+      "extraction_method": "native_text",
+      "native_char_count": 851,
+      "final_char_count": 1354,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 15,
+      "printed_page": "9",
+      "extraction_method": "native_text",
+      "native_char_count": 585,
+      "final_char_count": 969,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 16,
+      "printed_page": "10",
+      "extraction_method": "native_text",
+      "native_char_count": 925,
+      "final_char_count": 1165,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 17,
+      "printed_page": "11",
+      "extraction_method": "native_text",
+      "native_char_count": 1011,
+      "final_char_count": 1317,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 18,
+      "printed_page": "12",
+      "extraction_method": "native_text",
+      "native_char_count": 985,
+      "final_char_count": 1223,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 19,
+      "printed_page": "13",
+      "extraction_method": "native_text",
+      "native_char_count": 1128,
+      "final_char_count": 1445,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 20,
+      "printed_page": "14",
+      "extraction_method": "native_text",
+      "native_char_count": 923,
+      "final_char_count": 1169,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 21,
+      "printed_page": "15",
+      "extraction_method": "native_text",
+      "native_char_count": 1065,
+      "final_char_count": 1379,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 22,
+      "printed_page": "16",
+      "extraction_method": "native_text",
+      "native_char_count": 1075,
+      "final_char_count": 1495,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 23,
+      "printed_page": "17",
+      "extraction_method": "native_text",
+      "native_char_count": 864,
+      "final_char_count": 1173,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 24,
+      "printed_page": "18",
+      "extraction_method": "native_text",
+      "native_char_count": 1013,
+      "final_char_count": 1301,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 25,
+      "printed_page": "19",
+      "extraction_method": "native_text",
+      "native_char_count": 979,
+      "final_char_count": 1239,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 26,
+      "printed_page": "20",
+      "extraction_method": "native_text",
+      "native_char_count": 1089,
+      "final_char_count": 1386,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 27,
+      "printed_page": "21",
+      "extraction_method": "native_text",
+      "native_char_count": 1104,
+      "final_char_count": 1416,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 28,
+      "printed_page": "22",
+      "extraction_method": "native_text",
+      "native_char_count": 1070,
+      "final_char_count": 1382,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 29,
+      "printed_page": "23",
+      "extraction_method": "native_text",
+      "native_char_count": 971,
+      "final_char_count": 1218,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 30,
+      "printed_page": "24",
+      "extraction_method": "native_text",
+      "native_char_count": 1096,
+      "final_char_count": 1409,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 31,
+      "printed_page": "25",
+      "extraction_method": "native_text",
+      "native_char_count": 1061,
+      "final_char_count": 1511,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 32,
+      "printed_page": "26",
+      "extraction_method": "native_text",
+      "native_char_count": 800,
+      "final_char_count": 1051,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 33,
+      "printed_page": "27",
+      "extraction_method": "native_text",
+      "native_char_count": 1116,
+      "final_char_count": 1434,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 34,
+      "printed_page": "28",
+      "extraction_method": "native_text",
+      "native_char_count": 1071,
+      "final_char_count": 1387,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 35,
+      "printed_page": "29",
+      "extraction_method": "native_text",
+      "native_char_count": 1103,
+      "final_char_count": 1370,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 36,
+      "printed_page": "30",
+      "extraction_method": "native_text",
+      "native_char_count": 1080,
+      "final_char_count": 1366,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 37,
+      "printed_page": "31",
+      "extraction_method": "native_text",
+      "native_char_count": 1125,
+      "final_char_count": 1432,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 38,
+      "printed_page": "32",
+      "extraction_method": "native_text",
+      "native_char_count": 983,
+      "final_char_count": 1256,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 39,
+      "printed_page": "33",
+      "extraction_method": "native_text",
+      "native_char_count": 1118,
+      "final_char_count": 1439,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 40,
+      "printed_page": "34",
+      "extraction_method": "native_text",
+      "native_char_count": 1000,
+      "final_char_count": 1242,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 41,
+      "printed_page": "35",
+      "extraction_method": "native_text",
+      "native_char_count": 1006,
+      "final_char_count": 1301,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 42,
+      "printed_page": "36",
+      "extraction_method": "native_text",
+      "native_char_count": 860,
+      "final_char_count": 1331,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 43,
+      "printed_page": "37",
+      "extraction_method": "native_text",
+      "native_char_count": 208,
+      "final_char_count": 353,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 44,
+      "printed_page": "38",
+      "extraction_method": "native_text",
+      "native_char_count": 500,
+      "final_char_count": 625,
+      "image_count": 3,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 45,
+      "printed_page": "39",
+      "extraction_method": "native_text",
+      "native_char_count": 674,
+      "final_char_count": 858,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 46,
+      "printed_page": "40",
+      "extraction_method": "native_text",
+      "native_char_count": 729,
+      "final_char_count": 938,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 47,
+      "printed_page": "41",
+      "extraction_method": "native_text",
+      "native_char_count": 886,
+      "final_char_count": 1152,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 48,
+      "printed_page": "42",
+      "extraction_method": "native_text",
+      "native_char_count": 967,
+      "final_char_count": 1260,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 49,
+      "printed_page": "43",
+      "extraction_method": "native_text",
+      "native_char_count": 924,
+      "final_char_count": 1201,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 50,
+      "printed_page": "44",
+      "extraction_method": "native_text",
+      "native_char_count": 865,
+      "final_char_count": 1118,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 51,
+      "printed_page": "45",
+      "extraction_method": "native_text",
+      "native_char_count": 814,
+      "final_char_count": 1067,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 52,
+      "printed_page": "46",
+      "extraction_method": "native_text",
+      "native_char_count": 237,
+      "final_char_count": 303,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 53,
+      "printed_page": "47",
+      "extraction_method": "native_text",
+      "native_char_count": 18,
+      "final_char_count": 9,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": [
+        "OCR_UNAVAILABLE",
+        "LOW_TEXT"
+      ]
+    },
+    {
+      "source_page": 54,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "NO_TEXT"
+      ]
+    },
+    {
+      "source_page": 55,
+      "printed_page": "49",
+      "extraction_method": "native_text",
+      "native_char_count": 1040,
+      "final_char_count": 1383,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 56,
+      "printed_page": "50",
+      "extraction_method": "native_text",
+      "native_char_count": 929,
+      "final_char_count": 1367,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 57,
+      "printed_page": "51",
+      "extraction_method": "native_text",
+      "native_char_count": 26,
+      "final_char_count": 9,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": [
+        "OCR_UNAVAILABLE",
+        "LOW_TEXT"
+      ]
+    },
+    {
+      "source_page": 58,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "NO_TEXT"
+      ]
+    },
+    {
+      "source_page": 59,
+      "printed_page": "53",
+      "extraction_method": "native_text",
+      "native_char_count": 691,
+      "final_char_count": 870,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 60,
+      "printed_page": "54",
+      "extraction_method": "native_text",
+      "native_char_count": 604,
+      "final_char_count": 935,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 61,
+      "printed_page": "55",
+      "extraction_method": "native_text",
+      "native_char_count": 876,
+      "final_char_count": 1103,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 62,
+      "printed_page": "56",
+      "extraction_method": "native_text",
+      "native_char_count": 1001,
+      "final_char_count": 1265,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 63,
+      "printed_page": "57",
+      "extraction_method": "native_text",
+      "native_char_count": 964,
+      "final_char_count": 1212,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 64,
+      "printed_page": "58",
+      "extraction_method": "native_text",
+      "native_char_count": 774,
+      "final_char_count": 1061,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 65,
+      "printed_page": "59",
+      "extraction_method": "native_text",
+      "native_char_count": 806,
+      "final_char_count": 1015,
+      "image_count": 1,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 66,
+      "printed_page": "60",
+      "extraction_method": "native_text",
+      "native_char_count": 779,
+      "final_char_count": 999,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 67,
+      "printed_page": "61",
+      "extraction_method": "native_text",
+      "native_char_count": 624,
+      "final_char_count": 797,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 68,
+      "printed_page": "62",
+      "extraction_method": "native_text",
+      "native_char_count": 677,
+      "final_char_count": 860,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 69,
+      "printed_page": "63",
+      "extraction_method": "native_text",
+      "native_char_count": 623,
+      "final_char_count": 948,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 70,
+      "printed_page": "64",
+      "extraction_method": "native_text",
+      "native_char_count": 891,
+      "final_char_count": 1146,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 71,
+      "printed_page": "65",
+      "extraction_method": "native_text",
+      "native_char_count": 944,
+      "final_char_count": 1183,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 72,
+      "printed_page": "66",
+      "extraction_method": "native_text",
+      "native_char_count": 942,
+      "final_char_count": 1201,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 73,
+      "printed_page": "67",
+      "extraction_method": "native_text",
+      "native_char_count": 624,
+      "final_char_count": 836,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 74,
+      "printed_page": "68",
+      "extraction_method": "native_text",
+      "native_char_count": 801,
+      "final_char_count": 1021,
+      "image_count": 1,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 75,
+      "printed_page": "69",
+      "extraction_method": "native_text",
+      "native_char_count": 788,
+      "final_char_count": 1002,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 76,
+      "printed_page": "70",
+      "extraction_method": "native_text",
+      "native_char_count": 615,
+      "final_char_count": 792,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 77,
+      "printed_page": "71",
+      "extraction_method": "native_text",
+      "native_char_count": 26,
+      "final_char_count": 9,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": [
+        "OCR_UNAVAILABLE",
+        "LOW_TEXT"
+      ]
+    },
+    {
+      "source_page": 78,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "NO_TEXT"
+      ]
+    },
+    {
+      "source_page": 79,
+      "printed_page": "73",
+      "extraction_method": "native_text",
+      "native_char_count": 731,
+      "final_char_count": 924,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 80,
+      "printed_page": "74",
+      "extraction_method": "native_text",
+      "native_char_count": 657,
+      "final_char_count": 938,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 81,
+      "printed_page": "75",
+      "extraction_method": "native_text",
+      "native_char_count": 1051,
+      "final_char_count": 1346,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 82,
+      "printed_page": "76",
+      "extraction_method": "native_text",
+      "native_char_count": 908,
+      "final_char_count": 1164,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 83,
+      "printed_page": "77",
+      "extraction_method": "native_text",
+      "native_char_count": 824,
+      "final_char_count": 1092,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 84,
+      "printed_page": "78",
+      "extraction_method": "native_text",
+      "native_char_count": 851,
+      "final_char_count": 1091,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 85,
+      "printed_page": "79",
+      "extraction_method": "native_text",
+      "native_char_count": 858,
+      "final_char_count": 1095,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 86,
+      "printed_page": "80",
+      "extraction_method": "native_text",
+      "native_char_count": 150,
+      "final_char_count": 184,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 87,
+      "printed_page": "81",
+      "extraction_method": "native_text",
+      "native_char_count": 734,
+      "final_char_count": 925,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 88,
+      "printed_page": "82",
+      "extraction_method": "native_text",
+      "native_char_count": 539,
+      "final_char_count": 797,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 89,
+      "printed_page": "83",
+      "extraction_method": "native_text",
+      "native_char_count": 1073,
+      "final_char_count": 1376,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 90,
+      "printed_page": "84",
+      "extraction_method": "native_text",
+      "native_char_count": 990,
+      "final_char_count": 1272,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 91,
+      "printed_page": "85",
+      "extraction_method": "native_text",
+      "native_char_count": 767,
+      "final_char_count": 1049,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 92,
+      "printed_page": "86",
+      "extraction_method": "native_text",
+      "native_char_count": 710,
+      "final_char_count": 904,
+      "image_count": 1,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 93,
+      "printed_page": "87",
+      "extraction_method": "native_text",
+      "native_char_count": 789,
+      "final_char_count": 1004,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 94,
+      "printed_page": "88",
+      "extraction_method": "native_text",
+      "native_char_count": 734,
+      "final_char_count": 947,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 95,
+      "printed_page": "89",
+      "extraction_method": "native_text",
+      "native_char_count": 671,
+      "final_char_count": 850,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 96,
+      "printed_page": "90",
+      "extraction_method": "native_text",
+      "native_char_count": 565,
+      "final_char_count": 803,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 97,
+      "printed_page": "91",
+      "extraction_method": "native_text",
+      "native_char_count": 1076,
+      "final_char_count": 1368,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 98,
+      "printed_page": "92",
+      "extraction_method": "native_text",
+      "native_char_count": 983,
+      "final_char_count": 1244,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 99,
+      "printed_page": "93",
+      "extraction_method": "native_text",
+      "native_char_count": 913,
+      "final_char_count": 1221,
+      "image_count": 0,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 100,
+      "printed_page": "94",
+      "extraction_method": "native_text",
+      "native_char_count": 801,
+      "final_char_count": 1017,
+      "image_count": 1,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 101,
+      "printed_page": "95",
+      "extraction_method": "native_text",
+      "native_char_count": 802,
+      "final_char_count": 1016,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 102,
+      "printed_page": "96",
+      "extraction_method": "native_text",
+      "native_char_count": 615,
+      "final_char_count": 793,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 103,
+      "printed_page": "97",
+      "extraction_method": "native_text",
+      "native_char_count": 26,
+      "final_char_count": 9,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": [
+        "OCR_UNAVAILABLE",
+        "LOW_TEXT"
+      ]
+    },
+    {
+      "source_page": 104,
+      "printed_page": null,
+      "extraction_method": "none",
+      "native_char_count": 0,
+      "final_char_count": 0,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": [
+        "NO_TEXT"
+      ]
+    },
+    {
+      "source_page": 105,
+      "printed_page": "99",
+      "extraction_method": "native_text",
+      "native_char_count": 706,
+      "final_char_count": 885,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 106,
+      "printed_page": "100",
+      "extraction_method": "native_text",
+      "native_char_count": 622,
+      "final_char_count": 883,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 107,
+      "printed_page": "101",
+      "extraction_method": "native_text",
+      "native_char_count": 1050,
+      "final_char_count": 1347,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 108,
+      "printed_page": "102",
+      "extraction_method": "native_text",
+      "native_char_count": 948,
+      "final_char_count": 1182,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 109,
+      "printed_page": "103",
+      "extraction_method": "native_text",
+      "native_char_count": 808,
+      "final_char_count": 1055,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 110,
+      "printed_page": "104",
+      "extraction_method": "native_text",
+      "native_char_count": 882,
+      "final_char_count": 1137,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 111,
+      "printed_page": "105",
+      "extraction_method": "native_text",
+      "native_char_count": 770,
+      "final_char_count": 979,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 112,
+      "printed_page": "106",
+      "extraction_method": "native_text",
+      "native_char_count": 416,
+      "final_char_count": 532,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 113,
+      "printed_page": "107",
+      "extraction_method": "native_text",
+      "native_char_count": 711,
+      "final_char_count": 897,
+      "image_count": 2,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 114,
+      "printed_page": "108",
+      "extraction_method": "native_text",
+      "native_char_count": 635,
+      "final_char_count": 914,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 115,
+      "printed_page": "109",
+      "extraction_method": "native_text",
+      "native_char_count": 1008,
+      "final_char_count": 1293,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 116,
+      "printed_page": "110",
+      "extraction_method": "native_text",
+      "native_char_count": 998,
+      "final_char_count": 1266,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 117,
+      "printed_page": "111",
+      "extraction_method": "native_text",
+      "native_char_count": 755,
+      "final_char_count": 989,
+      "image_count": 1,
+      "table_count": 1,
+      "review_flags": []
+    },
+    {
+      "source_page": 118,
+      "printed_page": "112",
+      "extraction_method": "native_text",
+      "native_char_count": 853,
+      "final_char_count": 1096,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 119,
+      "printed_page": "113",
+      "extraction_method": "native_text",
+      "native_char_count": 838,
+      "final_char_count": 1068,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 120,
+      "printed_page": "114",
+      "extraction_method": "native_text",
+      "native_char_count": 151,
+      "final_char_count": 184,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 121,
+      "printed_page": "115",
+      "extraction_method": "native_text",
+      "native_char_count": 845,
+      "final_char_count": 1051,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 122,
+      "printed_page": "116",
+      "extraction_method": "native_text",
+      "native_char_count": 997,
+      "final_char_count": 1253,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 123,
+      "printed_page": "117",
+      "extraction_method": "native_text",
+      "native_char_count": 1114,
+      "final_char_count": 1331,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 124,
+      "printed_page": "118",
+      "extraction_method": "native_text",
+      "native_char_count": 930,
+      "final_char_count": 1159,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    },
+    {
+      "source_page": 125,
+      "printed_page": "119",
+      "extraction_method": "native_text",
+      "native_char_count": 220,
+      "final_char_count": 256,
+      "image_count": 0,
+      "table_count": 0,
+      "review_flags": []
+    }
+  ]
+}

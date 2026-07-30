@@ -26,7 +26,7 @@
 
 ## 2. 출발점: 공식자료 5종 전처리
 
-원본 위치는 `../criteria`, 전처리 결과는 `../processed`이다. 전처리는 `../preprocess_criteria.py`로 수행했다.
+원본 작업 위치는 `../criteria`, 최초 전처리 결과는 `../processed`이다. Git pull만으로 재개할 수 있도록 웹서비스가 사용하는 사본은 `official-data/processed`에 포함했다. 전처리는 최초에 `../preprocess_criteria.py`로 수행했고, 저장소 사본 갱신은 `scripts/sync_official_data.py`를 사용한다.
 
 | 자료 | PDF 쪽수 | 청크 | 표 | 경고 쪽 | 추출 |
 |---|---:|---:|---:|---:|---|
@@ -51,6 +51,8 @@
 - 표는 Markdown 표로 분리한다.
 - 글자가 부족하거나 추출이 의심스러운 페이지는 검토 대상으로 남긴다.
 - 웹의 ‘공식자료 검수’ 메모는 데이터베이스에 누적되며, 원본 전처리 파일을 자동 수정하지는 않는다.
+- 원본 PDF가 없는 컴퓨터에서는 `processed_only`로 표시하지만 제작 기능은 사용할 수 있다.
+- 원본 PDF가 `official-data/criteria` 또는 저장소 상위 `criteria`에 있으면 원본 SHA-256까지 검증한다.
 
 ## 3. 확인된 공식 기준
 
@@ -106,7 +108,6 @@
 - 분석·배분·목차·설계·원고·심사 결과의 표 중심 HWPX 출력
 - GitHub 저장소, Vercel Python Functions, Supabase Postgres/Auth 연결
 - 관리자 승인 편집자 공동 사용, 비밀번호 재설정, 편집자 관리
-- 프로젝트 개발 과정을 보여주는 `/ai-journey` 페이지
 
 주요 실행 위치:
 
@@ -116,11 +117,11 @@
 - 원고: `/manuscript`
 - 모의심사: `/review`
 - HWPX: `/export`
-- 개발 과정 소개: `/ai-journey`
 
 ## 6. 데이터·배포 구조
 
 - 로컬 데이터: `data/studio.db` SQLite
+- 공통 전처리 데이터: `official-data/processed`(Git·Vercel 포함)
 - 배포 데이터: `POSTGRES_URL`이 있으면 Supabase Postgres
 - 인증: Supabase 이메일·비밀번호
 - 배포: Vercel 프로젝트 `textbook-studio`
@@ -148,6 +149,8 @@
 
 ### 운영상 확인할 사항
 
+- 다른 컴퓨터에서는 Git pull 후 별도 전처리 폴더 복사 없이 실행할 수 있다.
+- 원본 PDF 대조가 필요할 때만 `criteria`를 별도로 복사한다.
 - 배포 후 Supabase의 Site URL과 Redirect URL이 실제 Vercel 주소인지 확인한다.
 - 신규 편집자는 관리자가 `/editors`에 이메일을 등록한 뒤 최초 계정을 만든다.
 - 전처리의 `review.csv` 경고 페이지는 원본과 계속 대조한다.
@@ -188,7 +191,7 @@ node --check static/workflow.js
 git diff --check
 ```
 
-최근 전체 자동 테스트 결과: 30개 통과.
+최근 전체 자동 테스트 결과: 33개 통과.
 
 수동 검증 시 확인:
 
@@ -206,7 +209,8 @@ git diff --check
 2. 생성 결과의 문장 반복, 활동 다양성, 안전·평가 구체성 점검
 3. 실제 교과서 샘플과 비교해 펼침면 편집 UI 및 HWPX 레이아웃 개선
 4. 검정심사 기준과 전체 150쪽 이상 원고 처리 성능 재검증
-5. 필요 시 최신 변경을 커밋·푸시하고 Vercel 재배포
+5. 다른 컴퓨터에서 pull 후 공식자료 5종과 49개 성취기준이 바로 표시되는지 확인
+6. 필요 시 최신 변경을 커밋·푸시하고 Vercel 재배포
 
 세부 세션 이력과 최신 재개 지점은 `WORKLOG.md`에서 확인한다.
 
