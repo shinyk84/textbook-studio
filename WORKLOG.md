@@ -31,6 +31,18 @@
 
 ## 완료 세션
 
+### 2026-07-30 · GitHub 병합과 Vercel 최종 배포
+
+- 상태: 완료
+- 시작 요청: 미리보기 확인 후 최종 배포 요청.
+- 작업 목적: 검증된 `agent/supabase-collaboration` 변경을 정식 `main` 브랜치와 운영 사이트에 반영.
+- 수행 방법·판단: Vercel Preview 검사 성공과 GitHub 병합 가능 상태를 확인하고 PR #1을 Draft에서 준비 상태로 전환한 뒤 merge commit 방식으로 병합함. Vercel Git 연동이 시작한 Production 배포의 상태와 정식 별칭을 확인함.
+- 수정 파일: 이 배포 결과를 기록한 `WORKLOG.md`.
+- 검증: PR #1 병합 커밋 `e07caf6`; Production 배포 `dpl_HgiTbE9oYqMyodjANXo7AXiuwzqm` Ready; `https://textbook-studio.vercel.app/api/health` HTTP 200; 정식 첫 화면 HTTP 200; 로그인 전 `/api/bootstrap` HTTP 401로 인증 보호 확인.
+- Git: `main` 브랜치에 병합 완료. 이 기록 커밋을 추가 푸시한 뒤 최종 Production 상태를 다시 확인.
+- 남은 문제: 없음.
+- 다음 시작점: 정식 사이트에서 편집자 로그인 후 공식자료 5종과 기존 프로젝트 데이터 확인.
+
 ### 2026-07-30 · 발표용 페이지와 재생성 파일 정리
 
 - 상태: 완료
