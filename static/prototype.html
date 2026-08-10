@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Textbook Studio v0.1 Prototype</title>
+    <link rel="stylesheet" href="/styles.css?v=3" />
+    <link rel="stylesheet" href="/prototype.css?v=25" />
+  </head>
+  <body>
+    <div class="prototype-shell">
+      <aside class="prototype-sidebar">
+        <div class="brand">
+          <div class="brand-mark">교</div>
+          <div>
+            <strong>AI Textbook Studio</strong>
+            <span>Prototype v0.1 · Local only</span>
+          </div>
+        </div>
+
+        <section class="project-switcher" id="projectSwitcher" aria-label="책 프로젝트 선택"></section>
+
+        <nav id="stepNavigation" aria-label="프로토타입 단계"></nav>
+
+        <div class="prototype-note">
+          <span>저장 방식</span>
+          <strong>이 브라우저에 자동 저장</strong>
+          <small>서버·DB·AI API를 사용하지 않습니다.</small>
+        </div>
+      </aside>
+
+      <main class="prototype-main">
+        <header class="prototype-topbar">
+          <div>
+            <p class="eyebrow" id="stepEyebrow">PROTOTYPE STEP 01</p>
+            <h1 id="stepHeading">프로젝트 설정</h1>
+            <p class="subtitle" id="stepSubtitle"></p>
+          </div>
+          <div class="header-actions">
+            <span class="save-state" id="saveState">자동 저장 준비</span>
+            <button class="secondary-button" id="resetButton" type="button">초기화</button>
+            <button class="primary-button" id="saveButton" type="button">지금 저장</button>
+          </div>
+        </header>
+
+        <section class="prototype-progress" aria-label="진행률">
+          <div><span id="progressText">1/6</span><strong id="progressLabel">프로젝트 설정</strong></div>
+          <div class="progress-track"><i id="progressBar"></i></div>
+        </section>
+
+        <section class="prototype-workspace" id="workspace"></section>
+
+        <footer class="prototype-footer">
+          <button class="secondary-button" id="previousButton" type="button">이전</button>
+          <span>화면과 사용 흐름을 확인하기 위한 더미 프로토타입입니다.</span>
+          <button class="primary-button" id="nextButton" type="button">다음</button>
+        </footer>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/pptxgen.bundle.js?v=1"></script>
+    <script src="/prototype-curriculum-data.js?v=5"></script>
+    <script src="/prototype.js?v=38"></script>
+  </body>
+</html>
