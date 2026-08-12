@@ -35,7 +35,7 @@
 - 수행 방법·판단: 전처리 원문 「(서울교육연구정보원) 2022 개정 교육과정 교육부 장관 고시 인정도서 편찬상의 유의점 및 인정기준」의 스포츠 문화 구간을 대조해 4개 영역·20개 인정기준·100점(20/30/20/30)을 확인. 기존 코드가 초등 체육용 22개 검정기준을 모든 프로젝트에 재사용하던 오류를 수정해 초등은 검정기준 22개, 고등 체육 인정도서는 인정기준 20개, 중등은 공식 심사기준 미연결로 구분함. API 요청에도 선택 프로젝트 ID를 보내 서버 프롬프트·배점·결과 표가 같은 기준을 사용하게 함. 기존 기준으로 저장된 결과는 숨기고 재채점을 안내함. 오류가 짧은 토스트로만 사라지지 않도록 업로드 영역 아래에 API 키 미설정·결제 한도·PDF 텍스트 추출 실패 등의 서버 오류를 지속 표시함. Vercel 공개 배포 시 제3자가 서버 OpenAI 키를 무단 사용할 수 있는 위험을 막기 위해 Supabase 인증이 활성화된 환경에서는 `/api/prototype/review`도 로그인 세션을 요구하도록 `auth-client.js`와 서버 인증 검사를 연결함(인증이 꺼진 로컬 환경은 기존처럼 사용 가능).
 - 수정 파일: `app.py`, `static/prototype.js`, `static/prototype.html`, `tests/test_prototype_pdf_review.py`, `HANDOFF.md`, `WORKLOG.md`, `scripts/build_version_comparison_presentation.js`, `presentations/기존버전_vs_프로토타입_단계비교_수정본.pptx`(발표자료의 5단계도 원고 편집이 아니라 모의심사로 정정).
 - 검증: `node --check static/prototype.js`, 발표자료 생성 스크립트 문법 검사, `python -m py_compile` 3개 파일, PDF 모의심사 단위 테스트 12개, 전체 테스트 45개 통과. `git diff --check` 통과(CRLF 안내만 출력). 스테이징 43개 파일을 대상으로 API 키·GitHub 토큰·Google 키·JWT 패턴 검사 결과 없음.
-- Git: `main` 배포 커밋 준비 중. GitHub 푸시 후 연결된 Vercel Production 자동 배포를 확인할 예정.
+- Git: `c0e9ff0 Deploy five-step textbook prototype`을 `origin/main`에 푸시 완료. 연결된 Vercel Production에서 `https://textbook-studio.vercel.app/prototype.html` HTTP 200, `prototype.js?v=40`, 5단계 화면, 고등 인정기준 20개 반영을 확인함. `/api/health` 정상, 로그인하지 않은 `/api/prototype/review` 요청은 HTTP 401로 차단됨.
 - 남은 문제: 실제 채점에는 서버에 유효한 `OPENAI_API_KEY`와 사용 가능한 API 크레딧이 필요함. 현재 작업 셸과 `.env.local`에는 키가 없고, 이전 실제 호출 기록에는 `429 quota/billing`이 확인됨. 이미지로만 구성된 스캔 PDF는 현재 OCR하지 않으므로 텍스트 추출 가능한 PDF가 필요함.
 - 다음 시작점: `.env.local` 또는 배포 환경에 API 키를 설정하고 결제·크레딧을 활성화한 뒤 스포츠 문화 PDF 1건을 실제 재채점. 이후 프로토타입 파일을 선별 커밋·배포.
 
