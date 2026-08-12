@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "document_id": "별책4_고등학교_교육과정_0",
+  "document_type": "curriculum",
+  "source_file": "criteria/[별책4] 고등학교 교육과정 0.hwp",
+  "source_sha256": "aaae55bf602e1500e426b47e8377439f253e3d3de9b1a5364ebb219e10ff0dd0",
+  "source_size_bytes": 20079104,
+  "processed_at": "2026-08-05T01:01:40.781912+00:00",
+  "page_count": 0,
+  "section_count": 7,
+  "paragraph_count": 43220,
+  "chunk_count": 1183,
+  "table_count": 0,
+  "warning_page_count": 0,
+  "page_index_status": "unavailable",
+  "outputs": [
+    "document.md",
+    "chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

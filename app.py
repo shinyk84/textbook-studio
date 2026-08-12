@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import mimetypes
@@ -3038,6 +3039,183 @@ def call_openai_for_small_unit(
     return generated
 
 
+# --- 프로토타입(static/prototype.js) 모의심사 — 사용자가 업로드한 별도 PDF를 서버의
+# OPENAI_API_KEY로 채점한다. 초등은 22개 검정기준, 고등 체육 인정도서는 20개
+# 인정기준을 사용하며, 선택 프로젝트 ID로 기준을 구분한다.
+
+def extract_pdf_text(pdf_bytes: bytes, max_chars: int = 40000) -> tuple[str, bool]:
+    import pymupdf
+
+    document = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+    try:
+        parts = []
+        for page in document:
+            text = page.get_text("text").strip()
+            if text:
+                parts.append(f"[{page.number + 1}쪽]\n{text}")
+        full_text = "\n\n".join(parts)
+    finally:
+        document.close()
+    if len(full_text) > max_chars:
+        return full_text[:max_chars], True
+    return full_text, False
+
+
+def pdf_review_json_schema() -> dict:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["items", "review_note"],
+        "properties": {
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["number", "status", "evidence"],
+                    "properties": {
+                        "number": {"type": "integer"},
+                        "status": {"type": "string", "enum": ["pass", "partial", "fail"]},
+                        "evidence": {"type": "string"},
+                    },
+                },
+            },
+            "review_note": {"type": "string"},
+        },
+    }
+
+
+def call_openai_for_pdf_review(
+    pdf_text: str,
+    criteria: list[tuple[str, int, int, str]] | None = None,
+    standard_label: str = "검정기준",
+) -> dict:
+    api_key = secret_environment_value("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("서버에 OPENAI_API_KEY가 설정되지 않았습니다.")
+    selected_criteria = criteria or TEXTBOOK_REVIEW_CRITERIA
+    criteria_count = len(selected_criteria)
+    criteria_lines = "\n".join(
+        f"{number}. [{area}] {criterion}" for area, _weight, number, criterion in selected_criteria
+    )
+    instructions = (
+        f"당신은 2022 개정 교육과정 체육 교과서를 {standard_label}에 따라 심사하는 심사위원이다. "
+        f"주어진 교과서 원문(PDF에서 추출한 텍스트)을 아래 {criteria_count}개 {standard_label} 각각에 대해 pass(충족)/"
+        "partial(부분 충족)/fail(미흡)로 판정하고, 각 판정의 근거를 원문 내용을 인용하거나 요약해 "
+        "구체적으로 적어라. 원문에서 확인할 수 없는 항목은 fail로 판정하고 이유를 명시하라."
+    )
+    request_body = {
+        "model": manuscript_ai_config()["model"],
+        "instructions": instructions,
+        "input": f"[{standard_label} {criteria_count}개]\n{criteria_lines}\n\n[교과서 원문]\n{pdf_text}",
+        "max_output_tokens": 8000,
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "pdf_review_result",
+                "strict": True,
+                "schema": pdf_review_json_schema(),
+            }
+        },
+    }
+    request = Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urlopen(request, timeout=55) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        try:
+            message = json.loads(detail).get("error", {}).get("message", detail)
+        except json.JSONDecodeError:
+            message = detail
+        if exc.code == HTTPStatus.UNAUTHORIZED:
+            raise ValueError(f"OpenAI API 키가 유효하지 않습니다: {message[:300]}") from exc
+        if exc.code == HTTPStatus.TOO_MANY_REQUESTS:
+            if "quota" in message.lower() or "billing" in message.lower():
+                raise ValueError("OpenAI API 사용 가능 금액이 없습니다. 결제 설정과 사용 한도를 확인해 주세요.") from exc
+            raise ValueError("OpenAI API 요청이 잠시 너무 많습니다. 잠시 후 다시 시도해 주세요.") from exc
+        raise ValueError(f"OpenAI API 오류({exc.code}): {message[:500]}") from exc
+    except TimeoutError as exc:
+        raise ValueError("OpenAI 응답 제한 시간(55초)을 초과했습니다. 잠시 후 다시 시도해 주세요.") from exc
+    except URLError as exc:
+        raise ValueError("로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError("OpenAI 응답을 해석하지 못했습니다. 다시 시도해 주세요.") from exc
+    try:
+        return json.loads(openai_response_text(payload))
+    except json.JSONDecodeError as exc:
+        raise ValueError("OpenAI 응답을 채점 결과 형식으로 해석하지 못했습니다. 다시 시도해 주세요.") from exc
+
+
+def call_prototype_pdf_review(payload: dict) -> dict:
+    pdf_base64 = str(payload.get("pdfBase64", ""))
+    file_name = str(payload.get("fileName", "업로드한 파일"))
+    if not pdf_base64:
+        raise ValueError("PDF 파일이 없습니다.")
+    try:
+        pdf_bytes = base64.b64decode(pdf_base64)
+    except (ValueError, TypeError) as exc:
+        raise ValueError("PDF 파일을 읽지 못했습니다.") from exc
+    try:
+        pdf_text, truncated = extract_pdf_text(pdf_bytes)
+    except Exception as exc:
+        raise ValueError("PDF 파일을 열지 못했습니다. 손상되었거나 PDF 형식이 아닐 수 있습니다.") from exc
+    if not pdf_text.strip():
+        raise ValueError("PDF에서 텍스트를 추출하지 못했습니다(스캔 이미지로만 되어 있을 수 있습니다).")
+    standard = prototype_review_standard(str(payload.get("catalogId", "")))
+    criteria = standard["criteria"]
+    result = call_openai_for_pdf_review(pdf_text, criteria, standard["label"])
+    criteria_by_number = {number: (area, weight) for area, weight, number, _criterion in criteria}
+    status_value = {"pass": 1.0, "partial": 0.5, "fail": 0.0}
+    area_totals: dict[str, list[float]] = {}
+    area_weight_by_name: dict[str, int] = {}
+    for item in result.get("items", []):
+        area, weight = criteria_by_number.get(item.get("number"), (None, None))
+        if area is None:
+            continue
+        area_totals.setdefault(area, []).append(status_value.get(item.get("status"), 0.0))
+        area_weight_by_name[area] = weight
+    area_scores = {
+        area: round(area_weight_by_name[area] * (sum(values) / len(values)), 1)
+        for area, values in area_totals.items()
+    }
+    overall_score = round(sum(area_scores.values()), 1)
+    if overall_score >= 80:
+        decision = "통과"
+    elif overall_score >= 60:
+        decision = "보완 후 통과"
+    else:
+        decision = "미통과"
+    return {
+        "fileName": file_name,
+        "items": result.get("items", []),
+        "areaScores": area_scores,
+        "overallScore": overall_score,
+        "decision": decision,
+        "reviewNote": result.get("review_note", ""),
+        "truncated": truncated,
+        "standard": {
+            "id": standard["id"],
+            "label": standard["label"],
+            "count": len(criteria),
+            "source": standard["source"],
+            "sourceLocation": standard["source_location"],
+            "criteria": [
+                {"area": area, "weight": weight, "number": number, "criterion": criterion}
+                for area, weight, number, criterion in criteria
+            ],
+        },
+    }
+
+
 def update_manuscript_small_unit(payload: dict, generate_with_ai: bool = False) -> dict:
     chapter_id = str(payload.get("chapter_id", ""))
     section_index = int(payload.get("section_index", -1))
@@ -3099,6 +3277,50 @@ TEXTBOOK_REVIEW_CRITERIA = [
     ("Ⅳ. 학습 활동 및 평가 지원", 25, 21, "참여와 성장을 지원하는 과정 중심 활동"),
     ("Ⅳ. 학습 활동 및 평가 지원", 25, 22, "디지털·온오프라인 연계 활동 지원"),
 ]
+
+
+SPORTS_CULTURE_RECOGNITION_CRITERIA = [
+    ("Ⅰ. 교육과정의 준수", 20, 1, "교육과정에 제시된 ‘성격’과 ‘목표’를 충실히 반영하였는가?"),
+    ("Ⅰ. 교육과정의 준수", 20, 2, "교육과정에 제시된 ‘내용 체계’와 ‘성취기준’을 충실히 반영하였는가?"),
+    ("Ⅰ. 교육과정의 준수", 20, 3, "교육과정에 제시된 ‘교수·학습’을 충실히 반영하였는가?"),
+    ("Ⅰ. 교육과정의 준수", 20, 4, "교육과정에 제시된 ‘평가’를 충실히 반영하였는가?"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 5, "내용의 수준과 범위 및 학습량이 적절한가?"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 6, "내용 요소 간 위계가 있고, 연계성, 통합성, 균형성을 가지고 있는가?"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 7, "일상생활과 연계되어 흥미와 관심을 유발할 수 있도록 다양한 주제, 제재, 소재 등을 선정하였는가?"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 8, "학생들이 배운 내용을 다양한 방식으로 일상생활에 적용함으로써 역량 및 기초 소양 함양이 가능하도록 학습 내용을 조직하였는가?"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 9, "학생의 자기주도적 학습이 촉진될 수 있도록 학습 내용을 선정 및 조직하였는가?"),
+    ("Ⅱ. 내용의 선정 및 조직", 30, 10, "단원의 전개 및 구성 체제가 학습에 효과적인가?"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 11, "사실, 개념, 용어, 이론 등은 객관적이고 정확한가?"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 12, "평가 문항의 질문과 답에 오류는 없는가?"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 13, "사진, 삽화, 통계, 도표 및 각종 자료 등은 공신력 있는 최근의 것으로서 출처를 분명히 제시하고 있으며, 해당 내용에 대한 설명으로 적합한가?"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 14, "한글, 한자, 로마자, 인명, 지명, 각종 용어, 통계, 도표, 지도, 계량 단위 등의 표기가 정확하며, 편찬상의 유의점에 제시된 기준을 충실히 따랐는가?"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 15, "문법 오류, 부적절한 어휘 등 표현상의 오류가 없고 정확한가?"),
+    ("Ⅲ. 내용의 정확성 및 공정성", 20, 16, "특정 지역, 국가, 인종, 민족, 문화, 계층, 성, 종교, 직업, 집단, 인물, 기관, 상품 등을 비방·왜곡 또는 옹호하지 않았으며, 집필자 개인의 편견 없이 공정하게 기술하였는가?"),
+    ("Ⅳ. 학습 활동 및 평가 지원", 30, 17, "학습 활동 및 평가 과제는 교과 내용과 유기적으로 연계되어 있는가?"),
+    ("Ⅳ. 학습 활동 및 평가 지원", 30, 18, "학습 활동 및 평가 과제가 학생의 수준에 적절하며, 수행이 가능한가?"),
+    ("Ⅳ. 학습 활동 및 평가 지원", 30, 19, "학생의 역량 및 기초 소양 함양이 가능하도록 다양한 학습 활동 및 평가 과제를 제시하였는가?"),
+    ("Ⅳ. 학습 활동 및 평가 지원", 30, 20, "학습의 과정을 중시하고 학생의 참여와 성장을 지원하는 학습 활동 및 평가 과제를 제시하였는가?"),
+]
+
+
+def prototype_review_standard(catalog_id: str) -> dict:
+    if catalog_id.startswith("high-"):
+        return {
+            "id": "high-physical-education-recognition",
+            "label": "인정기준",
+            "source": "(서울교육연구정보원) 2022 개정 교육과정 교육부 장관 고시 인정도서 편찬상의 유의점 및 인정기준",
+            "source_location": "고등학교 체육 · 스포츠 문화 <인정 기준> (HWP 원본 고등학교 체육 20~45쪽 범위에서 소제목 대조)",
+            "criteria": SPORTS_CULTURE_RECOGNITION_CRITERIA,
+        }
+    if catalog_id == "middle-pe":
+        raise ValueError("중등 체육 모의심사 기준은 아직 공식자료와 연결되지 않았습니다.")
+    return {
+        "id": "elementary-physical-education-screening",
+        "label": "검정기준",
+        "source": "2022 개정 교육과정에 따른 체육과 편찬상의 유의점 및 검정기준",
+        "source_location": "PDF 원본 20~21쪽 · 22개 검정기준",
+        "criteria": TEXTBOOK_REVIEW_CRITERIA,
+    }
 
 
 def manuscript_review_page_entries(manuscript: dict) -> list[tuple[int, str, dict]]:
@@ -4236,6 +4458,20 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/prototype/review":
+            try:
+                if auth_config()["enabled"]:
+                    self.require_user()
+                self.send_json({"result": call_prototype_pdf_review(self.read_json())})
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:  # pragma: no cover - last-resort boundary
+                self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
         try:
             self.require_user()
             if parsed.path == "/api/editors":

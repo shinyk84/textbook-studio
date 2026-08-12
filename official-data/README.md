@@ -1,6 +1,6 @@
 # 저장소 포함 공식 전처리 자료
 
-`processed`에는 웹서비스 실행에 필요한 공식자료 5종의 전처리 결과가 들어 있다.
+`processed`에는 웹서비스 실행에 필요한 공식자료 10종의 전처리 결과가 들어 있다.
 이 폴더는 Git에 포함되므로 새 컴퓨터에서 clone/pull하면 코드와 함께 내려온다.
 
 포함 산출물:
@@ -11,11 +11,18 @@
 - `review.csv`
 - `report.md`
 
-원본 PDF는 저장소 용량과 배포 범위를 줄이기 위해 포함하지 않는다.
+원본 PDF·HWP·HWPX는 저장소 용량과 배포 범위를 줄이기 위해 포함하지 않는다.
 
 - 원본 PDF가 없어도 전처리 자료를 사용해 모든 제작 단계를 진행할 수 있다.
 - 원본 PDF가 `official-data/criteria` 또는 저장소 상위의 `criteria`에 있으면 SHA-256까지 대조한다.
 - 원본이 없으면 화면에 `전처리 자료 사용 가능`으로 표시한다.
+- HWP/HWPX 전처리 자료는 문단 순서를 보존하지만 원본 쪽수를 자동 확정하지 않으므로 최종 인용 시 원본 대조가 필요하다.
+
+새 PDF·HWP·HWPX를 전처리할 때:
+
+```powershell
+python scripts\preprocess_official_documents.py <원본 파일 경로>
+```
 
 기존 작업 루트의 `processed`를 다시 반영할 때:
 

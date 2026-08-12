@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "document_id": "2022_개정_교육과정_인정도서_심의본_접수_관련_주요_질의_내용_및_답변",
+  "document_type": "recognition_qa",
+  "source_file": "criteria/2022 개정 교육과정 인정도서 심의본 접수 관련 주요 질의 내용 및 답변.hwpx",
+  "source_sha256": "d675b08baea1af2c24097e9a0107997910dd2cc349c952cd78a4f8058fd8a7a7",
+  "source_size_bytes": 75901,
+  "processed_at": "2026-08-05T01:01:39.851558+00:00",
+  "page_count": 0,
+  "section_count": 1,
+  "paragraph_count": 36,
+  "chunk_count": 2,
+  "table_count": 0,
+  "warning_page_count": 0,
+  "page_index_status": "unavailable",
+  "outputs": [
+    "document.md",
+    "chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

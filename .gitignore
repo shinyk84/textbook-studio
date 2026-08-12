@@ -9,4 +9,6 @@ backups/*.db
 .vercel
 .env*
 .agents/
+.claude/
 skills-lock.json
+official-data/criteria/
