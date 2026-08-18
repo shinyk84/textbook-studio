@@ -1,0 +1,6 @@
+﻿spread_id,page_ids,classification,confidence,signals,image
+s0068_0069,p0068|p0069,uncertain,0.3833,gutter_color_continuity|shared_color_palette,images/spreads/s0068_0069.jpg
+s0070_0071,p0070|p0071,uncertain,0.3893,gutter_color_continuity|shared_color_palette,images/spreads/s0070_0071.jpg
+s0082_0083,p0082|p0083,uncertain,0.5895,gutter_edge_alignment|shared_color_palette,images/spreads/s0082_0083.jpg
+s0098_0099,p0098|p0099,uncertain,0.5635,gutter_edge_alignment|shared_color_palette,images/spreads/s0098_0099.jpg
+s0100_0101,p0100|p0101,uncertain,0.3804,gutter_color_continuity|shared_color_palette,images/spreads/s0100_0101.jpg

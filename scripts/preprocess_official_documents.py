@@ -23,17 +23,15 @@ from zipfile import ZipFile
 
 def optional_imports():
     try:
-        import fitz  # type: ignore
-        import olefile  # type: ignore
+        import pymupdf  # type: ignore
     except ImportError as exc:
         raise SystemExit(
-            "PyMuPDF와 olefile이 필요합니다. "
-            "python -m pip install pymupdf olefile 명령으로 설치하세요."
+            "PyMuPDF가 필요합니다. python -m pip install pymupdf 명령으로 설치하세요."
         ) from exc
-    return fitz, olefile
+    return pymupdf
 
 
-FITZ, OLEFILE = optional_imports()
+FITZ = optional_imports()
 EXTENDED_HWP_CONTROLS = (
     set(range(1, 10)) | set(range(11, 13)) | set(range(14, 24))
 )
@@ -67,6 +65,23 @@ def classify(path: Path) -> str:
     if "교육과정" in name:
         return "curriculum"
     return "official_reference"
+
+
+def curriculum_revision(path: Path) -> str:
+    location = " ".join([path.name, *[parent.name for parent in path.parents[:3]]])
+    if "09개정" in location or "2009" in location:
+        return "2009 개정"
+    if "22개정" in location or "2022" in location:
+        return "2022 개정"
+    return "미분류"
+
+
+def portable_source_file(path: Path) -> str:
+    resolved = path.resolve()
+    for parent in resolved.parents:
+        if parent.name == "official-data":
+            return resolved.relative_to(parent).as_posix()
+    return f"criteria/{path.name}"
 
 
 def clean_text(text: str) -> str:
@@ -114,7 +129,13 @@ def decode_hwp_paragraph(payload: bytes) -> str:
 
 
 def extract_hwp(path: Path) -> list[dict]:
-    ole = OLEFILE.OleFileIO(str(path))
+    try:
+        import olefile  # type: ignore
+    except ImportError as exc:
+        raise SystemExit(
+            "HWP 전처리에는 olefile이 필요합니다. python -m pip install olefile 명령으로 설치하세요."
+        ) from exc
+    ole = olefile.OleFileIO(str(path))
     try:
         header = ole.openstream("FileHeader").read()
         compressed = bool(struct.unpack_from("<I", header, 36)[0] & 1)
@@ -241,7 +262,8 @@ def write_outputs(path: Path, output_root: Path) -> Path:
     destination.mkdir(parents=True, exist_ok=True)
     sections = extract(path)
     title = re.sub(r"^[0-9]+_", "", path.stem).strip()
-    source_file = f"criteria/{path.name}"
+    source_file = portable_source_file(path)
+    revision = curriculum_revision(path)
     exact_pages = path.suffix.lower() == ".pdf"
     now = datetime.now(timezone.utc).isoformat()
 
@@ -294,6 +316,7 @@ def write_outputs(path: Path, output_root: Path) -> Path:
                     "document_id": doc_id,
                     "document_title": title,
                     "document_type": classify(path),
+                    "curriculum_revision": revision,
                     "source_file": source_file,
                     "source_page_start": section["page"],
                     "source_page_end": section["page"],
@@ -332,6 +355,7 @@ def write_outputs(path: Path, output_root: Path) -> Path:
         "schema_version": 1,
         "document_id": doc_id,
         "document_type": classify(path),
+        "curriculum_revision": revision,
         "source_file": source_file,
         "source_sha256": sha256(path),
         "source_size_bytes": path.stat().st_size,

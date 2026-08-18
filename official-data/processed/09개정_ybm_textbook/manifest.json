@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "processor_version": "1.0.0",
+  "document_id": "09개정_ybm_textbook",
+  "title": "09개정 YBM _스포츠 문화 교과서",
+  "publisher": "YBM",
+  "document_type": "교과서",
+  "source": "textbook/09개정 YBM _스포츠 문화 교과서.pdf",
+  "source_sha256": "9672aa02b4f5d01afc2ffa49a50a92bdd3d66cd13ebdab1b9725f9aa4e6fd367",
+  "processed_at": "2026-08-12T05:04:36.720981+00:00",
+  "source_pdf_pages": 256,
+  "physical_pages": 256,
+  "native_spread_document": false,
+  "spread_pairs": 127,
+  "spread_classification_counts": {
+    "uncertain": 126,
+    "facing_pages": 1
+  },
+  "page_chunks": 338,
+  "spread_chunks": 248,
+  "preview_height_px": 1100,
+  "notes": [
+    "원본 PDF는 변경하지 않았습니다.",
+    "chunks.jsonl은 중복을 줄인 기본 페이지 검색용입니다.",
+    "spread_chunks.jsonl은 펼침면 문맥이 필요한 보조 검색용입니다.",
+    "모든 마주 보는 페이지 쌍을 이미지와 spreads.jsonl에 보존했습니다."
+  ],
+  "curriculum_revision": "2009 개정",
+  "source_file": "textbook/09개정 YBM _스포츠 문화 교과서.pdf",
+  "source_size_bytes": 367148755,
+  "page_count": 256,
+  "chunk_count": 338,
+  "table_count": 0,
+  "warning_page_count": 126,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "pages.jsonl",
+    "spreads.jsonl",
+    "chunks.jsonl",
+    "spread_chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

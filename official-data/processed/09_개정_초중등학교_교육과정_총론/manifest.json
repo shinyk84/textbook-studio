@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "document_id": "09_개정_초중등학교_교육과정_총론",
+  "document_type": "curriculum",
+  "curriculum_revision": "2009 개정",
+  "source_file": "criteria/09개정/09 개정 _초중등학교 교육과정_총론.pdf",
+  "source_sha256": "3182175621ad56f29b5d39e66f7141765f54cccce019e0ec7f612267cbfa6b9f",
+  "source_size_bytes": 450980,
+  "processed_at": "2026-08-12T08:09:39.920281+00:00",
+  "page_count": 31,
+  "section_count": 0,
+  "paragraph_count": 33,
+  "chunk_count": 30,
+  "table_count": 0,
+  "warning_page_count": 1,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

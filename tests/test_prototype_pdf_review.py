@@ -107,9 +107,18 @@ class PrototypePdfReviewTests(unittest.TestCase):
         self.assertEqual(result, generated)
 
     def test_call_openai_for_pdf_review_missing_key(self):
+        # Popping the env var alone isn't enough to simulate "no key configured":
+        # secret_environment_value() falls back to reading a real .env.local next to
+        # app.py if one exists on the developer's machine (e.g. for live AI testing).
+        # Stub the lookup itself so this test doesn't depend on that file's absence.
         app = self.app
-        with self.assertRaises(ValueError) as ctx:
-            app.call_openai_for_pdf_review("text")
+        original_lookup = app.secret_environment_value
+        app.secret_environment_value = lambda name: ""
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                app.call_openai_for_pdf_review("text")
+        finally:
+            app.secret_environment_value = original_lookup
         self.assertIn("OPENAI_API_KEY", str(ctx.exception))
 
     def test_call_openai_for_pdf_review_invalid_key(self):

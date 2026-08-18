@@ -2,7 +2,7 @@
   "schema_version": 1,
   "document_id": "별책1_초중등학교_교육과정_총론",
   "document_type": "curriculum",
-  "source_file": "criteria/[별책1] 초중등학교 교육과정 총론.hwp",
+  "source_file": "criteria/22개정/[별책1] 초중등학교 교육과정 총론.hwp",
   "source_sha256": "6404c2dbf4df5b0f680c6e9101f15674af738eda2ea194b1a45078cb187fdc1a",
   "source_size_bytes": 409600,
   "processed_at": "2026-08-05T01:01:39.934114+00:00",
@@ -18,5 +18,6 @@
     "chunks.jsonl",
     "review.csv",
     "report.md"
-  ]
+  ],
+  "curriculum_revision": "2022 개정"
 }

@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "processor_version": "layout-pdf-1.0.0",
+  "document_id": "09개정_ybm_teacher_guide",
+  "title": "09개정 YBM 스포츠문화 지도서 본문",
+  "publisher": "YBM",
+  "document_type": "지도서",
+  "source": "teacher_guide/09개정 YBM _스포츠문화 지도서 본문.pdf",
+  "source_sha256": "fc375df5b8d2d830c012b43063a6cc6780cbb407844dc1e03231a4937f770ce3",
+  "processed_at": "2026-08-13T02:04:31.116727+00:00",
+  "source_pdf_pages": 368,
+  "physical_pages": 368,
+  "native_spread_document": false,
+  "spread_pairs": 183,
+  "spread_classification_counts": {
+    "uncertain": 183
+  },
+  "page_chunks": 1478,
+  "spread_chunks": 1389,
+  "preview_height_px": 1100,
+  "notes": [
+    "원본 PDF는 변경하지 않았습니다.",
+    "모든 순차 마주보기 쌍을 uncertain으로 보존했습니다."
+  ],
+  "curriculum_revision": "2009 개정",
+  "source_file": "teacher_guide/09개정 YBM _스포츠문화 지도서 본문.pdf",
+  "source_size_bytes": 125211789,
+  "page_count": 368,
+  "chunk_count": 1478,
+  "table_count": 0,
+  "warning_page_count": 0,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "pages.jsonl",
+    "spreads.jsonl",
+    "chunks.jsonl",
+    "spread_chunks.jsonl",
+    "review.csv",
+    "report.md",
+    "spread_contact_sheet.jpg"
+  ]
+}

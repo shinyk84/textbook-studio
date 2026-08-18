@@ -12,3 +12,5 @@ backups/*.db
 .claude/
 skills-lock.json
 official-data/criteria/
+official-data/textbook/
+official-data/teacher_guide/

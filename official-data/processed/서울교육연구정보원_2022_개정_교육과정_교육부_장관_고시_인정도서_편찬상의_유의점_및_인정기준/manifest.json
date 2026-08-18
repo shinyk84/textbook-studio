@@ -2,7 +2,7 @@
   "schema_version": 1,
   "document_id": "서울교육연구정보원_2022_개정_교육과정_교육부_장관_고시_인정도서_편찬상의_유의점_및_인정기준",
   "document_type": "recognition_criteria",
-  "source_file": "criteria/(서울교육연구정보원) 2022 개정 교육과정 교육부 장관 고시 인정도서 편찬상의 유의점 및 인정기준.hwp",
+  "source_file": "criteria/22개정/(서울교육연구정보원) 2022 개정 교육과정 교육부 장관 고시 인정도서 편찬상의 유의점 및 인정기준.hwp",
   "source_sha256": "d1f012485771ea00e621ead781acd75d8f3f2576252af5c57b26f658128773f5",
   "source_size_bytes": 592896,
   "processed_at": "2026-08-05T01:01:39.805738+00:00",
@@ -18,5 +18,6 @@
     "chunks.jsonl",
     "review.csv",
     "report.md"
-  ]
+  ],
+  "curriculum_revision": "2022 개정"
 }

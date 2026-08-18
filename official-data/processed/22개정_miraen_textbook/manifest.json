@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "processor_version": "1.0.0",
+  "document_id": "22개정_miraen_textbook",
+  "title": "22개정 미래엔_고등_스포츠 문화_교과서PDF",
+  "publisher": "미래엔",
+  "document_type": "교과서",
+  "source": "textbook/22개정 미래엔_고등_스포츠 문화_교과서PDF.pdf",
+  "source_sha256": "7907bc9c0376fadb2950755601f22f6a09af8fcc7e6ecb578a3d1040898ad073",
+  "processed_at": "2026-08-12T07:12:58.127914+00:00",
+  "source_pdf_pages": 198,
+  "physical_pages": 198,
+  "native_spread_document": false,
+  "spread_pairs": 98,
+  "spread_classification_counts": {
+    "uncertain": 15,
+    "spread": 41,
+    "facing_pages": 42
+  },
+  "page_chunks": 262,
+  "spread_chunks": 101,
+  "preview_height_px": 1100,
+  "notes": [
+    "원본 PDF는 변경하지 않았습니다.",
+    "chunks.jsonl은 중복을 줄인 기본 페이지 검색용입니다.",
+    "spread_chunks.jsonl은 펼침면 문맥이 필요한 보조 검색용입니다.",
+    "모든 마주 보는 페이지 쌍을 이미지와 spreads.jsonl에 보존했습니다."
+  ],
+  "curriculum_revision": "2022 개정",
+  "source_file": "textbook/22개정 미래엔_고등_스포츠 문화_교과서PDF.pdf",
+  "source_size_bytes": 170706013,
+  "page_count": 198,
+  "chunk_count": 262,
+  "table_count": 0,
+  "warning_page_count": 15,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "pages.jsonl",
+    "spreads.jsonl",
+    "chunks.jsonl",
+    "spread_chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

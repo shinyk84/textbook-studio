@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "processor_version": "1.0.0",
+  "document_id": "22개정_chunjae_elementary_pe5_teacher_guide",
+  "title": "22개정 천재 초등체육5 지도서",
+  "publisher": "천재교과서",
+  "document_type": "지도서",
+  "source": "teacher_guide/22개정 천재 초등체육5 지도서.pdf",
+  "source_sha256": "1f26167326d84e94038e1581f4f7d1c210753c7b9efba21c2b8fde5bcf86a578",
+  "processed_at": "2026-08-13T02:57:25.298923+00:00",
+  "source_pdf_pages": 354,
+  "physical_pages": 354,
+  "native_spread_document": false,
+  "spread_pairs": 176,
+  "spread_classification_counts": {
+    "uncertain": 176
+  },
+  "page_chunks": 355,
+  "spread_chunks": 224,
+  "preview_height_px": 1100,
+  "notes": [
+    "원본 PDF는 변경하지 않았습니다.",
+    "chunks.jsonl은 중복을 줄인 기본 페이지 검색용입니다.",
+    "spread_chunks.jsonl은 펼침면 문맥이 필요한 보조 검색용입니다.",
+    "모든 순차 마주보기 쌍을 이미지와 spreads.jsonl에 보존하고 자동 판정은 uncertain으로 두었습니다."
+  ],
+  "curriculum_revision": "2022 개정",
+  "education_level": "초등학교",
+  "grade": "5학년",
+  "curriculum_band": "5~6학년군",
+  "review_framework": "검정",
+  "source_file": "teacher_guide/22개정 천재 초등체육5 지도서.pdf",
+  "source_size_bytes": 151875673,
+  "page_count": 354,
+  "chunk_count": 355,
+  "table_count": 0,
+  "warning_page_count": 2,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "pages.jsonl",
+    "spreads.jsonl",
+    "chunks.jsonl",
+    "spread_chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

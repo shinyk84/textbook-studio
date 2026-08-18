@@ -569,8 +569,21 @@ def determine_integrity(manifest: dict, folder: Path) -> str:
     if any(not (folder / output).is_file() for output in outputs):
         return "outputs_missing"
 
-    if len(manifest.get("pages", [])) != int(manifest.get("page_count", 0)):
-        return "page_mismatch"
+    page_count = int(manifest.get("page_count", 0))
+    embedded_pages = manifest.get("pages")
+    if isinstance(embedded_pages, list) and embedded_pages:
+        if len(embedded_pages) != page_count:
+            return "page_mismatch"
+    elif (folder / "pages.jsonl").is_file():
+        try:
+            jsonl_page_count = sum(
+                bool(line.strip())
+                for line in (folder / "pages.jsonl").read_text(encoding="utf-8-sig").splitlines()
+            )
+        except OSError:
+            return "outputs_missing"
+        if jsonl_page_count != page_count:
+            return "page_mismatch"
 
     expected_hash = manifest.get("source_sha256", "").lower()
     source_path = manifest_source_path(manifest)
@@ -3039,6 +3052,192 @@ def call_openai_for_small_unit(
     return generated
 
 
+# --- 프로토타입(static/prototype.js) 스포츠 문화 4단계 원고 생성 — 클라이언트가
+# 소단원·종목·전개각도·전처리 근거 발췌문을 조립해 보내면, 서버의 OPENAI_API_KEY로
+# 실제 문장을 생성해 반환한다. 근거 매칭(evidenceRecordFor 등)은 여전히 클라이언트
+# JS(prototype-draft-engine.js)가 담당하고, 서버는 그 결과를 받아 집필만 한다.
+
+def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> dict:
+    section_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["paragraphs"],
+        "properties": {
+            "paragraphs": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 4,
+                "items": {"type": "string"},
+            },
+        },
+    }
+    spread_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "headline",
+            "learning_goal",
+            "opening_question",
+            "deck",
+            "sections",
+            "visual_briefs",
+        ],
+        "properties": {
+            "headline": {"type": "string"},
+            "learning_goal": {"type": "string"},
+            "opening_question": {"type": "string"},
+            "deck": {"type": "string"},
+            "sections": {
+                "type": "array",
+                "minItems": section_count,
+                "maxItems": section_count,
+                "items": section_schema,
+            },
+            "visual_briefs": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 3,
+                "items": {"type": "string"},
+            },
+        },
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["spreads"],
+        "properties": {
+            "spreads": {
+                "type": "array",
+                "minItems": spread_count,
+                "maxItems": spread_count,
+                "items": spread_schema,
+            },
+        },
+    }
+
+
+def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
+    api_key = secret_environment_value("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+    spreads = context.get("spreads", [])
+    if not spreads:
+        raise ValueError("생성할 펼침면 정보가 없습니다.")
+    section_count = len(spreads[0].get("sectionTitles", [])) or 4
+    instructions = (
+        "당신은 2022 개정 교육과정 고등학교 인정교과서 '스포츠 문화' 집필자다. "
+        "제공된 전처리 근거 발췌문(교과서·지도서 원문 일부)을 사실적 바탕으로 삼아, "
+        "실제 고등학교 교과서에 실릴 법한 자연스러운 설명문 문단을 작성한다.\n"
+        "다음을 반드시 지킨다.\n"
+        "1) 본문에 출판사명이나 쪽수를 직접 인용하지 않는다(예: 'OO출판 12쪽' 금지). "
+        "발췌문은 사실 확인용 참고 자료일 뿐, 본문에 출처를 표시하지 않는다.\n"
+        "2) 절 제목을 본문에서 그대로 되받아 설명하지 않는다(예: '이 절의 핵심은 ~이다', "
+        "'~에 관한 자료는' 같은 자기 지시적 문장 금지). 절 제목은 화면에 이미 표시되므로 "
+        "본문은 곧바로 내용을 설명하는 문장으로 시작한다.\n"
+        "3) 제공된 근거에 없는 수치·역사적 사실·규칙을 새로 지어내지 않는다.\n"
+        "4) 종목이 지정되면 그 종목의 구체적 사례로 설명하고, 종목이 없으면(sport_mode가 "
+        "none) 특정 종목에 치우치지 않는 일반적인 스포츠 문화 설명으로 쓴다.\n"
+        "5) style_label 값에 따라 문체를 다르게 한다: '안정·정석형'은 개념과 역사 중심의 "
+        "차분한 설명문, '참신·활동형'은 질문이나 구체적 장면으로 시작해 활동을 강조하는 "
+        "문체, '균형형'은 그 중간으로 쓴다.\n"
+        "6) 여러 펼침면이 주어지면 펼침면마다 다른 내용과 사례를 다루고, 같은 문장이나 "
+        "표현을 반복하지 않는다.\n"
+        "7) 각 절은 2~4개 문단으로 자연스럽게 흐르는 설명문으로 쓴다. 문단 개수나 "
+        "'정의-사례-과제' 같은 고정 틀에 얽매이지 말고, 내용에 맞는 자연스러운 전개를 "
+        "선택한다.\n"
+        "8) 고등학생이 읽기에 적절한 문장 길이와 어휘를 사용한다."
+    )
+    request_body = {
+        "model": manuscript_ai_config()["model"],
+        "reasoning": {"effort": "medium"},
+        "instructions": instructions,
+        "input": json.dumps(context, ensure_ascii=False),
+        "max_output_tokens": 16000,
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "sports_culture_manuscript",
+                "strict": True,
+                "schema": sports_culture_manuscript_schema(len(spreads), section_count),
+            }
+        },
+    }
+    request = Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urlopen(request, timeout=50) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        try:
+            message = json.loads(detail).get("error", {}).get("message", detail)
+        except json.JSONDecodeError:
+            message = detail
+        if exc.code == HTTPStatus.UNAUTHORIZED:
+            raise ValueError(
+                "OpenAI API 키가 유효하지 않습니다. 등록한 키를 다시 확인해 주세요."
+            ) from exc
+        if exc.code == HTTPStatus.TOO_MANY_REQUESTS:
+            if "quota" in message.lower() or "billing" in message.lower():
+                raise ValueError(
+                    "OpenAI API 사용 가능 금액이 없습니다. OpenAI API 결제 설정과 "
+                    "사용 한도를 확인한 뒤 다시 시도해 주세요."
+                ) from exc
+            raise ValueError(
+                "OpenAI API 요청이 잠시 너무 많습니다. 잠시 후 다시 시도해 주세요."
+            ) from exc
+        raise ValueError(f"OpenAI API 오류: {message[:500]}") from exc
+    except TimeoutError as exc:
+        raise ValueError(
+            "OpenAI 응답 제한 시간(50초)을 초과했습니다. 잠시 후 다시 시도해 주세요."
+        ) from exc
+    except URLError as exc:
+        raise ValueError(
+            "로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인하고 "
+            "서버를 다시 실행해 주세요."
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "OpenAI 응답을 원고 형식으로 해석하지 못했습니다. 다시 생성해 주세요."
+        ) from exc
+    generated = json.loads(openai_response_text(payload))
+    if len(generated.get("spreads", [])) != len(spreads):
+        raise ValueError("AI가 요청한 펼침면 수와 다른 원고를 반환했습니다.")
+    return generated
+
+
+def call_prototype_sports_culture_manuscript(payload: dict) -> dict:
+    small_unit = payload.get("smallUnit")
+    if not isinstance(small_unit, dict) or not str(small_unit.get("smallTitle", "")).strip():
+        raise ValueError("소단원 정보가 없습니다.")
+    spreads = payload.get("spreads")
+    if not isinstance(spreads, list) or not spreads:
+        raise ValueError("생성할 펼침면 정보가 없습니다.")
+    context = {
+        "small_unit_title": small_unit.get("smallTitle", ""),
+        "domain": small_unit.get("domain", ""),
+        "middle_title": small_unit.get("middleTitle", ""),
+        "standard_codes": small_unit.get("standardCodes", []),
+        "primary_type": payload.get("primaryType", "theory"),
+        "support_mode": payload.get("supportMode", ""),
+        "carrier_sport": payload.get("carrierSport", ""),
+        "sport_mode": payload.get("sportMode", "primary"),
+        "style_label": payload.get("styleLabel", "균형형"),
+        "thesis": payload.get("thesis", ""),
+        "standard_context": payload.get("standardContext", {}),
+        "sport_reference": payload.get("sportReference"),
+        "spreads": spreads,
+    }
+    return call_openai_for_sports_culture_manuscript(context)
+
+
 # --- 프로토타입(static/prototype.js) 모의심사 — 사용자가 업로드한 별도 PDF를 서버의
 # OPENAI_API_KEY로 채점한다. 초등은 22개 검정기준, 고등 체육 인정도서는 20개
 # 인정기준을 사용하며, 선택 프로젝트 ID로 기준을 구분한다.
@@ -4463,6 +4662,22 @@ class StudioHandler(BaseHTTPRequestHandler):
                 if auth_config()["enabled"]:
                     self.require_user()
                 self.send_json({"result": call_prototype_pdf_review(self.read_json())})
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:  # pragma: no cover - last-resort boundary
+                self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if parsed.path == "/api/prototype/sports-culture-manuscript":
+            try:
+                if auth_config()["enabled"]:
+                    self.require_user()
+                self.send_json(
+                    {"result": call_prototype_sports_culture_manuscript(self.read_json())}
+                )
             except AuthenticationError as exc:
                 self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
             except AuthorizationError as exc:

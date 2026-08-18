@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "processor_version": "1.0.0",
+  "document_id": "22개정_donga_elementary_pe5_textbook",
+  "title": "22개정 동아 초등체육5 교과서",
+  "publisher": "동아출판",
+  "document_type": "교과서",
+  "source": "textbook/22개정 동아 초등체육5 교과서.pdf",
+  "source_sha256": "2b870d37e8e9232a5a62610fa2fea333e70e31101329b556d4b53c6e0694fdbb",
+  "processed_at": "2026-08-13T02:51:06.839431+00:00",
+  "source_pdf_pages": 146,
+  "physical_pages": 146,
+  "native_spread_document": false,
+  "spread_pairs": 72,
+  "spread_classification_counts": {
+    "uncertain": 72
+  },
+  "page_chunks": 145,
+  "spread_chunks": 73,
+  "preview_height_px": 1100,
+  "notes": [
+    "원본 PDF는 변경하지 않았습니다.",
+    "chunks.jsonl은 중복을 줄인 기본 페이지 검색용입니다.",
+    "spread_chunks.jsonl은 펼침면 문맥이 필요한 보조 검색용입니다.",
+    "모든 순차 마주보기 쌍을 이미지와 spreads.jsonl에 보존하고 자동 판정은 uncertain으로 두었습니다."
+  ],
+  "curriculum_revision": "2022 개정",
+  "education_level": "초등학교",
+  "grade": "5학년",
+  "curriculum_band": "5~6학년군",
+  "review_framework": "검정",
+  "source_file": "textbook/22개정 동아 초등체육5 교과서.pdf",
+  "source_size_bytes": 238369162,
+  "page_count": 146,
+  "chunk_count": 145,
+  "table_count": 0,
+  "warning_page_count": 3,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "pages.jsonl",
+    "spreads.jsonl",
+    "chunks.jsonl",
+    "spread_chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

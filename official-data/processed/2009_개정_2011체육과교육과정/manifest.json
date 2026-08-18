@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "document_id": "2009_개정_2011체육과교육과정",
+  "document_type": "curriculum",
+  "curriculum_revision": "2009 개정",
+  "source_file": "criteria/09개정/[2009 개정_2011]체육과교육과정.pdf",
+  "source_sha256": "20022a8c5a957d436dfa1f3e1ab2b3e0668090a4121e84a97e066ca99ac12c39",
+  "source_size_bytes": 997272,
+  "processed_at": "2026-08-12T05:02:34.199944+00:00",
+  "page_count": 158,
+  "section_count": 0,
+  "paragraph_count": 168,
+  "chunk_count": 158,
+  "table_count": 0,
+  "warning_page_count": 0,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

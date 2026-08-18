@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "processor_version": "1.0.0",
+  "document_id": "22개정_chunjae_teacher_guide",
+  "title": "천재 고_스포츠문화(류태호)_지도서",
+  "publisher": "천재교육",
+  "document_type": "지도서",
+  "source": "teacher_guide/22개정 천재 고_스포츠문화(류태호)_지도서.pdf",
+  "source_sha256": "9d4a8ad6a57c3a2408f9ce4d1d5a7ba3b7a44c5e06a1340695bbafc083a75604",
+  "processed_at": "2026-08-10T06:19:26.583697+00:00",
+  "source_pdf_pages": 144,
+  "physical_pages": 144,
+  "native_spread_document": false,
+  "spread_pairs": 71,
+  "spread_classification_counts": {
+    "uncertain": 1,
+    "facing_pages": 70
+  },
+  "page_chunks": 182,
+  "spread_chunks": 1,
+  "preview_height_px": 1100,
+  "notes": [
+    "원본 PDF는 변경하지 않았습니다.",
+    "chunks.jsonl은 중복을 줄인 기본 페이지 검색용입니다.",
+    "spread_chunks.jsonl은 펼침면 문맥이 필요한 보조 검색용입니다.",
+    "모든 마주 보는 페이지 쌍을 이미지와 spreads.jsonl에 보존했습니다."
+  ],
+  "curriculum_revision": "2022 개정",
+  "source_file": "teacher_guide/22개정 천재 고_스포츠문화(류태호)_지도서.pdf",
+  "source_size_bytes": 15101626,
+  "page_count": 144,
+  "chunk_count": 182,
+  "table_count": 0,
+  "warning_page_count": 1,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "pages.jsonl",
+    "spreads.jsonl",
+    "chunks.jsonl",
+    "spread_chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

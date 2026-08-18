@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "document_id": "09_개정_별책11체육과_교육과정교육과학기술부고시_제2011_361호최종수정",
+  "document_type": "curriculum",
+  "curriculum_revision": "2009 개정",
+  "source_file": "criteria/09개정/09 개정 [별책11]체육과 교육과정(교육과학기술부고시 제2011-361호)(최종수정).pdf",
+  "source_sha256": "0dee52cf404936e8226251d07500a91d3062333453cfb74187b8515212d7b31c",
+  "source_size_bytes": 1068211,
+  "processed_at": "2026-08-12T08:09:39.769430+00:00",
+  "page_count": 147,
+  "section_count": 0,
+  "paragraph_count": 152,
+  "chunk_count": 145,
+  "table_count": 0,
+  "warning_page_count": 2,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

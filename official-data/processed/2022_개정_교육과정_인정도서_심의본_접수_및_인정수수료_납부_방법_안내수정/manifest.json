@@ -2,7 +2,7 @@
   "schema_version": 1,
   "document_id": "2022_개정_교육과정_인정도서_심의본_접수_및_인정수수료_납부_방법_안내수정",
   "document_type": "recognition_procedure",
-  "source_file": "criteria/2022 개정 교육과정 인정도서 심의본 접수 및 인정수수료 납부 방법 안내(수정).hwp",
+  "source_file": "criteria/22개정/2022 개정 교육과정 인정도서 심의본 접수 및 인정수수료 납부 방법 안내(수정).hwp",
   "source_sha256": "9a6d91af004f04dedb9b376ae79aa7f69b1f251909b6544c8587580bbaea5b01",
   "source_size_bytes": 1102848,
   "processed_at": "2026-08-05T01:01:39.885043+00:00",
@@ -18,5 +18,6 @@
     "chunks.jsonl",
     "review.csv",
     "report.md"
-  ]
+  ],
+  "curriculum_revision": "2022 개정"
 }

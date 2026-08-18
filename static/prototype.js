@@ -39,12 +39,93 @@ const SPORTS_CULTURE_STANDARDS = [
   { code: "[12스문02-03]", domain: "스포츠 경기 문화", statement: "스포츠 경기 문화의 가치를 이해하고, 스포츠 경기 문화를 다양한 분야와 접목한다." },
 ];
 
+const SPORTS_CULTURE_SPORT_OPTIONS = [
+  "축구", "농구", "야구", "배구", "배드민턴", "탁구",
+  "육상", "태권도", "골프", "스키", "보디빌딩", "테니스",
+];
+
+const SPORTS_CULTURE_CONTENT_TYPES = [
+  { id: "theory", label: "이론형", description: "개념·역사·철학·사회 사례를 충분한 설명글로 구성" },
+  { id: "practice", label: "실기형", description: "종목의 시설·용구·규칙·동작·전술·안전을 단계별로 구성" },
+];
+
+const SPORTS_CULTURE_SUPPORT_MODES = [
+  { id: "", label: "기본 구성" },
+  { id: "activity", label: "활동 포함", forType: "theory" },
+  { id: "concept", label: "개념 설명 포함", forType: "practice" },
+];
+
+const SPORTS_CULTURE_SPORT_MODES = [
+  { id: "none", label: "종목 없음", description: "개념 자체를 설명하며 특정 종목을 중심에 두지 않음" },
+  { id: "examples", label: "여러 종목 사례", description: "복수 종목을 비교·사례·자료로만 사용" },
+  { id: "primary", label: "주 종목 중심", description: "한 종목의 시설·규칙·동작·전술을 체계적으로 전개" },
+];
+
+const SPORTS_CULTURE_SPECIAL_PAGE_TYPES = [
+  { id: "reading", label: "읽을거리" },
+  { id: "career", label: "인물·진로" },
+  { id: "safety", label: "안전" },
+  { id: "critique", label: "문화 비평" },
+  { id: "project", label: "프로젝트" },
+  { id: "assessment", label: "수행평가" },
+];
+
+function inferSportsCultureContentType(smallUnit) {
+  const text = `${smallUnit?.middleTitle || ""} ${smallUnit?.smallTitle || ""}`;
+  if (/시설|장비|규칙|전략|역할|참여|대회|기획|운영|심판/.test(text)) return "practice";
+  return "theory";
+}
+
+function inferSportsCultureSportMode(smallUnit) {
+  const text = `${smallUnit?.middleTitle || ""} ${smallUnit?.smallTitle || ""}`;
+  if (/종목 참여|시설|장비|용구|규칙|전략|참여자의 역할|대회|기획|운영|심판/.test(text)) return "primary";
+  if (/역사|철학|윤리|비판|문학|영화|음악|미술|예술|인문·사회|과학|디지털|융합|지속 가능/.test(text)) return "examples";
+  return "none";
+}
+
+function recommendedSportsForSmallUnit(smallUnit, availableSports, modeOverride = "") {
+  const mode = ["none", "examples", "primary"].includes(modeOverride) ? modeOverride : inferSportsCultureSportMode(smallUnit);
+  if (mode === "none" || !availableSports.length) return [];
+  const text = `${smallUnit?.middleTitle || ""} ${smallUnit?.smallTitle || ""}`;
+  const preference = /문학|영화|음악|미술|예술/.test(text)
+    ? ["야구", "축구", "농구", "배구"]
+    : /역사|철학|윤리|비판/.test(text)
+      ? ["축구", "육상", "탁구"]
+      : /과학|디지털|융합|지속/.test(text)
+        ? ["테니스", "야구", "육상"]
+        : ["배구", "배드민턴", "농구", "축구"];
+  const ordered = [...preference.filter((sport) => availableSports.includes(sport)), ...availableSports.filter((sport) => !preference.includes(sport))];
+  return mode === "primary" ? ordered.slice(0, 1) : ordered.slice(0, 3);
+}
+
+function sportsCultureSportModeLabel(mode) {
+  return SPORTS_CULTURE_SPORT_MODES.find((item) => item.id === mode)?.label || "종목 없음";
+}
+
+function sportsCultureStyleProfile(value) {
+  const styleValue = Math.max(0, Math.min(100, Number(value) || 0));
+  if (styleValue < 34) return { id: "balanced", label: "안정·정석형", summary: "개념 설명과 교육과정 근거를 충분히 제시합니다." };
+  if (styleValue < 67) return { id: "balanced", label: "균형형", summary: "설명, 자료, 활동과 시각 요소를 균형 있게 배치합니다." };
+  return { id: "creative", label: "참신·활동형", summary: "질문, 사례, 학생 활동과 시각 자료의 비중을 높입니다." };
+}
+
+function sportsCultureStyleMetrics(value) {
+  const ratio = Math.max(0, Math.min(100, Number(value) || 0)) / 100;
+  return {
+    curriculum: 5,
+    feasibility: Math.round(5 - ratio * 2),
+    engagement: Math.round(3 + ratio * 2),
+    novelty: Math.round(2 + ratio * 3),
+    safety: 5,
+  };
+}
+
 const steps = [
-  ["프로젝트 설정", "교과서의 기본 조건을 입력합니다."],
-  ["교육과정 확인", "전체 성취기준과 해설, 공식 기준 시수를 확인합니다."],
-  ["단원·차시 배분", "대·중·소단원을 구성하고 학년 차시를 배분합니다."],
-  ["체제안 선택", "원고의 구성 방향을 비교하고 하나를 선택합니다."],
-  ["모의심사", "업로드한 교과서 PDF를 선택 교과의 공식 심사기준으로 AI가 채점합니다."],
+  ["프로젝트 설정", "기본 조건 설정"],
+  ["교육과정 확인", "성취기준 확인"],
+  ["단원·차시 배분", "단원·차시·쪽수 편집"],
+  ["체제안 선택", "스타일·초고 생성"],
+  ["모의심사", "PDF 모의심사"],
 ];
 
 const frameworks = [
@@ -74,6 +155,33 @@ const frameworks = [
   },
 ];
 
+const SPORTS_CULTURE_FRAMEWORKS = [
+  {
+    id: "balanced",
+    name: "탐구·참여 균형형",
+    summary: "문화 개념과 자료 탐구를 실제 스포츠 참여·성찰과 균형 있게 연결하는 체제",
+    strengths: ["6개 성취기준 추적이 명확함", "직접·간접 참여의 균형", "과정과 결과 평가 연계"],
+    pages: "개념→자료→참여→성찰의 순환",
+    metrics: { curriculum: 5, feasibility: 4, engagement: 4, novelty: 3, safety: 5 },
+  },
+  {
+    id: "activity",
+    name: "대회 프로젝트형",
+    summary: "선수·심판·기획·운영·기록·미디어 역할과 학생 주도 대회 운영을 중심에 두는 체제",
+    strengths: ["다양한 역할 참여", "대회 기획·운영 산출물", "현장 실행과 협력 강조"],
+    pages: "역할 수행·프로젝트 지면 확대",
+    metrics: { curriculum: 5, feasibility: 4, engagement: 5, novelty: 4, safety: 5 },
+  },
+  {
+    id: "creative",
+    name: "문화 융합형",
+    summary: "역사·철학·문학·예술·과학·미디어를 스포츠 참여와 접목해 새 문화를 만드는 체제",
+    strengths: ["비평과 창작 강화", "타 분야 융합", "문화·진로 포트폴리오"],
+    pages: "비평·창작·융합 지면 확대",
+    metrics: { curriculum: 5, feasibility: 3, engagement: 4, novelty: 5, safety: 4 },
+  },
+];
+
 const FRAMEWORK_METRIC_LABELS = {
   curriculum: "교육과정 충실도",
   feasibility: "실행 용이성",
@@ -82,8 +190,8 @@ const FRAMEWORK_METRIC_LABELS = {
   safety: "안전성",
 };
 
-function defaultFrameworkMetrics() {
-  return Object.fromEntries(frameworks.map((framework) => [framework.id, { ...framework.metrics }]));
+function defaultFrameworkMetrics(options = frameworks) {
+  return Object.fromEntries(options.map((framework) => [framework.id, { ...framework.metrics }]));
 }
 
 const DOMAIN_ORDER = ["운동", "스포츠", "표현"];
@@ -151,9 +259,21 @@ function unitsForSportsCulture() {
       subtitle: "스포츠를 인문적으로 읽고 참여하기",
       sourcePage: "체육과 교육과정 87~90",
       items: [
-        ["스포츠 인문 문화의 이해", "문화의 개념과 특성을 경기 참여와 연결하기", 5, 24],
-        ["스포츠의 역사와 철학", "스포츠의 역사·철학을 탐구하고 비판하기", 5, 24],
-        ["스포츠 문학·예술과 진로", "문학과 예술을 비교하고 관련 진로 설계하기", 5, 24],
+        ["스포츠 인문 문화의 이해", "[12스문01-01]", [
+          ["스포츠 문화의 의미와 형성", 1, 6],
+          ["스포츠 인문 문화의 개념과 특성", 1, 8],
+          ["종목 참여로 인문 문화 읽기", 2, 8],
+        ]],
+        ["스포츠의 역사와 철학", "[12스문01-02]", [
+          ["시대와 사회에 따른 스포츠의 변화", 2, 10],
+          ["스포츠에 담긴 철학과 윤리", 2, 10],
+          ["스포츠 문화 현상 비판하기", 1, 6],
+        ]],
+        ["스포츠 문학과 예술", "[12스문01-03]", [
+          ["문학 속 스포츠 경험과 삶", 2, 8],
+          ["영화·음악·미술 속 스포츠 표현", 2, 8],
+          ["문학과 예술 비교·창작 및 진로 탐색", 1, 8],
+        ]],
       ],
     },
     {
@@ -161,9 +281,21 @@ function unitsForSportsCulture() {
       subtitle: "스포츠 대회를 함께 만들고 확장하기",
       sourcePage: "체육과 교육과정 90~92",
       items: [
-        ["경기 문화와 다양한 역할", "경기 문화의 특성을 이해하고 다양한 역할로 참여하기", 5, 28],
-        ["스포츠 대회 기획과 운영", "학생 주도 스포츠 대회를 기획·운영하고 진로 탐색하기", 8, 30],
-        ["스포츠 문화의 융합", "스포츠 경기 문화를 인문·사회·과학 분야와 접목하기", 4, 30],
+        ["스포츠 경기 문화의 이해", "[12스문02-01]", [
+          ["시설·장비와 스포츠 물질문화", 1, 8],
+          ["규칙·제도와 스포츠 제도문화", 2, 10],
+          ["가치·전략과 경기 참여자의 역할", 2, 8],
+        ]],
+        ["스포츠 대회 기획과 운영", "[12스문02-02]", [
+          ["우리 반 스포츠 대회 기획하기", 3, 10],
+          ["선수·심판·운영·미디어 역할로 참여하기", 4, 14],
+          ["대회 운영 결과 평가와 진로 탐색", 2, 8],
+        ]],
+        ["스포츠 경기 문화의 융합과 확산", "[12스문02-03]", [
+          ["스포츠와 인문·사회 분야의 만남", 1, 10],
+          ["스포츠와 과학·디지털 미디어의 만남", 1, 8],
+          ["지속 가능한 스포츠 문화 창작하기", 2, 12],
+        ]],
       ],
     },
   ];
@@ -175,9 +307,15 @@ function unitsForSportsCulture() {
       id: definition.domain,
       subtitle: definition.subtitle,
       sourcePage: definition.sourcePage,
-      middleUnits: definition.items.map(([title, smallTitle, hours, pages]) => ({
+      middleUnits: definition.items.map(([title, standardCode, smallUnits]) => ({
         title,
-        smallUnits: [{ title: smallTitle, sourceActivity: title, hours, pages }],
+        smallUnits: smallUnits.map(([smallTitle, hours, pages]) => ({
+          title: smallTitle,
+          sourceActivity: `${title} · 교육과정과 4개사 공통 구성 패턴`,
+          hours,
+          pages,
+          standardCodes: [standardCode],
+        })),
       })),
     }],
   }));
@@ -225,6 +363,80 @@ function isSportsCultureProject(targetState = state) {
   return targetState.project.schoolLevel === "고등학교" && targetState.project.subject === "스포츠 문화";
 }
 
+function frameworkOptions(targetState = state) {
+  return isSportsCultureProject(targetState) ? SPORTS_CULTURE_FRAMEWORKS : frameworks;
+}
+
+function ensureSportsCultureDraftSettings(book) {
+  if (!book || !isSportsCultureProject(book)) return book;
+  book.generationProviderId ||= globalThis.TEXTBOOK_DRAFT_ENGINE?.internalProviderId || "internal-rules-v1";
+  if (!Array.isArray(book.selectedSports)) {
+    const previousSports = String(book.carrierSport || "배드민턴").split(/[,·/]/).map((item) => item.trim()).filter(Boolean);
+    book.selectedSports = previousSports.filter((sport) => SPORTS_CULTURE_SPORT_OPTIONS.includes(sport));
+    book.customSports ||= previousSports.filter((sport) => !SPORTS_CULTURE_SPORT_OPTIONS.includes(sport)).join(", ");
+  }
+  if (!book.selectedSports.length && !String(book.customSports || "").trim()) book.selectedSports = ["배드민턴"];
+  book.carrierSport = selectedSportsFor(book).join(", ");
+  if (!["theory", "practice"].includes(book.draftPrimaryType)) {
+    book.draftPrimaryType = ["participation", "project"].includes(book.draftPrimaryType) ? "practice" : "theory";
+  }
+  book.bookStyleValue = Math.max(0, Math.min(100, Number(book.bookStyleValue ?? 50)));
+  if (!Array.isArray(book.selectedDraftSmallUnitKeys)) book.selectedDraftSmallUnitKeys = [];
+  if (!Array.isArray(book.specialPages)) book.specialPages = [];
+  if (!book.sportsCultureUnitStructureVersion && isLegacySportsCultureDefault(book.units)) {
+    book.units = unitsForSportsCulture();
+    book.sportsCultureUnitStructureVersion = 2;
+    book.pages = buildPagePlan(book);
+  }
+  const migrateSportUsage = Number(book.sportsCultureSportUsageVersion || 0) < 2;
+  book.units?.forEach((unit) => unit.subdomainGroups?.forEach((group) => group.middleUnits?.forEach((middle) => middle.smallUnits?.forEach((small) => {
+    if (!Array.isArray(small.standardCodes) || !small.standardCodes.length) {
+      small.standardCodes = globalThis.TEXTBOOK_DRAFT_ENGINE?.resolveStandardCodes({
+        domain: unit.domain,
+        middleTitle: middle.title,
+        smallTitle: small.title,
+      }) || [];
+    }
+    const availableSports = selectedSportsFor(book);
+    if (migrateSportUsage || !["none", "examples", "primary"].includes(small.sportMode)) {
+      small.sportMode = inferSportsCultureSportMode({ middleTitle: middle.title, smallTitle: small.title });
+      small.sports = recommendedSportsForSmallUnit({ middleTitle: middle.title, smallTitle: small.title }, availableSports);
+      small.sportSettingSource = "recommended";
+    } else {
+      small.sports = (Array.isArray(small.sports) ? small.sports : []).filter((sport) => availableSports.includes(sport));
+      if (small.sportMode === "none") small.sports = [];
+      if (small.sportMode === "primary") small.sports = small.sports.slice(0, 1);
+      small.sportSettingSource ||= "user";
+    }
+    if (!["theory", "practice"].includes(small.contentType)) small.contentType = inferSportsCultureContentType({ middleTitle: middle.title, smallTitle: small.title });
+    if (!["", "activity", "concept"].includes(small.supportMode)) small.supportMode = "";
+  }))));
+  book.sportsCultureSportUsageVersion = 2;
+  return book;
+}
+
+function selectedSportsFor(book = state) {
+  const selected = Array.isArray(book?.selectedSports) ? book.selectedSports : [];
+  const custom = String(book?.customSports || "").split(/[,·/]/).map((item) => item.trim()).filter(Boolean);
+  return [...new Set([...selected, ...custom])];
+}
+
+function isLegacySportsCultureDefault(units) {
+  if (!Array.isArray(units) || units.length !== 2) return false;
+  const smallUnits = units.flatMap((unit) => unit.subdomainGroups?.flatMap((group) =>
+    group.middleUnits?.flatMap((middle) => middle.smallUnits || []) || []) || []);
+  const legacyTitles = [
+    "문화의 개념과 특성을 경기 참여와 연결하기",
+    "스포츠의 역사·철학을 탐구하고 비판하기",
+    "문학과 예술을 비교하고 관련 진로 설계하기",
+    "경기 문화의 특성을 이해하고 다양한 역할로 참여하기",
+    "학생 주도 스포츠 대회를 기획·운영하고 진로 탐색하기",
+    "스포츠 경기 문화를 인문·사회·과학 분야와 접목하기",
+  ];
+  return smallUnits.length === legacyTitles.length
+    && smallUnits.every((small, index) => small.title === legacyTitles[index]);
+}
+
 function isHighSchoolProject(targetState = state) {
   return targetState.project.schoolLevel === "고등학교" && Boolean(courseMetaFor(targetState));
 }
@@ -264,6 +476,32 @@ function secondaryDomainSourceLabel(domain, targetState = state) {
   return `「체육과 교육과정」 PDF ${first}${first === last ? "" : `~${last}`}쪽 · 인쇄면 ${first - 6}${first === last ? "" : `~${last - 6}`}쪽`;
 }
 
+function stripManualUnitNumberPrefix(value) {
+  return String(value || "").replace(/^\s*\d+(?:\s*-\s*\d+){0,2}\s*[.)]\s*/, "").trim();
+}
+
+function normalizeAutomaticUnitNumbering(book = state) {
+  if (!book || Number(book.automaticUnitNumberVersion || 0) >= 1) return;
+  (book.units || []).forEach((unit) => unit.subdomainGroups?.forEach((group) => {
+    group.subtitle = stripManualUnitNumberPrefix(group.subtitle);
+    group.middleUnits?.forEach((middle) => {
+      middle.title = stripManualUnitNumberPrefix(middle.title);
+      middle.smallUnits?.forEach((small) => { small.title = stripManualUnitNumberPrefix(small.title); });
+    });
+  }));
+  book.automaticUnitNumberVersion = 1;
+}
+
+function middleUnitPosition(unit, groupIndex, middleIndex) {
+  return unit.subdomainGroups
+    .slice(0, groupIndex)
+    .reduce((sum, group) => sum + group.middleUnits.length, 0) + middleIndex + 1;
+}
+
+function unitNumberLabel(unitIndex, middleIndex = null, smallIndex = null) {
+  return [unitIndex + 1, middleIndex, smallIndex].filter((value) => value !== null).join("-");
+}
+
 function unitsTotalHours(units) {
   return units.reduce(
     (sum, unit) => sum + unit.subdomainGroups.reduce(
@@ -291,6 +529,16 @@ function unitsTotalPages(units) {
       ),
     0
   );
+}
+
+function specialPagesTotal(targetState = state, domain = "") {
+  return (targetState.specialPages || [])
+    .filter((page) => !domain || page.domain === domain)
+    .reduce((sum, page) => sum + Math.max(0, Number(page.pages) || 0), 0);
+}
+
+function sportsCultureSpecialPageTypeLabel(typeId) {
+  return SPORTS_CULTURE_SPECIAL_PAGE_TYPES.find((type) => type.id === typeId)?.label || "특별 페이지";
 }
 
 function parseLineItems(text) {
@@ -344,6 +592,7 @@ function sampleState() {
 
 let projectStore = loadProjectStore();
 let state = activeBookState();
+normalizeAutomaticUnitNumbering(state);
 let sourceCorrections = loadSourceCorrections();
 let editingSourceId = null;
 let pagePreviewOpen = false;
@@ -379,11 +628,17 @@ function initializedSportsCultureState(projectName) {
     targetHours: pagePolicies.sports_culture.default_hours,
   };
   initial.units = unitsForSportsCulture();
+  initial.sportsCultureUnitStructureVersion = 2;
   initial.frontMatterText = "";
   initial.backMatterText = "";
   initial.appendixText = "자료 출처와 찾아보기, 4";
+  initial.frameworkMetrics = defaultFrameworkMetrics(SPORTS_CULTURE_FRAMEWORKS);
+  initial.generationProviderId = globalThis.TEXTBOOK_DRAFT_ENGINE?.internalProviderId || "internal-rules-v1";
+  initial.selectedSports = ["배드민턴"];
+  initial.customSports = "";
+  initial.carrierSport = "배드민턴";
   initial.pages = buildPagePlan(initial);
-  return initial;
+  return ensureSportsCultureDraftSettings(initial);
 }
 
 function initializedSecondaryState(item, projectName) {
@@ -595,6 +850,7 @@ function hydrateCatalogProject(project, item = PROJECT_CATALOG.find((candidate) 
       book.pages = buildPagePlan(book);
       book.selectedPages = [1];
     }
+    ensureSportsCultureDraftSettings(book);
   });
   project.catalogId = item.id;
   return project;
@@ -632,7 +888,7 @@ function migrateLegacyProject(saved) {
   saved.project.targetHours ||= courseMetaFor(saved)?.default_hours || pagePolicies.elementary_pe.default_book_hours;
   if (isSportsCultureProject(saved)) {
     const migrated = sportsCultureProject(saved.project.name || "고등학교 스포츠 문화");
-    migrated.books["스포츠 문화"] = saved;
+    migrated.books["스포츠 문화"] = ensureSportsCultureDraftSettings(saved);
     return migrated;
   }
   const grade = [3, 4, 5, 6].includes(Number.parseInt(saved.project?.grade, 10))
@@ -713,6 +969,7 @@ function activeBookState() {
 
 function useActiveBookState() {
   state = activeBookState();
+  normalizeAutomaticUnitNumbering(state);
 }
 
 function syncProjectName(name) {
@@ -887,6 +1144,61 @@ function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-
   URL.revokeObjectURL(url);
 }
 
+function textbookManuscriptText(entry) {
+  const lines = [
+    "[스포츠 문화 교과서 원고]",
+    `체제안: ${entry.frameworkName}`,
+    `소단원: ${entry.smallUnitLabel}`,
+    `소단원 성격: ${entry.primaryTypeLabel}`,
+    `종목 사용 방식: ${sportsCultureSportModeLabel(entry.sportMode)}`,
+    `종목: ${entry.carrierSport || "특정 종목 없음"}`,
+    `성취기준: ${(entry.traceability?.standardCodes || []).join(", ")}`,
+    "",
+  ];
+  entry.spreads.forEach((spread, index) => {
+    const manuscript = spread.textbook_manuscript || {};
+    lines.push(`===== 펼침면 ${index + 1} · ${spread.left_page}~${spread.right_page}쪽 =====`);
+    lines.push(`# ${manuscript.headline || spread.title}`);
+    lines.push(`학습 목표: ${manuscript.learningGoal || ""}`);
+    lines.push(`생각 열기: ${manuscript.openingQuestion || ""}`);
+    lines.push(`도입문: ${manuscript.deck || spread.intro}`, "");
+    (manuscript.sections || []).forEach((section) => {
+      lines.push(`${section.number}. ${section.title}`);
+      (section.paragraphs || []).forEach((paragraph) => lines.push(paragraph));
+      lines.push("");
+    });
+    lines.push("[사진·삽화·정보 그래픽 발주]", ...(manuscript.visualBriefs || []).map((brief) => `- ${brief}`), "");
+  });
+  return lines.join("\r\n");
+}
+
+function teacherGuideManuscriptText(entry) {
+  const lines = [
+    "[스포츠 문화 지도서 원고]",
+    `연계 교과서: ${entry.smallUnitLabel}`,
+    `체제안: ${entry.frameworkName}`,
+    `종목 사용 방식: ${sportsCultureSportModeLabel(entry.sportMode)}`,
+    `종목: ${entry.carrierSport || "특정 종목 없음"}`,
+    `성취기준: ${(entry.traceability?.standardCodes || []).join(", ")}`,
+    `차시·분량: ${entry.teacherGuide?.annualPlanLink || ""}`,
+    "",
+  ];
+  entry.spreads.forEach((spread, index) => {
+    const guide = spread.teacher_guide || {};
+    lines.push(`===== ${index + 1}차시군 · 교과서 ${spread.left_page}~${spread.right_page}쪽 =====`);
+    lines.push("[수업 목표]", ...(guide.lessonGoals || []).map((item) => `- ${item}`));
+    lines.push("", `[준비물] ${(guide.preparation || []).join(" · ")}`);
+    lines.push("", "[수업 흐름]", ...(guide.lessonFlow || []).map((item) => `- ${item.stage}: ${item.guidance}`));
+    lines.push("", "[지도상의 유의점]", ...(guide.teachingNotes || []).map((item) => `- ${item}`));
+    lines.push("", "[핵심 발문]", ...(guide.questions || []).map((item) => `- ${item}`));
+    lines.push("", "[예상 답변]", ...(guide.expectedResponses || []).map((item) => `- ${item}`));
+    lines.push("", "[개별화·대체 참여]", ...(guide.differentiation || []).map((item) => `- ${item}`));
+    lines.push("", `[안전·포용] ${guide.safety || ""}`);
+    lines.push("", `[평가] ${(guide.assessment || []).join(" · ")}`, "");
+  });
+  return lines.join("\r\n");
+}
+
 function csvEscape(value) {
   const text = String(value ?? "");
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
@@ -924,22 +1236,35 @@ function curriculumDownloadRows() {
 }
 
 function unitsTocRows() {
-  const rows = [["구분", "대단원", "이름", "차시", "쪽수"]];
-  parseLineItems(state.frontMatterText).forEach((item) => rows.push(["앞부속", "", item.title, "", item.pages]));
-  state.units.forEach((unit) => {
-    if (Number(unit.introPages)) rows.push(["도입", unit.domain, `${unit.domain} 도입`, "", unit.introPages]);
-    unit.subdomainGroups.forEach((group) => {
-      group.middleUnits.forEach((middle) => {
-        rows.push(["중단원", unit.domain, `${group.subtitle ? `${group.subtitle} · ` : ""}${middle.title}`, "", ""]);
-        middle.smallUnits.forEach((small) => {
-          rows.push(["소단원", unit.domain, small.title, small.hours, small.pages]);
+  const rows = [["구분", "대단원", "이름", "종목 사용 방식", "종목", "차시", "쪽수"]];
+  parseLineItems(state.frontMatterText).forEach((item) => rows.push(["앞부속", "", item.title, "", "", "", item.pages]));
+  const placedSpecialIds = new Set();
+  state.units.forEach((unit, unitIndex) => {
+    const largeNumber = unitNumberLabel(unitIndex);
+    const largeTitle = `${largeNumber}. ${unit.domain}`;
+    if (Number(unit.introPages)) rows.push(["도입", largeTitle, `${largeTitle} 도입`, "", "", "", unit.introPages]);
+    unit.subdomainGroups.forEach((group, groupIndex) => {
+      group.middleUnits.forEach((middle, middleIndex) => {
+        const middlePosition = middleUnitPosition(unit, groupIndex, middleIndex);
+        const middleNumber = unitNumberLabel(unitIndex, middlePosition);
+        rows.push(["중단원", largeTitle, `${middleNumber}. ${group.subtitle ? `${group.subtitle} · ` : ""}${middle.title}`, "", "", "", ""]);
+        middle.smallUnits.forEach((small, smallIndex) => {
+          const smallNumber = unitNumberLabel(unitIndex, middlePosition, smallIndex + 1);
+          rows.push(["소단원", largeTitle, `${smallNumber}. ${small.title}`, sportsCultureSportModeLabel(small.sportMode), Array.isArray(small.sports) ? small.sports.join(", ") : "", small.hours, small.pages]);
         });
       });
     });
-    if (Number(unit.wrapUpPages)) rows.push(["마무리", unit.domain, `${unit.domain} 마무리`, "", unit.wrapUpPages]);
+    (state.specialPages || []).filter((page) => page.domain === unit.domain).forEach((page) => {
+      rows.push(["특별페이지", largeTitle, `${largeNumber}. ${page.title}`, sportsCultureSpecialPageTypeLabel(page.type), "", "", page.pages]);
+      placedSpecialIds.add(page.id);
+    });
+    if (Number(unit.wrapUpPages)) rows.push(["마무리", largeTitle, `${largeTitle} 마무리`, "", "", "", unit.wrapUpPages]);
   });
-  parseLineItems(state.backMatterText).forEach((item) => rows.push(["뒷부속", "", item.title, "", item.pages]));
-  parseLineItems(state.appendixText).forEach((item) => rows.push(["부록", "", item.title, "", item.pages]));
+  (state.specialPages || []).filter((page) => !placedSpecialIds.has(page.id)).forEach((page) => {
+    rows.push(["특별페이지", page.domain || "", page.title, sportsCultureSpecialPageTypeLabel(page.type), "", "", page.pages]);
+  });
+  parseLineItems(state.backMatterText).forEach((item) => rows.push(["뒷부속", "", item.title, "", "", "", item.pages]));
+  parseLineItems(state.appendixText).forEach((item) => rows.push(["부록", "", item.title, "", "", "", item.pages]));
   return rows;
 }
 
@@ -1078,6 +1403,7 @@ function allocateCounts(total, weights) {
 
 function buildPagePlan(targetState = state) {
   const pages = [];
+  const placedSpecialIds = new Set();
   const addPage = (area, unit, type, status = "배정") => {
     pages.push({ number: pages.length + 1, area, unit, type, status });
   };
@@ -1086,21 +1412,36 @@ function buildPagePlan(targetState = state) {
     for (let index = 0; index < item.pages; index += 1) addPage("부속자료", item.title, "부속자료");
   });
 
-  targetState.units.forEach((unit) => {
+  targetState.units.forEach((unit, unitIndex) => {
+    const largeNumber = unitNumberLabel(unitIndex);
     for (let index = 0; index < Number(unit.introPages || 0); index += 1) {
-      addPage(unit.domain, `${unit.domain} 도입`, "단원 도입");
+      addPage(unit.domain, `${largeNumber}. ${unit.domain} 도입`, "단원 도입");
     }
-    unit.subdomainGroups.forEach((group) => {
-      group.middleUnits.forEach((middle) => {
-        middle.smallUnits.forEach((small) => {
+    unit.subdomainGroups.forEach((group, groupIndex) => {
+      group.middleUnits.forEach((middle, middleIndex) => {
+        const middlePosition = middleUnitPosition(unit, groupIndex, middleIndex);
+        middle.smallUnits.forEach((small, smallIndex) => {
+          const smallNumber = unitNumberLabel(unitIndex, middlePosition, smallIndex + 1);
           for (let index = 0; index < Number(small.pages || 0); index += 1) {
-            addPage(unit.domain, small.title, "본문");
+            addPage(unit.domain, `${smallNumber}. ${small.title}`, "본문");
           }
         });
       });
     });
+    (targetState.specialPages || []).filter((page) => page.domain === unit.domain).forEach((page) => {
+      for (let index = 0; index < Math.max(0, Number(page.pages) || 0); index += 1) {
+        addPage(unit.domain, page.title, sportsCultureSpecialPageTypeLabel(page.type));
+      }
+      placedSpecialIds.add(page.id);
+    });
     for (let index = 0; index < Number(unit.wrapUpPages || 0); index += 1) {
-      addPage(unit.domain, `${unit.domain} 마무리`, "마무리");
+      addPage(unit.domain, `${largeNumber}. ${unit.domain} 마무리`, "마무리");
+    }
+  });
+
+  (targetState.specialPages || []).filter((page) => !placedSpecialIds.has(page.id)).forEach((page) => {
+    for (let index = 0; index < Math.max(0, Number(page.pages) || 0); index += 1) {
+      addPage(page.domain || "특별 페이지", page.title, sportsCultureSpecialPageTypeLabel(page.type));
     }
   });
 
@@ -1149,20 +1490,26 @@ function renderPagePreviewModal() {
 }
 
 function renderNavigation() {
-  document.querySelector("#stepNavigation").innerHTML = steps.map(([label], index) => `
+  document.querySelector("#stepNavigation").innerHTML = steps.map(([defaultLabel], index) => {
+    const label = isSportsCultureProject() && index === 3 ? "전체 스타일·초고" : defaultLabel;
+    return `
     <button class="prototype-step ${index === state.currentStep ? "active" : ""} ${index < state.currentStep ? "completed" : ""}" data-step="${index}" type="button">
       <span class="step-index">${String(index + 1).padStart(2, "0")}</span>
       <b>${label}</b>
       <small>${index < state.currentStep ? "✓" : ""}</small>
     </button>
-  `).join("");
+  `; }).join("");
   document.querySelectorAll("[data-step]").forEach((button) => {
     button.addEventListener("click", () => goToStep(Number(button.dataset.step)));
   });
 }
 
 function renderHeader() {
-  const [heading, subtitle] = steps[state.currentStep];
+  let [heading, subtitle] = steps[state.currentStep];
+  if (isSportsCultureProject() && state.currentStep === 3) {
+    heading = "전체 스타일·초고 생성";
+    subtitle = "전체 편집 방향을 정하고 소단원과 특별 페이지의 초고를 단일 또는 일괄 생성합니다.";
+  }
   document.querySelector("#stepEyebrow").textContent = `PROTOTYPE STEP ${String(state.currentStep + 1).padStart(2, "0")}`;
   document.querySelector("#stepHeading").textContent = heading;
   document.querySelector("#stepSubtitle").textContent = subtitle;
@@ -1178,7 +1525,7 @@ function sectionHeading(kicker, title, description, action = "") {
   return `
     <div class="section-heading">
       <div><p class="section-kicker">${kicker}</p><h2>${title}</h2></div>
-      <p>${description}</p>
+      ${description ? `<p>${description}</p>` : ""}
       ${action ? `<div class="section-actions">${action}</div>` : ""}
     </div>`;
 }
@@ -1271,7 +1618,7 @@ function renderProject() {
       ? `<button class="secondary-button" id="cancelSetupApproval" type="button">요청 취소</button><button class="primary-button" id="approveSetup" type="button">팀장 승인</button>`
       : `<button class="secondary-button" id="reviseSetup" type="button">수정본 만들기</button>`;
   return `
-    ${sectionHeading("PROJECT PROFILE", "프로젝트 기본 조건", isElementary ? "학년군은 함께 관리하고, 실제 교과서의 분량과 차시는 학년별 두 권으로 나누어 설정합니다." : isMiddleBand ? "중등체육1·중등체육2는 공식 쪽수 자료가 아직 연결되지 않아, 두 책의 쪽수·차시를 직접 입력해 관리합니다." : isPaired ? `${portfolio.pairLabel}는 고등학교 선택과목 분권형으로 두 권의 조건을 각각 설정합니다.` : `${representative.project.subject}은 고등학교 선택과목 단권형으로 한 권의 조건을 설정합니다.`)}
+    ${sectionHeading("PROJECT PROFILE", "프로젝트 기본 조건", "")}
     <div class="setup-profile-strip">
       <span>${isElementary ? "학년군 분권형" : isMiddleBand ? "분권형 · 쪽수 미검증" : isPaired ? `${courseMeta.category} 분권형` : `${courseMeta.category} 단권형`}</span>
       <strong class="setup-status ${approval.status}">${statusLabels[approval.status]}</strong>
@@ -1280,7 +1627,6 @@ function renderProject() {
     <div class="form-grid project-form-grid setup-common-fields">
       <label class="project-name"><span>프로젝트명</span><input data-project="name" maxlength="80" value="${escapeHtml(portfolio.name)}" ${editable ? "" : "disabled"} /></label>
     </div>
-    <div class="identity-lock-note"><span>다른 학교급·교과목으로 바꾸려면 왼쪽의 책 프로젝트 드롭다운을 선택하세요. 연결된 항목은 쪽수·차시가 자동 입력됩니다.</span></div>
     <div class="official-policy-banner ${isMiddleBand ? "unverified" : ""}">
       <div class="policy-banner-title">${isMiddleBand ? "공식 쪽수 자료 미연결 — 직접 입력한 값입니다" : "전처리 공식자료 연결됨"}</div>
       <div class="policy-stat-grid">
@@ -1310,7 +1656,7 @@ function renderProject() {
       <strong>${validation.valid ? "✓ 모든 책의 쪽수·차시 조건이 기준을 충족합니다." : "다음 단계로 이동하기 전에 설정값을 확인해 주세요."}</strong>
       ${validation.errors.length ? `<ul>${validation.errors.map((error) => `<li>${escapeHtml(error)}</li>`).join("")}</ul>` : ""}
     </div>
-    <div class="setup-approval-bar"><div><b>설정 승인</b><span>승인 후 값은 잠기며, 수정본을 만들면 기존 승인본을 보존한 채 재승인을 진행합니다.</span><small>현재는 로그인 권한을 연결하기 전의 프로토타입 승인 흐름입니다.</small></div><div>${approvalActions}</div></div>
+    <div class="setup-approval-bar"><div><b>설정 승인</b><span>승인 후 값이 잠깁니다.</span></div><div>${approvalActions}</div></div>
     ${isElementary ? `<div class="evidence-grid">
       <details data-evidence-details ${evidenceDetailsOpen ? "open" : ""}><summary>쪽수·차시 근거 한 번에 보기</summary>
         <div class="combined-evidence-grid">
@@ -1412,7 +1758,7 @@ function renderSecondaryCurriculum() {
   const pageRange = sourcePages.length ? `${Math.min(...sourcePages)}~${Math.max(...sourcePages)}쪽` : "확인 필요";
   const printedPageRange = sourcePages.length ? `${Math.min(...sourcePages) - 6}~${Math.max(...sourcePages) - 6}쪽` : "확인 필요";
   return `
-    ${sectionHeading("CURRICULUM", `${subject} 교육과정 확인`, `${meta.category} 과목의 ${domains.length}개 영역과 성취기준 ${standards.length}개를 전처리 자료에서 확인합니다.`, '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>')}
+    ${sectionHeading("CURRICULUM", `${subject} 교육과정 확인`, "", '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>')}
     <div class="curriculum-summary">
       <article><span>과목 분류</span><strong>${meta.category}</strong><small>고등학교 체육</small></article>
       <article><span>기본 학점</span><strong>${meta.credits}학점</strong><small>${meta.minimum_credits}~${meta.maximum_credits}학점</small></article>
@@ -1420,10 +1766,10 @@ function renderSecondaryCurriculum() {
       <article><span>성취기준</span><strong>${standards.length}개</strong><small>${domains.length}개 영역</small></article>
     </div>
     <div class="curriculum-notice">
-      <strong>${meta.default_hours}차시는 기본 학점으로 계산한 프로젝트 기본값입니다.</strong>
-      <span>학교 편성에 따라 ${meta.minimum_hours}~${meta.maximum_hours}차시 범위에서 달라질 수 있으며, 현재 초안은 기본 ${meta.credits}학점을 기준으로 구성합니다.</span>
+      <strong>기본 ${meta.default_hours}차시</strong>
+      <span>허용 ${meta.minimum_hours}~${meta.maximum_hours}차시</span>
     </div>
-    ${subject === "스포츠 문화" ? `<div class="curriculum-notice"><strong>‘신체활동 예시’ 표는 있지만 구체적인 종목명이 없습니다.</strong><span>「체육과 교육과정」 &lt;표 2&gt;는 스포츠 인문 문화·스포츠 경기 문화 영역 모두 "스포츠 종목 중 택 1 이상"이라고만 제시하고, 체육1 등 다른 과목과 달리 구체적인 종목명은 지정하지 않습니다. 프로토타입은 2개 영역과 성취기준 6개를 기준으로 스포츠 인문 문화 15차시, 스포츠 경기 문화 17차시의 목차 초안을 자동 구성합니다.</span></div>` : ""}
+    ${subject === "스포츠 문화" ? `<div class="curriculum-notice"><strong>종목 지정 없음</strong><span>스포츠 종목 중 택 1 이상</span></div>` : ""}
     <details class="curriculum-evidence">
       <summary>과목 분류·학점·성취기준 자료 색인 보기</summary>
       <p><b>과목 분류·학점:</b> 「${escapeHtml(meta.hours_source_document_id)}」 · PDF 원본 ${meta.hours_source_page}쪽 · 문서 인쇄면 ${meta.hours_source_printed_page}쪽 · ${escapeHtml(meta.hours_source_location)}</p>
@@ -1462,7 +1808,7 @@ function renderMiddleCurriculum() {
   const pageRange = sourcePages.length ? `${Math.min(...sourcePages)}~${Math.max(...sourcePages)}쪽` : "확인 필요";
   const printedPageRange = sourcePages.length ? `${Math.min(...sourcePages) - 6}~${Math.max(...sourcePages) - 6}쪽` : "확인 필요";
   return `
-    ${sectionHeading("CURRICULUM", "중등체육 교육과정 확인", `중학교 체육 ${domains.length}개 영역과 성취기준 ${standards.length}개를 전처리 자료에서 확인합니다. 쪽수·분권 기준은 아직 공식 자료가 연결되지 않아 1단계에서 직접 입력합니다.`, '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>')}
+    ${sectionHeading("CURRICULUM", "중등체육 교육과정 확인", "", '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>')}
     <div class="curriculum-summary">
       <article><span>학교급</span><strong>중학교</strong><small>1~3학년</small></article>
       <article><span>기준 시수</span><strong>${meta?.hours || 272}시간</strong><small>3개년 합계</small></article>
@@ -1470,8 +1816,7 @@ function renderMiddleCurriculum() {
       <article><span>쪽수 기준</span><strong>미연결</strong><small>1단계에서 직접 입력</small></article>
     </div>
     <div class="curriculum-notice">
-      <strong>쪽수·분권 기준은 아직 공식 자료가 연결되지 않았습니다.</strong>
-      <span>성취기준과 기준 시수(${meta?.hours || 272}시간)는 공식 전처리 자료로 확인했지만, 중등체육1·중등체육2로 나누는 분권·분량 기준은 관련 편찬자료 연결 후 적용합니다. 지금은 1단계에서 직접 입력한 쪽수·차시를 사용합니다.</span>
+      <strong>쪽수 기준 미연결</strong><span>1단계 입력값 사용</span>
     </div>
     <details class="curriculum-evidence">
       <summary>기준 시수·성취기준 자료 색인 보기</summary>
@@ -1514,7 +1859,7 @@ function renderCurriculum() {
   const pageRange = sourcePages.length ? `${Math.min(...sourcePages)}~${Math.max(...sourcePages)}쪽` : "확인 필요";
   const printedPageRange = sourcePages.length ? `${Math.min(...sourcePages) - 6}~${Math.max(...sourcePages) - 6}쪽` : "확인 필요";
   return `
-    ${sectionHeading("CURRICULUM", "교육과정 원문 확인", `${gradeBand}의 성취기준 전체와 해설, 적용 시 고려 사항을 공식 전처리 자료에서 확인합니다. 차시 배분은 단원 목록이 있는 다음 단계에서 진행합니다.`, '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>')}
+    ${sectionHeading("CURRICULUM", "교육과정 원문 확인", "", '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>')}
     <div class="curriculum-summary">
       <article><span>선택 학년</span><strong>${grade}학년</strong><small>${gradeBand}</small></article>
       <article><span>공식 기준 시수</span><strong>204시간</strong><small>학년군 2년 합계</small></article>
@@ -1522,8 +1867,7 @@ function renderCurriculum() {
       <article><span>성취기준</span><strong>${bandStandards.length}개</strong><small>운동·스포츠·표현 전체</small></article>
     </div>
     <div class="curriculum-notice">
-      <strong>차시 기준을 구분해 주세요.</strong>
-      <span>공식 교육과정은 ${gradeBand} 전체에 204시간을 제시하며 성취기준별 차시는 정하지 않습니다. 102차시는 204시간을 두 학년에 나눈 프로젝트 배분안이므로 3단계에서 대·중·소단원별로 조정합니다.</span>
+      <strong>공식 204시간</strong><span>학년별 102차시는 프로젝트 배분안</span>
     </div>
     <details class="curriculum-evidence">
       <summary>204시간과 성취기준 자료 색인 보기</summary>
@@ -1566,6 +1910,9 @@ function renderCurriculum() {
 }
 
 function renderUnits() {
+  const sportsCulture = isSportsCultureProject();
+  if (sportsCulture) ensureSportsCultureDraftSettings(state);
+  normalizeAutomaticUnitNumbering(state);
   const allocatedHours = unitsTotalHours(state.units);
   const targetHours = projectTargetHours();
   const hourDifference = targetHours - allocatedHours;
@@ -1575,7 +1922,8 @@ function renderUnits() {
   const backMatterTotal = lineItemsTotalPages(state.backMatterText);
   const frontBackTotal = frontMatterTotal + backMatterTotal;
   const appendixTotal = lineItemsTotalPages(state.appendixText);
-  const coreAllocated = unitsTotalPages(state.units) + appendixTotal;
+  const plannedSpecialPages = specialPagesTotal(state);
+  const coreAllocated = unitsTotalPages(state.units) + plannedSpecialPages + appendixTotal;
   const coreTarget = Number(state.project.corePages) || 0;
   const supplementaryTarget = Number(state.project.supplementaryPages) || 0;
   const coreDifference = coreTarget - coreAllocated;
@@ -1586,7 +1934,7 @@ function renderUnits() {
     0
   );
   return `
-    ${sectionHeading("UNIT STRUCTURE", "단원 구성·차시 배분", secondaryCourse ? `${state.project.subject}의 영역과 성취기준을 단원 후보로 자동 배치했습니다. 단원명·차시·쪽수를 수정할 수 있습니다.` : "선택 학년에 공식 배정된 세부 영역·신체활동 예시를 대·중·소단원 후보로 표시합니다. 부제·중단원명·소단원명·차시·쪽수를 수정할 수 있습니다.", '<button class="secondary-button" id="openPagePreview" type="button">배열표 미리보기</button><button class="secondary-button" id="downloadTocButton" type="button">목차 다운로드</button>')}
+    ${sectionHeading("UNIT STRUCTURE", "단원 구성·차시 배분", "", `${isSportsCultureProject() ? '<button class="secondary-button" id="applySportsCultureDetailedUnits" type="button">18개 소단원 초기안 적용</button>' : ''}<button class="secondary-button" id="openPagePreview" type="button">배열표 미리보기</button><button class="secondary-button" id="downloadTocButton" type="button">목차 다운로드</button>`)}
     <div class="unit-summary-row">
       <div class="unit-summary-item ${allocatedHours === targetHours ? "valid" : "invalid"}">
         <span>차시</span><strong>${allocatedHours}</strong><small>/ ${targetHours}차시${hourDifference === 0 ? "" : hourDifference > 0 ? ` · ${hourDifference}차시 추가 필요` : ` · ${Math.abs(hourDifference)}차시 초과`}</small>
@@ -1603,24 +1951,63 @@ function renderUnits() {
         const unit = state.units.find((item) => item.domain === domain);
         if (!unit) return "";
         const domainHours = unitsTotalHours([unit]);
-        const domainPages = unitsTotalPages([unit]);
+        const domainPages = unitsTotalPages([unit]) + specialPagesTotal(state, unit.domain);
         return `<div class="domain-summary-item"><span class="domain-badge ${domain}">${domain}</span><b>${domainHours}차시</b><b>${domainPages}쪽</b></div>`;
       }).join("")}
     </div>
+    ${sportsCulture ? `
+      <section class="sports-selection-panel">
+        <div class="sports-selection-heading">
+          <div>
+            <strong>책의 종목 후보 <span>1개 이상 필수</span></strong>
+          </div>
+          <b>${escapeHtml(selectedSportsFor(state).join(", ") || "선택 없음")}</b>
+        </div>
+        <div class="sports-option-grid">
+          ${SPORTS_CULTURE_SPORT_OPTIONS.map((sport) => `
+            <label class="sports-option ${state.selectedSports.includes(sport) ? "selected" : ""}">
+              <input type="checkbox" data-sport-option="${escapeHtml(sport)}" ${state.selectedSports.includes(sport) ? "checked" : ""} />
+              <span>${escapeHtml(sport)}</span>
+            </label>`).join("")}
+        </div>
+        <label class="custom-sports-field">
+          <span>그 밖의 종목</span>
+          <input id="customSportsInput" value="${escapeHtml(state.customSports || "")}" placeholder="예: 플로어볼, 크리켓 (쉼표로 구분)" />
+        </label>
+      </section>` : ""}
     <div class="front-back-matter-grid">
       <div class="front-back-matter-card">
-        <p class="small-unit-label">앞부속 <small>속표지·구성과 특징·목차 등 — 1단원 앞에 배치됩니다. 한 줄에 "이름, 쪽수"</small></p>
+        <p class="small-unit-label">앞부속 <small>이름, 쪽수</small></p>
         <textarea data-front-matter-text rows="4" placeholder="속표지, 1">${escapeHtml(state.frontMatterText)}</textarea>
       </div>
       <div class="front-back-matter-card">
-        <p class="small-unit-label">뒷부속 <small>참고문헌·집필자 소개·판권 등 — 마지막 단원 뒤에 배치됩니다. 한 줄에 "이름, 쪽수"</small></p>
+        <p class="small-unit-label">뒷부속 <small>이름, 쪽수</small></p>
         <textarea data-back-matter-text rows="4" placeholder="참고문헌, 1">${escapeHtml(state.backMatterText)}</textarea>
       </div>
       <div class="front-back-matter-card">
-        <p class="small-unit-label">부록 <small>본문·부록 합계에 포함됩니다. 뒷부속 뒤에 배치됩니다. 한 줄에 "이름, 쪽수"</small></p>
+        <p class="small-unit-label">부록 <small>이름, 쪽수</small></p>
         <textarea data-appendix-text rows="4" placeholder="예: 안전 수칙 안내, 2">${escapeHtml(state.appendixText)}</textarea>
       </div>
     </div>
+    ${sportsCulture ? `
+      <section class="special-page-panel toc-special-page-panel">
+        <div class="draft-target-heading"><div><strong>특별페이지 구성</strong><p>본문 뒤·마무리 앞에 배치</p></div><b>${plannedSpecialPages}쪽</b></div>
+        <div class="special-page-add">
+          <select id="tocSpecialPageTypeSelect" aria-label="특별페이지 유형">${SPORTS_CULTURE_SPECIAL_PAGE_TYPES.map((type) => `<option value="${type.id}">${type.label}</option>`).join("")}</select>
+          <select id="tocSpecialPageDomainSelect" aria-label="특별페이지 대단원">${state.units.map((unit) => `<option value="${escapeHtml(unit.domain)}">${escapeHtml(unit.domain)}</option>`).join("")}</select>
+          <button class="secondary-button" id="addTocSpecialPageButton" type="button">특별페이지 추가</button>
+        </div>
+        <div class="special-page-list">
+          ${(state.specialPages || []).length ? state.specialPages.map((page) => `
+            <article class="toc-special-page-row">
+              <label><span>유형</span><select data-toc-special-type="${page.id}">${SPORTS_CULTURE_SPECIAL_PAGE_TYPES.map((type) => `<option value="${type.id}" ${type.id === page.type ? "selected" : ""}>${type.label}</option>`).join("")}</select></label>
+              <label class="toc-special-title"><span>이름</span><input data-toc-special-title="${page.id}" value="${escapeHtml(page.title)}" /></label>
+              <label><span>대단원</span><select data-toc-special-domain="${page.id}">${state.units.map((unit) => `<option value="${escapeHtml(unit.domain)}" ${unit.domain === page.domain ? "selected" : ""}>${escapeHtml(unit.domain)}</option>`).join("")}</select></label>
+              <label class="small-unit-hours-field"><span>쪽수</span><input data-toc-special-pages="${page.id}" type="number" min="1" value="${Math.max(1, Number(page.pages) || 2)}" /></label>
+              <button class="secondary-button" data-delete-toc-special-page="${page.id}" type="button">삭제</button>
+            </article>`).join("") : '<p class="bulk-edit-note">추가한 특별페이지가 없습니다. 필요한 경우 여기에서 먼저 쪽수를 배정하세요.</p>'}
+        </div>
+      </section>` : ""}
     <div class="curriculum-domain-tabs">
       ${["전체", ...domainOrder].map((domain) => {
         const count = domain === "전체"
@@ -1632,19 +2019,23 @@ function renderUnits() {
     <div class="unit-list">
       ${state.units.map((unit, unitIndex) => {
         if (selectedDomain !== "전체" && unit.domain !== selectedDomain) return "";
+        const unitTotalPages = unitsTotalPages([unit]) + specialPagesTotal(state, unit.domain);
         return `
           <article class="unit-card">
             <div class="unit-top-row">
               <span class="domain-badge ${unit.domain}">${unit.domain}</span>
-              ${unit.subdomainGroups.map((group, groupIndex) => `<input class="unit-subtitle-input" data-unit-subtitle="${unitIndex}:${groupIndex}" value="${escapeHtml(group.subtitle)}" aria-label="${unit.domain} 대단원 부제" title="대단원 부제(세부 영역)" />`).join("")}
+              ${unit.subdomainGroups.map((group, groupIndex) => `<div class="numbered-unit-title"><span class="automatic-unit-number">${unitNumberLabel(unitIndex)}</span><input class="unit-subtitle-input" data-unit-subtitle="${unitIndex}:${groupIndex}" value="${escapeHtml(group.subtitle)}" aria-label="${unit.domain} 대단원 부제" title="대단원 부제(세부 영역)" /></div>`).join("")}
               <label class="small-unit-hours-field"><span>도입 쪽수</span><input data-unit-intro="${unitIndex}" type="number" min="0" value="${unit.introPages}" aria-label="${unit.domain} 도입 쪽수" /></label>
               <label class="small-unit-hours-field"><span>마무리 쪽수</span><input data-unit-wrapup="${unitIndex}" type="number" min="0" value="${unit.wrapUpPages}" aria-label="${unit.domain} 마무리 쪽수" /></label>
+              <div class="unit-total-pages" aria-label="${unit.domain} 전체 쪽수"><span>전체 쪽수</span><strong>${unitTotalPages}</strong></div>
             </div>
             ${unit.subdomainGroups.map((group, groupIndex) => `
               <div class="subdomain-group">
                 <small class="unit-source-note">${secondaryCourse ? `${secondaryDomainSourceLabel(unit.domain)} · 성취기준 기준` : `「체육과 교육과정」 PDF ${group.sourcePage}쪽 · 인쇄면 ${Number(group.sourcePage) - 6}쪽 · 신체활동 예시 기준`}</small>
                 ${group.middleUnits.map((middle, middleIndex) => {
                   const middlePath = `${unitIndex}:${groupIndex}:${middleIndex}`;
+                  const middlePosition = middleUnitPosition(unit, groupIndex, middleIndex);
+                  const middleNumber = unitNumberLabel(unitIndex, middlePosition);
                   const moveTargets = unit.subdomainGroups.flatMap((g, gIdx) =>
                     g.middleUnits.map((m, mIdx) => ({ groupIndex: gIdx, middleIndex: mIdx, title: m.title }))
                   ).filter((t) => !(t.groupIndex === groupIndex && t.middleIndex === middleIndex));
@@ -1659,24 +2050,38 @@ function renderUnits() {
                         <button type="button" data-middle-action="duplicate" data-middle-path="${middlePath}">중단원 복제</button>
                       </div>
                     </div>
-                    <input data-middle-title="${middlePath}" value="${escapeHtml(middle.title)}" aria-label="${unit.domain} 중단원명" />
+                    <div class="numbered-middle-title"><span class="automatic-unit-number">${middleNumber}</span><input data-middle-title="${middlePath}" value="${escapeHtml(middle.title)}" aria-label="${unit.domain} 중단원명" /></div>
                     <p class="small-unit-label">소단원과 차시</p>
                     <div class="small-unit-grid">
                       ${middle.smallUnits.map((smallUnit, smallIndex) => {
                         const smallPath = `${middlePath}:${smallIndex}`;
+                        const smallNumber = unitNumberLabel(unitIndex, middlePosition, smallIndex + 1);
                         return `
                         <div class="small-unit-card">
-                          <small class="small-unit-source">원 활동: ${escapeHtml(smallUnit.sourceActivity)}</small>
-                          <input class="small-unit-title" data-small-title="${smallPath}" value="${escapeHtml(smallUnit.title)}" aria-label="소단원명" />
+                          <div class="small-unit-meta">
+                            <small class="small-unit-source">${isSportsCultureProject() ? "구성 근거" : "원 활동"}: ${escapeHtml(smallUnit.sourceActivity)}</small>
+                            ${isSportsCultureProject() && Array.isArray(smallUnit.standardCodes) ? `<small class="small-unit-source standard-link">성취기준: ${escapeHtml(smallUnit.standardCodes.join(", "))}</small>` : ""}
+                          </div>
+                          <label class="small-unit-title-field"><span>소단원명</span><b class="automatic-unit-number">${smallNumber}</b><input class="small-unit-title" data-small-title="${smallPath}" value="${escapeHtml(smallUnit.title)}" aria-label="소단원명" /></label>
                           <label class="small-unit-hours-field"><span>차시</span><input data-small-hours="${smallPath}" type="number" min="1" value="${smallUnit.hours}" aria-label="소단원 차시" /></label>
                           <label class="small-unit-hours-field"><span>쪽수</span><input data-small-pages="${smallPath}" type="number" min="0" value="${smallUnit.pages}" aria-label="소단원 쪽수" /></label>
-                          <div class="small-unit-actions">
+                          <div class="small-unit-actions" aria-label="소단원 편집 작업">
                             <button type="button" data-small-action="up" data-small-path="${smallPath}" title="위로 이동">↑</button>
                             <button type="button" data-small-action="down" data-small-path="${smallPath}" title="아래로 이동">↓</button>
                             <button type="button" data-small-action="delete" data-small-path="${smallPath}">삭제</button>
                             <button type="button" data-small-action="duplicate" data-small-path="${smallPath}">복제</button>
                             <button type="button" data-toggle-move="${smallPath}">이동</button>
                           </div>
+                          ${sportsCulture ? `<div class="small-unit-sports-field">
+                            <div class="small-unit-sport-mode-row"><label class="small-unit-sport-mode"><span>종목 사용 방식</span><select data-small-sport-mode="${smallPath}">${SPORTS_CULTURE_SPORT_MODES.map((mode) => `<option value="${mode.id}" ${smallUnit.sportMode === mode.id ? "selected" : ""}>${mode.label}</option>`).join("")}</select></label><button class="secondary-button" data-recommend-small-sports="${smallPath}" type="button">현재 목차명으로 다시 추천</button></div>
+                            ${smallUnit.sportMode !== "none" ? `<div class="small-unit-sport-options">
+                              ${selectedSportsFor(state).map((sport) => `<label class="small-unit-sport-chip ${smallUnit.sports?.includes(sport) ? "selected" : ""}">
+                                <input type="${smallUnit.sportMode === "primary" ? "radio" : "checkbox"}" name="small-sport-${smallPath}" data-small-sport="${smallPath}" value="${escapeHtml(sport)}" ${smallUnit.sports?.includes(sport) ? "checked" : ""} />
+                                <span>${escapeHtml(sport)}</span>
+                              </label>`).join("") || '<small>위에서 후보 종목을 먼저 선택하세요.</small>'}
+                            </div>` : ""}
+                            <small>${smallUnit.sportMode === "primary" && smallUnit.sports?.length ? `목차·시설·규칙·동작에 ${escapeHtml(smallUnit.sports[0])}을 주 종목으로 반영` : smallUnit.sportMode === "examples" && smallUnit.sports?.length ? `${escapeHtml(smallUnit.sports.join(", "))}은 본문 비교 사례로만 사용하며 목차명에는 강제하지 않음` : "특정 종목 없이 개념 자체를 설명"} · ${smallUnit.sportSettingSource === "user" ? "사용자 설정" : "전처리 목차 기반 추천"}</small>
+                          </div>` : ""}
                           ${moveMenuOpenPath === smallPath ? `
                           <div class="move-menu">
                             <p class="small-unit-label">이동할 중단원 선택</p>
@@ -1707,14 +2112,23 @@ function smallUnitOptions() {
   state.units.forEach((unit, unitIndex) => {
     unit.subdomainGroups.forEach((group, groupIndex) => {
       group.middleUnits.forEach((middle, middleIndex) => {
+        const middlePosition = middleUnitPosition(unit, groupIndex, middleIndex);
+        const middleNumber = unitNumberLabel(unitIndex, middlePosition);
         middle.smallUnits.forEach((small, smallIndex) => {
+          const smallNumber = unitNumberLabel(unitIndex, middlePosition, smallIndex + 1);
           options.push({
             key: `${unitIndex}:${groupIndex}:${middleIndex}:${smallIndex}`,
             domain: unit.domain,
-            middleTitle: middle.title,
-            smallTitle: small.title,
+            middleTitle: `${middleNumber}. ${middle.title}`,
+            smallTitle: `${smallNumber}. ${small.title}`,
             sourceActivity: small.sourceActivity,
             pages: small.pages,
+            hours: small.hours,
+            standardCodes: Array.isArray(small.standardCodes) ? [...small.standardCodes] : [],
+            sports: Array.isArray(small.sports) ? [...small.sports] : [],
+            sportMode: ["none", "examples", "primary"].includes(small.sportMode) ? small.sportMode : inferSportsCultureSportMode({ middleTitle: middle.title, smallTitle: small.title }),
+            contentType: ["theory", "practice"].includes(small.contentType) ? small.contentType : inferSportsCultureContentType({ middleTitle: middle.title, smallTitle: small.title }),
+            supportMode: ["activity", "concept"].includes(small.supportMode) ? small.supportMode : "",
           });
         });
       });
@@ -1847,10 +2261,171 @@ function simulatedManuscriptDraft(framework, metrics, smallUnit) {
   };
 }
 
-function renderSpreadDraft(spread, spreadIndex) {
+function canvasWrappedText(context, text, x, y, maxWidth, lineHeight, maxLines = 4) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  words.forEach((word) => {
+    const candidate = line ? `${line} ${word}` : word;
+    if (context.measureText(candidate).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else line = candidate;
+  });
+  if (line) lines.push(line);
+  lines.slice(0, maxLines).forEach((item, index) => {
+    const clipped = index === maxLines - 1 && lines.length > maxLines ? `${item.replace(/[.…]?$/, "")}…` : item;
+    context.fillText(clipped, x, y + index * lineHeight);
+  });
+  return y + Math.min(lines.length, maxLines) * lineHeight;
+}
+
+function drawRoundedRect(context, x, y, width, height, radius, fill, stroke = null) {
+  context.beginPath();
+  context.roundRect(x, y, width, height, radius);
+  context.fillStyle = fill;
+  context.fill();
+  if (stroke) {
+    context.strokeStyle = stroke;
+    context.stroke();
+  }
+}
+
+function drawDraftSpreadCanvas(canvas, entry, spread) {
+  const context = canvas.getContext("2d");
+  const accent = { balanced: "#596fc1", activity: "#db7048", creative: "#347f72" }[entry.frameworkId] || "#596fc1";
+  const accentDark = { balanced: "#3e53a4", activity: "#ae4931", creative: "#236457" }[entry.frameworkId] || "#3e53a4";
+  const pale = { balanced: "#eef1fb", activity: "#fff1eb", creative: "#eaf6f2" }[entry.frameworkId] || "#eef1fb";
+  const manuscript = spread.textbook_manuscript || {};
+  const sections = Array.isArray(manuscript.sections) ? manuscript.sections : [];
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#cfd4dc";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const pages = [{ x: 18, sections: sections.slice(0, 2) }, { x: 704, sections: sections.slice(2, 4) }];
+  pages.forEach((page, pageIndex) => {
+    drawRoundedRect(context, page.x, 18, 678, 864, 5, "#ffffff", "#c3c8d0");
+    if (pageIndex === 0) {
+      context.fillStyle = accent;
+      context.fillRect(page.x, 18, 62, 864);
+      drawRoundedRect(context, page.x + 35, 18, 130, 178, 48, "#ffffff");
+      context.fillStyle = accent;
+      context.font = "900 66px 'Malgun Gothic', sans-serif";
+      context.fillText(String((spread.left_page || 1)).padStart(2, "0"), page.x + 72, 133);
+      context.save();
+      context.translate(page.x + 26, 400);
+      context.rotate(-Math.PI / 2);
+      context.fillStyle = "#ffffff";
+      context.font = "800 15px 'Malgun Gothic', sans-serif";
+      context.fillText(entry.smallUnitLabel || "스포츠 문화", 0, 0);
+      context.restore();
+    }
+    const contentX = page.x + (pageIndex === 0 ? 94 : 42);
+    const contentWidth = pageIndex === 0 ? 544 : 594;
+    let y = 62;
+    if (pageIndex === 0) {
+      context.fillStyle = "#171b21";
+      context.font = "900 32px 'Malgun Gothic', sans-serif";
+      y = canvasWrappedText(context, manuscript.headline || spread.title, contentX, y, contentWidth, 39, 2) + 7;
+      context.fillStyle = accentDark;
+      context.font = "700 13px 'Malgun Gothic', sans-serif";
+      context.fillText(`학습 목표  |  ${manuscript.learningGoal || spread.intro}`.slice(0, 82), contentX, y);
+      y += 30;
+      drawRoundedRect(context, contentX, y, contentWidth, 44, 8, pale);
+      context.fillStyle = accentDark;
+      context.font = "700 13px 'Malgun Gothic', sans-serif";
+      canvasWrappedText(context, `생각 열기  |  ${manuscript.openingQuestion || spread.intro}`, contentX + 14, y + 18, contentWidth - 28, 17, 2);
+      y += 66;
+    } else {
+      context.fillStyle = accentDark;
+      context.font = "800 14px 'Malgun Gothic', sans-serif";
+      context.fillText(`${entry.primaryTypeLabel || "스포츠 문화"}  ·  ${spread.role}`, contentX, y);
+      y += 28;
+    }
+    page.sections.forEach((section) => {
+      context.fillStyle = accent;
+      context.beginPath();
+      context.arc(contentX + 12, y + 3, 12, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#ffffff";
+      context.font = "800 12px 'Malgun Gothic', sans-serif";
+      context.textAlign = "center";
+      context.fillText(section.number, contentX + 12, y + 7);
+      context.textAlign = "left";
+      context.fillStyle = "#24272c";
+      context.font = "800 19px 'Malgun Gothic', sans-serif";
+      context.fillText(section.title, contentX + 34, y + 7);
+      y += 31;
+      (section.paragraphs || []).slice(0, 5).forEach((paragraph) => {
+        context.fillStyle = "#30343a";
+        context.font = "11px 'Malgun Gothic', sans-serif";
+        y = canvasWrappedText(context, paragraph, contentX, y, contentWidth, 15, 2) + 5;
+      });
+      y += 7;
+    });
+    const visualY = Math.max(675, Math.min(725, y + 8));
+    context.fillStyle = pale;
+    context.beginPath();
+    context.moveTo(page.x, visualY + 60);
+    context.bezierCurveTo(page.x + 180, visualY - 25, page.x + 420, visualY + 55, page.x + 678, visualY - 5);
+    context.lineTo(page.x + 678, 882);
+    context.lineTo(page.x, 882);
+    context.closePath();
+    context.fill();
+    const briefs = manuscript.visualBriefs || [];
+    [0, 1, 2].forEach((visualIndex) => {
+      const boxX = page.x + 42 + visualIndex * 205;
+      const boxY = visualY + 50 + (visualIndex === 1 ? 18 : 0);
+      const boxWidth = 178;
+      const boxHeight = 108;
+      drawRoundedRect(context, boxX, boxY, boxWidth, boxHeight, 8, visualIndex === 1 ? accent : accentDark);
+      context.fillStyle = "rgba(255,255,255,.2)";
+      context.fillRect(boxX + 10, boxY + 10, boxWidth - 20, 48);
+      context.fillStyle = "#263039";
+      context.font = "700 11px 'Malgun Gothic', sans-serif";
+      canvasWrappedText(context, briefs[(pageIndex * 2 + visualIndex) % Math.max(1, briefs.length)] || "편집 이미지 영역", boxX, boxY + boxHeight + 16, boxWidth, 14, 3);
+    });
+    context.fillStyle = "#697078";
+    context.font = "12px 'Malgun Gothic', sans-serif";
+    context.fillText(`${pageIndex === 0 ? spread.left_page : spread.right_page}  |  스포츠 문화`, page.x + 292, 858);
+  });
+  context.fillStyle = "rgba(0,0,0,.08)";
+  context.fillRect(695, 24, 8, 852);
+}
+
+function renderDraftCanvases() {
+  document.querySelectorAll("[data-draft-canvas]").forEach((canvas) => {
+    const [batchIndex, entryIndex, spreadIndex] = canvas.dataset.draftCanvas.split(":").map(Number);
+    const entry = state.frameworkDraftLog?.[batchIndex]?.entries?.[entryIndex];
+    const spread = entry?.spreads?.[spreadIndex];
+    if (entry && spread) drawDraftSpreadCanvas(canvas, entry, spread);
+  });
+}
+
+function renderSportsDraftImages(entry, batchIndex, entryIndex) {
+  return `
+    <div class="draft-image-comparison-card">
+      <div class="draft-image-meta">
+        <b>${escapeHtml(entry.primaryTypeLabel || "스포츠 문화형")}</b>
+        ${entry.secondaryTypeLabel ? `<span>+ ${escapeHtml(SPORTS_CULTURE_ACTIVITY_MODES.find((mode) => mode.id === entry.secondaryType)?.label || entry.secondaryTypeLabel)}</span>` : ""}
+        <small>편집디자인 시안 · ${entry.spreads.length}개 펼침면 · 사진 영역은 발주 지시로 표시</small>
+      </div>
+      <div class="draft-spread-image-strip">
+        ${entry.spreads.map((spread, spreadIndex) => `
+          <figure class="draft-spread-image">
+            <canvas width="1400" height="900" data-draft-canvas="${batchIndex}:${entryIndex}:${spreadIndex}" aria-label="${escapeHtml(entry.frameworkName)} ${spreadIndex + 1}번 펼침면 이미지"></canvas>
+            <figcaption>
+              <span>${spreadIndex + 1}번째 펼침면 · ${escapeHtml(spread.role)}</span>
+              <span class="draft-image-actions"><button type="button" data-enlarge-draft-image>크게 보기</button><button type="button" data-download-draft-png="${batchIndex}:${entryIndex}:${spreadIndex}">PNG 저장</button></span>
+            </figcaption>
+          </figure>`).join("")}
+      </div>
+    </div>`;
+}
+
+function renderSpreadDraft(spread, spreadIndex, sportsCulture = false) {
   const renderActivity = (item) => `
     <article class="spread-activity">
-      <b>활동 ${item.number}</b>
+      <b>${sportsCulture ? escapeHtml(spread.role) : `활동 ${item.number}`}</b>
       <input class="spread-activity-title" value="${escapeHtml(item.title)}" readonly />
       <textarea class="spread-activity-objective" readonly>${escapeHtml(item.objective)}</textarea>
       <textarea class="spread-activity-method" readonly>${escapeHtml(item.method.join("\n"))}</textarea>
@@ -1862,9 +2437,22 @@ function renderSpreadDraft(spread, spreadIndex) {
         <span>${escapeHtml(box.type)}</span>
         <textarea readonly>${escapeHtml(box.content)}</textarea>
       </label>`).join("");
+  const guide = spread.teacher_guide;
+  const guideDraft = guide ? `
+    <details class="teacher-guide-draft">
+      <summary>이 펼침면의 지도서 파생안</summary>
+      <div class="teacher-guide-grid">
+        <section><span>차시 목표</span><ul>${(guide.lessonGoals || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
+        <section><span>준비물</span><p>${escapeHtml((guide.preparation || []).join(" · "))}</p></section>
+        <section><span>수업 흐름</span><ol>${(guide.lessonFlow || []).map((item) => `<li><b>${escapeHtml(item.stage)}</b> ${escapeHtml(item.guidance)}</li>`).join("")}</ol></section>
+        <section><span>핵심 발문</span><ul>${(guide.questions || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
+        <section><span>안전·포용</span><p>${escapeHtml(guide.safety || "")}</p></section>
+        <section><span>평가</span><p>${escapeHtml((guide.assessment || []).join(" · "))}</p></section>
+      </div>
+    </details>` : "";
   return `
     <article class="spread-draft" data-spread-index="${spreadIndex}">
-      <p class="spread-index-label">펼침면 ${spreadIndex + 1}</p>
+      <p class="spread-index-label">펼침면 ${spreadIndex + 1}${sportsCulture ? ` · ${escapeHtml(spread.content_type_label || "스포츠 문화")}` : ""}</p>
       <p class="spread-field-label">본문</p>
       <textarea class="spread-intro" readonly aria-label="펼침면 도입">${escapeHtml(spread.intro)}</textarea>
       <div class="spread-canvas">
@@ -1877,11 +2465,170 @@ function renderSpreadDraft(spread, spreadIndex) {
       </div>
       <p class="spread-field-label">마무리</p>
       <textarea class="spread-wrap-up" readonly aria-label="펼침면 정리">${escapeHtml(spread.wrap_up)}</textarea>
+      ${guideDraft}
     </article>`;
 }
 
+function renderDraftTraceability(entry) {
+  if (!entry?.traceability) return "";
+  const trace = entry.traceability;
+  const evidence = Array.isArray(entry.sourceEvidence) ? entry.sourceEvidence : [];
+  return `
+    <details class="draft-traceability">
+      <summary>교육과정·근거·지도서 연결</summary>
+      <div class="draft-traceability-grid">
+        <section>
+          <span>성취기준</span>
+          <strong>${escapeHtml((trace.standardCodes || []).join(", "))}</strong>
+          <small>지식·이해: ${escapeHtml((trace.knowledge || []).join(" · "))}</small>
+          <small>과정·기능: ${escapeHtml((trace.process || []).join(" · "))}</small>
+          <small>가치·태도: ${escapeHtml((trace.values || []).join(" · "))}</small>
+        </section>
+        <section>
+          <span>평가 증거</span>
+          <strong>${escapeHtml((trace.assessmentEvidence || []).join(" · "))}</strong>
+          <small>${escapeHtml(entry.teacherGuide?.principle || "교과서 펼침면에서 지도서 수업 정보를 파생합니다.")}</small>
+          <small>${escapeHtml(entry.teacherGuide?.annualPlanLink || "")}</small>
+        </section>
+      </div>
+      <div class="draft-evidence-list">
+        ${evidence.map((source) => `<span><b>${escapeHtml(source.id)}</b> · ${escapeHtml(source.role)}</span>`).join("")}
+      </div>
+    </details>`;
+}
+
+function sportsCultureSpecialDraftTargets() {
+  const unitTargets = state.units.flatMap((unit, unitIndex) => {
+    const standards = smallUnitOptions().filter((item) => item.domain === unit.domain).flatMap((item) => item.standardCodes || []);
+    const base = { domain: unit.domain, middleTitle: unit.title || unit.domain, hours: 0, standardCodes: [...new Set(standards)], sportMode: "none", sports: [] };
+    return [
+      { ...base, key: `special:intro:${unitIndex}`, targetKind: "special", pageRole: "unit-intro", smallTitle: `${unit.domain} 단원 도입`, pages: Number(unit.introPages) || 2, specialTypeLabel: "대단원 도입" },
+      { ...base, key: `special:closing:${unitIndex}`, targetKind: "special", pageRole: "unit-closing", smallTitle: `${unit.domain} 단원 마무리`, pages: Number(unit.wrapUpPages) || 2, specialTypeLabel: "대단원 마무리" },
+    ];
+  });
+  const customTargets = (state.specialPages || []).map((page) => ({
+    key: `special:custom:${page.id}`,
+    targetKind: "special",
+    pageRole: `special-${page.type}`,
+    domain: page.domain || state.units[0]?.domain || "스포츠 문화",
+    middleTitle: "특별 페이지",
+    smallTitle: page.title,
+    sourceActivity: page.title,
+    hours: 0,
+    pages: Number(page.pages) || 2,
+    standardCodes: [],
+    sportMode: "examples",
+    sports: selectedSportsFor(state).slice(0, 3),
+    specialTypeLabel: SPORTS_CULTURE_SPECIAL_PAGE_TYPES.find((type) => type.id === page.type)?.label || "특별 페이지",
+    customId: page.id,
+  }));
+  return [...unitTargets, ...customTargets];
+}
+
+function sportsCultureDraftTargets() {
+  return [
+    ...smallUnitOptions().map((item) => ({ ...item, targetKind: "small-unit", pageRole: "small-unit" })),
+    ...sportsCultureSpecialDraftTargets(),
+  ];
+}
+
+function sportsCultureSmallUnitRecord(key) {
+  if (!/^\d+:\d+:\d+:\d+$/.test(key || "")) return null;
+  const [unitIndex, groupIndex, middleIndex, smallIndex] = key.split(":").map(Number);
+  return state.units?.[unitIndex]?.subdomainGroups?.[groupIndex]?.middleUnits?.[middleIndex]?.smallUnits?.[smallIndex] || null;
+}
+
+function renderSportsCultureDraftHistory(draftLog) {
+  if (!draftLog.length) return "";
+  return `
+    <div class="draft-log-list">
+      <div class="draft-log-toolbar">
+        <label class="draft-log-select-all"><input type="checkbox" id="draftLogSelectAll" ${selectedDraftBatches.size && selectedDraftBatches.size === draftLog.length ? "checked" : ""} /><span>전체 선택</span></label>
+        <span class="draft-log-count">${selectedDraftBatches.size}개 선택 · 총 ${draftLog.length}건</span>
+        <div class="section-actions"><button class="secondary-button" id="downloadSelectedDraftsButton" type="button" ${selectedDraftBatches.size ? "" : "disabled"}>선택 다운로드</button><button class="secondary-button" id="deleteSelectedDraftsButton" type="button" ${selectedDraftBatches.size ? "" : "disabled"}>선택 삭제</button></div>
+      </div>
+      ${draftLog.map((batch, index) => index).reverse().map((index) => {
+        const batch = draftLog[index];
+        return `
+          <details class="draft-log-entry" data-draft-log-index="${index}" ${expandedDraftBatches.has(index) ? "open" : ""}>
+            <summary class="draft-log-summary"><input type="checkbox" data-draft-log-checkbox="${index}" ${selectedDraftBatches.has(index) ? "checked" : ""} /><span>${index + 1}번째 · ${formatDraftBatchTimestamp(batch.generatedAt)} · ${escapeHtml(batch.smallUnitLabel)} · 초고 ${batch.entries.length}개 · ${escapeHtml(batch.styleLabel || "균형형")}</span></summary>
+            <div class="draft-log-body">
+              <div class="framework-comparison-grid single-draft">
+                ${batch.entries.map((entry, entryIndex) => `
+                  <div class="framework-comparison-column">
+                    <div class="small-unit-heading">
+                      <span class="option-subtitle">${escapeHtml(entry.frameworkName)} · ${escapeHtml(entry.smallUnitLabel)}</span>
+                      <div class="section-actions"><button class="secondary-button" data-download-pptx="${index}:${entryIndex}" type="button">PPT 다운로드</button><button class="secondary-button" data-download-textbook-text="${index}:${entryIndex}" type="button">교과서 원고 TXT</button><button class="secondary-button" data-download-guide-text="${index}:${entryIndex}" type="button">지도서 원고 TXT</button></div>
+                    </div>
+                    ${renderSportsDraftImages(entry, index, entryIndex)}
+                    <details class="sports-draft-text-details"><summary>교과서·지도서 원고와 근거 확인</summary>${renderDraftTraceability(entry)}<pre class="manuscript-preview">${escapeHtml(textbookManuscriptText(entry))}</pre><div class="spread-drafts">${entry.spreads.map((spread, spreadIndex) => renderSpreadDraft(spread, spreadIndex, true)).join("")}</div></details>
+                  </div>`).join("")}
+              </div>
+            </div>
+          </details>`;
+      }).join("")}
+    </div>`;
+}
+
+function renderSportsCultureDraftStudio() {
+  ensureSportsCultureDraftSettings(state);
+  const targets = sportsCultureDraftTargets();
+  const selectedKeys = new Set(state.selectedDraftSmallUnitKeys || []);
+  const style = sportsCultureStyleProfile(state.bookStyleValue);
+  const providerOptions = globalThis.TEXTBOOK_DRAFT_ENGINE?.providerOptions() || [];
+  const activeProvider = providerOptions.find((provider) => provider.id === state.generationProviderId) || providerOptions[0];
+  const smallTargets = targets.filter((item) => item.targetKind === "small-unit");
+  const specialTargets = targets.filter((item) => item.targetKind === "special");
+  return `
+    ${sectionHeading("DRAFT STUDIO", "전체 스타일·초고 생성", "")}
+    <section class="book-style-panel">
+      <div class="book-style-heading"><div><strong>전체 스타일</strong><span>${escapeHtml(style.label)} · ${escapeHtml(style.summary)}</span></div><b id="bookStyleValueLabel">${state.bookStyleValue}</b></div>
+      <input id="bookStyleSlider" type="range" min="0" max="100" step="1" value="${state.bookStyleValue}" />
+      <div class="book-style-scale"><span>안정·정석형</span><span>균형형</span><span>참신·활동형</span></div>
+    </section>
+    <div class="generation-settings-grid compact-grid">
+      <label class="editor-field"><span>생성 제공자</span><select id="draftProviderSelect">${providerOptions.map((provider) => `<option value="${escapeHtml(provider.id)}" ${provider.id === activeProvider?.id ? "selected" : ""}>${escapeHtml(provider.label)} · ${escapeHtml(provider.mode)}</option>`).join("")}</select></label>
+      <div class="editor-field"><span>생성 순서</span><strong>표본 확인 → 다중 선택 → 일괄 생성</strong></div>
+    </div>
+    <section class="draft-target-panel">
+      <div class="draft-target-heading"><div><strong>소단원 유형과 생성 대상</strong></div><span id="draftTargetSelectedCount">${selectedKeys.size}개 선택</span></div>
+      <div class="draft-target-toolbar"><button class="secondary-button" id="selectAllSmallDraftTargets" type="button">소단원 전체 선택</button><button class="secondary-button" id="clearDraftTargets" type="button">선택 해제</button></div>
+      <div class="draft-target-list">
+        ${smallTargets.map((item) => {
+          const supportOptions = item.contentType === "theory" ? [{ id: "", label: "기본 구성" }, { id: "activity", label: "활동 포함" }] : [{ id: "", label: "기본 구성" }, { id: "concept", label: "개념 설명 포함" }];
+          return `<article class="draft-target-row">
+            <input type="checkbox" data-draft-target="${item.key}" ${selectedKeys.has(item.key) ? "checked" : ""} aria-label="${escapeHtml(item.smallTitle)} 생성 선택" />
+            <div class="draft-target-title"><b>${escapeHtml(item.smallTitle)}</b><small>${escapeHtml(item.domain)} · ${escapeHtml(item.middleTitle)} · ${item.pages}쪽 · ${sportsCultureSportModeLabel(item.sportMode)}${item.sports?.length ? ` · ${escapeHtml(item.sports.join(", "))}` : ""}</small></div>
+            <label><span>유형</span><select data-draft-content-type="${item.key}">${SPORTS_CULTURE_CONTENT_TYPES.map((type) => `<option value="${type.id}" ${type.id === item.contentType ? "selected" : ""}>${type.label}</option>`).join("")}</select></label>
+            <label><span>보조 구성</span><select data-draft-support-mode="${item.key}">${supportOptions.map((mode) => `<option value="${mode.id}" ${mode.id === item.supportMode ? "selected" : ""}>${mode.label}</option>`).join("")}</select></label>
+          </article>`;
+        }).join("")}
+      </div>
+    </section>
+    <section class="special-page-panel">
+      <div class="draft-target-heading"><div><strong>단원 도입·마무리·특별페이지 초고</strong></div></div>
+      <div class="special-page-list">${specialTargets.map((item) => `<label class="special-page-row"><input type="checkbox" data-draft-target="${item.key}" ${selectedKeys.has(item.key) ? "checked" : ""} /><span><b>${escapeHtml(item.smallTitle)}</b><small>${escapeHtml(item.specialTypeLabel)} · ${item.pages}쪽${item.customId ? " · 3단계 배열표 반영" : ""}</small></span></label>`).join("")}</div>
+    </section>
+    <div class="curriculum-notice compact"><strong>분량</strong><span>이론 1,400~1,800자 · 실기 900~1,400자 · 도입 300~700자 · 마무리 700~1,200자 · 특별 600~1,400자</span></div>
+    <div class="draft-generate-bar"><span id="draftGenerateSelectionSummary">선택한 ${selectedKeys.size}개 항목</span><button class="primary-button" id="generateDraftButton" type="button" ${selectedKeys.size ? "" : "disabled"}>${selectedKeys.size > 1 ? `${selectedKeys.size}개 초고 일괄 생성` : "선택 초고 생성"}</button></div>
+    ${renderSportsCultureDraftHistory(state.frameworkDraftLog || [])}`;
+}
+
+function refreshDraftSelectionControls() {
+  const count = (state.selectedDraftSmallUnitKeys || []).length;
+  const countLabel = document.querySelector("#draftTargetSelectedCount");
+  const summary = document.querySelector("#draftGenerateSelectionSummary");
+  const generateButton = document.querySelector("#generateDraftButton");
+  if (countLabel) countLabel.textContent = `${count}개 선택`;
+  if (summary) summary.textContent = `선택한 ${count}개 항목`;
+  if (generateButton) {
+    generateButton.disabled = count === 0;
+    generateButton.textContent = count > 1 ? `${count}개 초고 일괄 생성` : "선택 초고 생성";
+  }
+}
+
 function renderFrameworks() {
-  if (!state.frameworkMetrics) state.frameworkMetrics = defaultFrameworkMetrics();
+  if (!state.frameworkMetrics) state.frameworkMetrics = defaultFrameworkMetrics(frameworkOptions());
   if (!Array.isArray(state.frameworkDraftLog)) state.frameworkDraftLog = [];
   if (state.frameworkDraftLog.some((batch) => !Array.isArray(batch?.entries))) state.frameworkDraftLog = [];
   selectedDraftBatches.forEach((index) => { if (index >= state.frameworkDraftLog.length) selectedDraftBatches.delete(index); });
@@ -1890,11 +2637,20 @@ function renderFrameworks() {
   const smallUnits = smallUnitOptions();
   const draftLog = state.frameworkDraftLog;
   const approval = state.frameworkApproval;
-  const approvedFramework = frameworks.find((framework) => framework.id === approval.frameworkId);
+  const availableFrameworks = frameworkOptions();
+  const approvedFramework = availableFrameworks.find((framework) => framework.id === approval.frameworkId);
+  const sportsCulture = isSportsCultureProject();
+  if (sportsCulture) ensureSportsCultureDraftSettings(state);
+  if (sportsCulture) return renderSportsCultureDraftStudio();
+  const selectedSmallUnit = smallUnits.find((option) => option.key === state.previewSmallUnitKey);
+  const recommendedTypeId = sportsCulture && selectedSmallUnit ? inferSportsCultureContentType(selectedSmallUnit) : "";
+  const recommendedType = SPORTS_CULTURE_CONTENT_TYPES.find((type) => type.id === recommendedTypeId);
+  const providerOptions = sportsCulture ? (globalThis.TEXTBOOK_DRAFT_ENGINE?.providerOptions() || []) : [];
+  const activeProvider = providerOptions.find((provider) => provider.id === state.generationProviderId) || providerOptions[0];
   return `
-    ${sectionHeading("FORMAT OPTIONS", "체제안 선택", "이번 버전에서는 설명과 예상 구조만 비교합니다.")}
+    ${sectionHeading("FORMAT OPTIONS", "체제안 선택", sportsCulture ? "스포츠 문화 교육과정의 공통 규칙을 지키면서 탐구·대회·융합 강조 방식을 비교합니다." : "이번 버전에서는 설명과 예상 구조만 비교합니다.")}
     <div class="framework-grid">
-      ${frameworks.map((framework) => {
+      ${availableFrameworks.map((framework) => {
         const metrics = state.frameworkMetrics[framework.id];
         const metricRows = Object.entries(metrics).map(([key, value]) => `
           <label class="metric-row">
@@ -1921,7 +2677,26 @@ function renderFrameworks() {
       ${approval.status === "approved" ? `<button class="secondary-button" id="reviseFrameworkApproval" type="button">승인 취소</button>` : ""}
     </div>
     <div class="framework-preview-panel">
-      ${sectionHeading("MANUSCRIPT PREVIEW", "AI 초안 생성·비교", "소단원을 선택하고 생성하면 균형형·활동 강화형·창의형 3개 초안이 한 번에 나와 비교할 수 있습니다. 슬라이더를 조정한 뒤 다시 생성하면 최신 결과로 바뀝니다.")}
+      ${sectionHeading("MANUSCRIPT PREVIEW", sportsCulture ? "초안 생성·비교" : "AI 초안 생성·비교", sportsCulture ? "내부 규칙 조합 또는 서버의 OpenAI API 중 생성 제공자를 선택할 수 있습니다. AI 실시간 생성은 종목·소단원명·전체 스타일이 바뀔 때마다 매번 새로 집필합니다." : "소단원을 선택하고 생성하면 균형형·활동 강화형·창의형 3개 초안이 한 번에 나와 비교할 수 있습니다. 슬라이더를 조정한 뒤 다시 생성하면 최신 결과로 바뀝니다.")}
+      ${sportsCulture ? `
+        <div class="generation-settings-grid">
+          <label class="editor-field">
+            <span>생성 제공자</span>
+            <select id="draftProviderSelect">
+              ${providerOptions.map((provider) => `<option value="${escapeHtml(provider.id)}" ${provider.id === activeProvider?.id ? "selected" : ""}>${escapeHtml(provider.label)} · ${escapeHtml(provider.mode)}</option>`).join("")}
+            </select>
+            <small>${escapeHtml(activeProvider?.description || "내부 규칙 조합기를 사용합니다.")}</small>
+          </label>
+          <div class="editor-field linked-sports-field">
+            <span>선택 소단원에 배정된 종목</span>
+            <strong>${escapeHtml(selectedSmallUnit?.sports?.join(", ") || "배정된 종목 없음")}</strong>
+            <small>종목 배정은 3단계의 각 소단원 카드에서 변경합니다.</small>
+          </div>
+        </div>
+        <div class="curriculum-notice compact">
+          <strong>생성 원칙</strong>
+          <span>성취기준 6개 추적 · 직접/간접 참여 · 다양한 경기 역할 · 안전과 포용 · 과정/결과 평가 · 교과서에서 지도서 파생</span>
+        </div>` : ""}
       <label class="editor-field">
         <span>소단원 선택</span>
         <select id="previewSmallUnitSelect">
@@ -1929,7 +2704,24 @@ function renderFrameworks() {
           ${smallUnits.map((option) => `<option value="${option.key}" ${state.previewSmallUnitKey === option.key ? "selected" : ""}>${escapeHtml(option.domain)} · ${escapeHtml(option.middleTitle)} · ${escapeHtml(option.smallTitle)}</option>`).join("")}
         </select>
       </label>
-      <button class="primary-button" id="generateDraftButton" type="button">3개 체제 초안 생성</button>
+      ${sportsCulture ? `
+        <div class="content-type-settings">
+          <label class="editor-field">
+            <span>소단원 성격 <em>필수</em></span>
+            <select id="draftPrimaryTypeSelect">
+              ${SPORTS_CULTURE_CONTENT_TYPES.map((type) => `<option value="${type.id}" ${type.id === state.draftPrimaryType ? "selected" : ""}>${escapeHtml(type.label)}</option>`).join("")}
+            </select>
+            <small>${recommendedType ? `자동 추천: ${escapeHtml(recommendedType.label)} · ${escapeHtml(recommendedType.description)}` : "소단원을 선택하면 유형을 자동 추천합니다."}</small>
+          </label>
+          <label class="editor-field">
+            <span>수업 구성 강조 <em>선택 사항</em></span>
+            <select id="draftSecondaryTypeSelect">
+              ${SPORTS_CULTURE_ACTIVITY_MODES.map((mode) => `<option value="${mode.id}" ${mode.id === state.draftSecondaryType ? "selected" : ""}>${escapeHtml(mode.label)}</option>`).join("")}
+            </select>
+            <small>문학·예술, 프로젝트, 토론, 융합은 소단원 성격이 아니라 수업 구성 방식으로 반영합니다.</small>
+          </label>
+        </div>` : ""}
+      <button class="primary-button" id="generateDraftButton" type="button">${sportsCulture ? "3개 체제 편집디자인 펼침면 생성" : "3개 체제 초안 생성"}</button>
       ${draftLog.length ? `
         <div class="draft-log-list">
           <div class="draft-log-toolbar">
@@ -1949,7 +2741,7 @@ function renderFrameworks() {
               <details class="draft-log-entry" data-draft-log-index="${index}" ${expandedDraftBatches.has(index) ? "open" : ""}>
                 <summary class="draft-log-summary">
                   <input type="checkbox" data-draft-log-checkbox="${index}" ${selectedDraftBatches.has(index) ? "checked" : ""} />
-                  <span>${index + 1}회차 · ${formatDraftBatchTimestamp(batch.generatedAt)} · ${escapeHtml(batch.smallUnitLabel)} · 체제 ${batch.entries.length}개</span>
+                  <span>${index + 1}회차 · ${formatDraftBatchTimestamp(batch.generatedAt)} · ${escapeHtml(batch.smallUnitLabel)} · 체제 ${batch.entries.length}개${batch.provider?.label ? ` · ${escapeHtml(batch.provider.label)}` : ""}</span>
                 </summary>
                 <div class="draft-log-body">
                   <div class="framework-comparison-grid">
@@ -1961,14 +2753,14 @@ function renderFrameworks() {
                             <span class="option-subtitle">${escapeHtml(entry.frameworkName)} · ${escapeHtml(entry.smallUnitLabel)}</span>
                             <div class="section-actions">
                               <button class="secondary-button" data-download-pptx="${index}:${entryIndex}" type="button">PPT 다운로드</button>
+                              ${sportsCulture ? `<button class="secondary-button" data-download-textbook-text="${index}:${entryIndex}" type="button">교과서 원고 TXT</button><button class="secondary-button" data-download-guide-text="${index}:${entryIndex}" type="button">지도서 원고 TXT</button>` : ""}
                               ${isApproved
                                 ? `<span class="approved-badge">승인됨</span>`
                                 : `<button class="secondary-button" data-approve-framework="${entry.frameworkId}" type="button">이 체제로 승인</button>`}
                             </div>
                           </div>
-                          <div class="spread-drafts">
-                            ${entry.spreads.map((spread, spreadIndex) => renderSpreadDraft(spread, spreadIndex)).join("")}
-                          </div>
+                          ${sportsCulture ? renderSportsDraftImages(entry, index, entryIndex) : ""}
+                          ${sportsCulture ? `<details class="sports-draft-text-details"><summary>교과서·지도서 원고와 근거 확인</summary>${renderDraftTraceability(entry)}<pre class="manuscript-preview">${escapeHtml(textbookManuscriptText(entry))}</pre><div class="spread-drafts">${entry.spreads.map((spread, spreadIndex) => renderSpreadDraft(spread, spreadIndex, true)).join("")}</div></details>` : `${renderDraftTraceability(entry)}<div class="spread-drafts">${entry.spreads.map((spread, spreadIndex) => renderSpreadDraft(spread, spreadIndex)).join("")}</div>`}
                         </div>`;
                     }).join("")}
                   </div>
@@ -2120,9 +2912,7 @@ function renderMockReview() {
   const standard = mockReviewStandard();
   const previousResultMatches = state.mockReview?.standard?.id === standard.id;
   return `
-    ${sectionHeading("MOCK CERTIFICATION", "모의심사", standard.available
-      ? `별도의 교과서 PDF를 업로드하면 「${standard.label}」 ${standard.count}개 항목을 AI가 채점합니다. 앞 단계의 진행 상황과는 무관하게 독립적으로 동작합니다.`
-      : standard.sourceLocation)}
+    ${sectionHeading("MOCK CERTIFICATION", "모의심사", standard.available ? `${standard.count}개 항목` : "기준 미연결")}
     <div class="evidence-summary-card">
       <b>${escapeHtml(standard.label)} 근거</b>
       <span>${escapeHtml(standard.source)}</span>
@@ -2142,16 +2932,22 @@ function renderMockReview() {
 
 function renderWorkspace() {
   const renderers = [renderProject, renderCurriculum, renderUnits, renderFrameworks, renderMockReview];
+  const workspace = document.querySelector("#workspace");
+  workspace.replaceChildren();
   const project = activeProject();
   if (state.currentStep > 0 && isPairedProject(project) && project.viewMode === "compare") {
     const originalState = state;
     const currentStep = originalState.currentStep;
-    const panels = Object.entries(project.books).map(([bookKey, bookState]) => {
-      state = bookState;
-      const content = renderers[currentStep]();
-      return `<article class="book-comparison-panel" inert><header><h3>${bookKey}</h3><small>읽기 전용 비교</small></header>${content}</article>`;
-    }).join("");
-    state = originalState;
+    let panels = "";
+    try {
+      panels = Object.entries(project.books).map(([bookKey, bookState]) => {
+        state = bookState;
+        const content = renderers[currentStep]();
+        return `<article class="book-comparison-panel" inert><header><h3>${bookKey}</h3><small>읽기 전용 비교</small></header>${content}</article>`;
+      }).join("");
+    } finally {
+      state = originalState;
+    }
     document.querySelector("#workspace").innerHTML = `
       <div class="comparison-heading"><p class="section-kicker">GRADE COMPARISON</p><h2>${escapeHtml(project.band || project.pairLabel || project.name)} 비교 보기</h2><p>같은 단계의 두 학년책을 나란히 확인합니다. 수정하려면 왼쪽에서 학년을 선택하세요.</p></div>
       <div class="book-comparison-grid">${panels}</div>`;
@@ -2159,6 +2955,7 @@ function renderWorkspace() {
   }
   document.querySelector("#workspace").innerHTML = renderers[state.currentStep]();
   bindWorkspace();
+  renderDraftCanvases();
 }
 
 function bindWorkspace() {
@@ -2201,6 +2998,10 @@ function bindWorkspace() {
         state.project.corePages = 180;
         state.project.supplementaryPages = 0;
         state.units = unitsForSportsCulture();
+        state.sportsCultureUnitStructureVersion = 2;
+        state.selectedSports = ["배드민턴"];
+        state.customSports = "";
+        state.carrierSport = "배드민턴";
         state.frontMatterText = "";
         state.backMatterText = "";
         state.appendixText = "자료 출처와 찾아보기, 4";
@@ -2301,6 +3102,106 @@ function bindWorkspace() {
     showToast("목차를 다운로드했습니다.");
   });
 
+  document.querySelector("#addTocSpecialPageButton")?.addEventListener("click", () => {
+    const type = document.querySelector("#tocSpecialPageTypeSelect")?.value || "reading";
+    const domain = document.querySelector("#tocSpecialPageDomainSelect")?.value || state.units[0]?.domain || "스포츠 문화";
+    const label = sportsCultureSpecialPageTypeLabel(type);
+    state.specialPages ||= [];
+    state.specialPages.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, domain, title: `${domain} ${label}`, pages: 2 });
+    state.pages = buildPagePlan(state);
+    persist("3단계 특별페이지 추가됨");
+    renderWorkspace();
+    showToast("특별페이지 2쪽을 배열표에 반영했습니다. 전체 쪽수에 맞게 다른 쪽수를 조정하세요.");
+  });
+
+  document.querySelectorAll("[data-toc-special-title]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const page = (state.specialPages || []).find((item) => item.id === input.dataset.tocSpecialTitle);
+      if (!page) return;
+      page.title = input.value.trim() || sportsCultureSpecialPageTypeLabel(page.type);
+      state.pages = buildPagePlan(state);
+      persist("특별페이지 이름 변경됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelectorAll("[data-toc-special-type]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const page = (state.specialPages || []).find((item) => item.id === select.dataset.tocSpecialType);
+      if (!page) return;
+      page.type = select.value;
+      state.pages = buildPagePlan(state);
+      persist("특별페이지 유형 변경됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelectorAll("[data-toc-special-domain]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const page = (state.specialPages || []).find((item) => item.id === select.dataset.tocSpecialDomain);
+      if (!page) return;
+      page.domain = select.value;
+      state.pages = buildPagePlan(state);
+      persist("특별페이지 배치 대단원 변경됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelectorAll("[data-toc-special-pages]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const page = (state.specialPages || []).find((item) => item.id === input.dataset.tocSpecialPages);
+      if (!page) return;
+      page.pages = Math.max(1, Number(input.value) || 1);
+      state.pages = buildPagePlan(state);
+      persist("특별페이지 쪽수 변경됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelectorAll("[data-delete-toc-special-page]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.deleteTocSpecialPage;
+      state.specialPages = (state.specialPages || []).filter((page) => page.id !== id);
+      state.selectedDraftSmallUnitKeys = (state.selectedDraftSmallUnitKeys || []).filter((key) => key !== `special:custom:${id}`);
+      state.pages = buildPagePlan(state);
+      persist("3단계 특별페이지 삭제됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelector("#applySportsCultureDetailedUnits")?.addEventListener("click", () => {
+    const confirmed = window.confirm("현재 단원·차시·쪽수 편집값을 전처리 자료 기반 18개 소단원 초기안으로 바꿀까요?");
+    if (!confirmed) return;
+    state.units = unitsForSportsCulture();
+    state.sportsCultureUnitStructureVersion = 2;
+    state.pages = buildPagePlan();
+    state.selectedPages = [1];
+    persist("스포츠 문화 세분화 초기안 적용됨");
+    renderWorkspace();
+    showToast("18개 소단원 초기안을 적용했습니다.");
+  });
+
+  document.querySelectorAll("[data-sport-option]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const selected = new Set(state.selectedSports || []);
+      if (input.checked) selected.add(input.dataset.sportOption);
+      else selected.delete(input.dataset.sportOption);
+      state.selectedSports = SPORTS_CULTURE_SPORT_OPTIONS.filter((sport) => selected.has(sport));
+      state.carrierSport = selectedSportsFor(state).join(", ");
+      ensureSportsCultureDraftSettings(state);
+      persist("스포츠 문화 후보 종목 변경됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelector("#customSportsInput")?.addEventListener("change", (event) => {
+    state.customSports = event.target.value.trim();
+    state.carrierSport = selectedSportsFor(state).join(", ");
+    ensureSportsCultureDraftSettings(state);
+    persist("스포츠 문화 기타 종목 변경됨");
+    renderWorkspace();
+  });
+
   document.querySelector("#downloadPagePlanButton")?.addEventListener("click", () => {
     downloadCsvFile(`${state.project.name || "배열표"}_배열표.csv`, pagePlanRows(buildPagePlan(state)));
     showToast("배열표를 다운로드했습니다.");
@@ -2335,6 +3236,55 @@ function bindWorkspace() {
       const [unitIndex, groupIndex, middleIndex, smallIndex] = input.dataset.smallTitle.split(":").map(Number);
       state.units[unitIndex].subdomainGroups[groupIndex].middleUnits[middleIndex].smallUnits[smallIndex].title = input.value;
       persist();
+    });
+  });
+
+  document.querySelectorAll("[data-small-sport-mode]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const [unitIndex, groupIndex, middleIndex, smallIndex] = select.dataset.smallSportMode.split(":").map(Number);
+      const small = state.units[unitIndex].subdomainGroups[groupIndex].middleUnits[middleIndex].smallUnits[smallIndex];
+      small.sportMode = select.value;
+      small.sportSettingSource = "user";
+      if (small.sportMode === "none") small.sports = [];
+      else if (small.sportMode === "primary") small.sports = (small.sports || []).slice(0, 1);
+      if (small.sportMode !== "none" && !small.sports?.length) {
+        small.sports = recommendedSportsForSmallUnit({ middleTitle: state.units[unitIndex].subdomainGroups[groupIndex].middleUnits[middleIndex].title, smallTitle: small.title }, selectedSportsFor(state), small.sportMode);
+        if (small.sportMode === "primary") small.sports = small.sports.slice(0, 1);
+      }
+      persist("소단원 종목 사용 방식 변경됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelectorAll("[data-recommend-small-sports]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const [unitIndex, groupIndex, middleIndex, smallIndex] = button.dataset.recommendSmallSports.split(":").map(Number);
+      const middle = state.units[unitIndex].subdomainGroups[groupIndex].middleUnits[middleIndex];
+      const small = middle.smallUnits[smallIndex];
+      small.sportMode = inferSportsCultureSportMode({ middleTitle: middle.title, smallTitle: small.title });
+      small.sports = recommendedSportsForSmallUnit({ middleTitle: middle.title, smallTitle: small.title }, selectedSportsFor(state));
+      small.sportSettingSource = "recommended";
+      persist("수정한 목차명 기준 종목 방식 다시 추천됨");
+      renderWorkspace();
+      showToast("현재 중·소단원명을 기준으로 종목 사용 방식을 다시 추천했습니다.");
+    });
+  });
+
+  document.querySelectorAll("[data-small-sport]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const [unitIndex, groupIndex, middleIndex, smallIndex] = input.dataset.smallSport.split(":").map(Number);
+      const small = state.units[unitIndex].subdomainGroups[groupIndex].middleUnits[middleIndex].smallUnits[smallIndex];
+      if (small.sportMode === "primary") {
+        small.sports = input.checked ? [input.value] : [];
+      } else {
+        const assigned = new Set(Array.isArray(small.sports) ? small.sports : []);
+        if (input.checked) assigned.add(input.value);
+        else assigned.delete(input.value);
+        small.sports = selectedSportsFor(state).filter((sport) => assigned.has(sport));
+      }
+      small.sportSettingSource = "user";
+      persist("소단원 종목 설정 변경됨");
+      renderWorkspace();
     });
   });
 
@@ -2500,36 +3450,220 @@ function bindWorkspace() {
     });
   });
 
-  document.querySelector("#previewSmallUnitSelect")?.addEventListener("change", (event) => {
-    state.previewSmallUnitKey = event.target.value;
-    persist();
+  document.querySelector("#bookStyleSlider")?.addEventListener("input", (event) => {
+    state.bookStyleValue = Number(event.target.value);
+    const label = document.querySelector("#bookStyleValueLabel");
+    if (label) label.textContent = event.target.value;
   });
 
-  document.querySelector("#generateDraftButton")?.addEventListener("click", () => {
+  document.querySelector("#bookStyleSlider")?.addEventListener("change", () => {
+    persist("스포츠 문화 전체 스타일 변경됨");
+    renderWorkspace();
+  });
+
+  document.querySelectorAll("[data-draft-target]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const selected = new Set(state.selectedDraftSmallUnitKeys || []);
+      if (input.checked) selected.add(input.dataset.draftTarget);
+      else selected.delete(input.dataset.draftTarget);
+      state.selectedDraftSmallUnitKeys = [...selected];
+      persist("초고 생성 대상 변경됨");
+      refreshDraftSelectionControls();
+    });
+  });
+
+  document.querySelectorAll("[data-draft-content-type]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const small = sportsCultureSmallUnitRecord(select.dataset.draftContentType);
+      if (!small) return;
+      small.contentType = select.value;
+      small.supportMode = "";
+      persist("소단원 이론·실기 유형 변경됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelectorAll("[data-draft-support-mode]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const small = sportsCultureSmallUnitRecord(select.dataset.draftSupportMode);
+      if (!small) return;
+      small.supportMode = select.value;
+      persist("소단원 보조 구성 변경됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelector("#selectAllSmallDraftTargets")?.addEventListener("click", () => {
+    state.selectedDraftSmallUnitKeys = smallUnitOptions().map((item) => item.key);
+    document.querySelectorAll("[data-draft-target]").forEach((input) => { input.checked = state.selectedDraftSmallUnitKeys.includes(input.dataset.draftTarget); });
+    persist("전체 소단원 생성 대상으로 선택됨");
+    refreshDraftSelectionControls();
+  });
+
+  document.querySelector("#clearDraftTargets")?.addEventListener("click", () => {
+    state.selectedDraftSmallUnitKeys = [];
+    document.querySelectorAll("[data-draft-target]").forEach((input) => { input.checked = false; });
+    persist("초고 생성 대상 선택 해제됨");
+    refreshDraftSelectionControls();
+  });
+
+  document.querySelector("#previewSmallUnitSelect")?.addEventListener("change", (event) => {
+    state.previewSmallUnitKey = event.target.value;
+    if (isSportsCultureProject()) {
+      const selected = smallUnitOptions().find((item) => item.key === state.previewSmallUnitKey);
+      state.draftPrimaryType = selected ? inferSportsCultureContentType(selected) : "theory";
+      state.draftSecondaryType = "";
+    }
+    persist();
+    renderWorkspace();
+  });
+
+  document.querySelector("#draftPrimaryTypeSelect")?.addEventListener("change", (event) => {
+    state.draftPrimaryType = event.target.value;
+    if (state.draftSecondaryType === state.draftPrimaryType) state.draftSecondaryType = "";
+    persist("스포츠 문화 주 소단원 유형 변경됨");
+    renderWorkspace();
+  });
+
+  document.querySelector("#draftSecondaryTypeSelect")?.addEventListener("change", (event) => {
+    state.draftSecondaryType = event.target.value === state.draftPrimaryType ? "" : event.target.value;
+    persist("스포츠 문화 보조 소단원 유형 변경됨");
+    renderWorkspace();
+  });
+
+  document.querySelector("#draftProviderSelect")?.addEventListener("change", (event) => {
+    state.generationProviderId = event.target.value;
+    persist("초안 생성 제공자 변경됨");
+    renderWorkspace();
+  });
+
+  document.querySelector("#generateDraftButton")?.addEventListener("click", async (event) => {
+    if (isSportsCultureProject()) {
+      const targetsByKey = new Map(sportsCultureDraftTargets().map((item) => [item.key, item]));
+      const targets = (state.selectedDraftSmallUnitKeys || []).map((key) => targetsByKey.get(key)).filter(Boolean);
+      if (!targets.length) {
+        showToast("먼저 생성할 소단원이나 특별 페이지를 선택해 주세요.");
+        return;
+      }
+      const engine = globalThis.TEXTBOOK_DRAFT_ENGINE;
+      if (!engine) {
+        showToast("내부 초안 생성 모듈을 불러오지 못했습니다.");
+        return;
+      }
+      const button = event.currentTarget;
+      const originalLabel = button.textContent;
+      button.disabled = true;
+      try {
+        const style = sportsCultureStyleProfile(state.bookStyleValue);
+        const framework = { id: style.id, name: `전체 스타일 ${state.bookStyleValue} · ${style.label}`, summary: style.summary };
+        const metrics = sportsCultureStyleMetrics(state.bookStyleValue);
+        for (let index = 0; index < targets.length; index += 1) {
+          const target = targets[index];
+          button.textContent = `${index + 1}/${targets.length} 초고 구성 중…`;
+          const sportMode = target.sportMode || "none";
+          const targetSports = sportMode === "none" ? [] : (target.sports || []);
+          if (sportMode !== "none" && !targetSports.length) throw new Error(`${target.smallTitle}: ${sportsCultureSportModeLabel(sportMode)}에 사용할 종목을 지정해 주세요.`);
+          const carrierSport = targetSports.join(", ");
+          const primaryType = target.targetKind === "small-unit" ? target.contentType : "theory";
+          const supportMode = target.targetKind === "small-unit" ? target.supportMode : "";
+          const result = await engine.generateDraftSet({
+            profileId: engine.sportsCultureProfile().id,
+            providerId: state.generationProviderId || engine.internalProviderId,
+            carrierSport,
+            sportMode,
+            sports: targetSports,
+            primaryType,
+            supportMode,
+            pageRole: target.pageRole,
+            styleValue: state.bookStyleValue,
+            smallUnit: target,
+            frameworks: [framework],
+            metricsByFramework: { [framework.id]: metrics },
+          });
+          state.frameworkDraftLog.push({
+            generatedAt: new Date().toISOString(),
+            smallUnitLabel: `${target.domain} · ${target.middleTitle} · ${target.smallTitle}`,
+            carrierSport,
+            sportMode,
+            primaryType,
+            supportMode,
+            pageRole: target.pageRole,
+            styleValue: state.bookStyleValue,
+            styleLabel: style.label,
+            provider: result.provider,
+            entries: result.entries,
+          });
+        }
+        expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
+        persist(`${targets.length}개 스포츠 문화 초고 생성됨`);
+        renderWorkspace();
+        showToast(`${targets.length}개 항목의 초고를 생성했습니다.`);
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = originalLabel;
+        showToast(error?.message || "초고 생성에 실패했습니다.");
+      }
+      return;
+    }
     const smallUnit = smallUnitOptions().find((item) => item.key === state.previewSmallUnitKey);
     if (!smallUnit) {
       showToast("먼저 소단원을 선택해 주세요.");
       return;
     }
-    if (!state.frameworkMetrics) state.frameworkMetrics = defaultFrameworkMetrics();
+    if (!state.frameworkMetrics) state.frameworkMetrics = defaultFrameworkMetrics(frameworkOptions());
     document.querySelectorAll("[data-framework-metric]").forEach((input) => {
       const [frameworkId, key] = input.dataset.frameworkMetric.split(":");
       state.frameworkMetrics[frameworkId][key] = Number(input.value);
     });
     if (!Array.isArray(state.frameworkDraftLog)) state.frameworkDraftLog = [];
-    const generated = frameworks.map((framework) => ({
-      frameworkId: framework.id,
-      ...simulatedManuscriptDraft(framework, state.frameworkMetrics[framework.id], smallUnit),
-    }));
-    state.frameworkDraftLog.push({
-      generatedAt: new Date().toISOString(),
-      smallUnitLabel: `${smallUnit.domain} · ${smallUnit.middleTitle} · ${smallUnit.smallTitle}`,
-      entries: generated,
-    });
-    expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
-    persist("AI 초안 생성됨");
-    renderWorkspace();
-    showToast("체제 3개의 초안을 생성했습니다.");
+    const button = event.currentTarget;
+    button.disabled = true;
+    const originalLabel = button.textContent;
+    button.textContent = "초안 구성 중…";
+    try {
+      let generated;
+      let provider = { id: "legacy-simulation", label: "기존 더미 생성", mode: "simulation" };
+      if (isSportsCultureProject()) {
+        state.carrierSport = (smallUnit.sports || []).join(", ");
+        if (!state.carrierSport) throw new Error("3단계에서 이 소단원에 적용할 종목을 지정해 주세요.");
+        const engine = globalThis.TEXTBOOK_DRAFT_ENGINE;
+        if (!engine) throw new Error("내부 초안 생성 모듈을 불러오지 못했습니다.");
+        const result = await engine.generateDraftSet({
+          profileId: engine.sportsCultureProfile().id,
+          providerId: state.generationProviderId || engine.internalProviderId,
+          carrierSport: state.carrierSport,
+          primaryType: state.draftPrimaryType,
+          secondaryType: state.draftSecondaryType,
+          smallUnit,
+          frameworks: frameworkOptions(),
+          metricsByFramework: state.frameworkMetrics,
+        });
+        generated = result.entries;
+        provider = result.provider;
+      } else {
+        generated = frameworkOptions().map((framework) => ({
+          frameworkId: framework.id,
+          ...simulatedManuscriptDraft(framework, state.frameworkMetrics[framework.id], smallUnit),
+        }));
+      }
+      state.frameworkDraftLog.push({
+        generatedAt: new Date().toISOString(),
+        smallUnitLabel: `${smallUnit.domain} · ${smallUnit.middleTitle} · ${smallUnit.smallTitle}`,
+        carrierSport: isSportsCultureProject() ? state.carrierSport : null,
+        primaryType: isSportsCultureProject() ? state.draftPrimaryType : null,
+        secondaryType: isSportsCultureProject() ? state.draftSecondaryType : null,
+        provider,
+        entries: generated,
+      });
+      expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
+      persist(isSportsCultureProject() ? "내부 데이터 초안 생성됨" : "AI 초안 생성됨");
+      renderWorkspace();
+      showToast(isSportsCultureProject() ? "내부 데이터로 체제 3개의 초안을 생성했습니다." : "체제 3개의 초안을 생성했습니다.");
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = originalLabel;
+      showToast(error?.message || "초안 생성에 실패했습니다.");
+    }
   });
 
   document.querySelectorAll("[data-approve-framework]").forEach((button) => {
@@ -2550,6 +3684,49 @@ function bindWorkspace() {
       const pres = spreadsToPptx(entry);
       pres.writeFile({ fileName: `${entry.frameworkName}_${entry.smallUnitLabel}.pptx` });
       showToast("PPT를 다운로드했습니다.");
+    });
+  });
+
+  document.querySelectorAll("[data-download-textbook-text]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const [roundIndex, entryIndex] = button.dataset.downloadTextbookText.split(":").map(Number);
+      const entry = state.frameworkDraftLog?.[roundIndex]?.entries?.[entryIndex];
+      if (!entry) return;
+      downloadTextFile(`${entry.frameworkName}_${entry.smallUnitLabel}_교과서원고.txt`, textbookManuscriptText(entry));
+      showToast("교과서 원고를 다운로드했습니다.");
+    });
+  });
+
+  document.querySelectorAll("[data-download-guide-text]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const [roundIndex, entryIndex] = button.dataset.downloadGuideText.split(":").map(Number);
+      const entry = state.frameworkDraftLog?.[roundIndex]?.entries?.[entryIndex];
+      if (!entry) return;
+      downloadTextFile(`${entry.frameworkName}_${entry.smallUnitLabel}_지도서원고.txt`, teacherGuideManuscriptText(entry));
+      showToast("지도서 원고를 다운로드했습니다.");
+    });
+  });
+
+  document.querySelectorAll("[data-download-draft-png]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const path = button.dataset.downloadDraftPng;
+      const canvas = document.querySelector(`[data-draft-canvas="${path}"]`);
+      if (!canvas) return;
+      const [batchIndex, entryIndex, spreadIndex] = path.split(":").map(Number);
+      const entry = state.frameworkDraftLog?.[batchIndex]?.entries?.[entryIndex];
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${entry?.frameworkName || "스포츠문화"}_${spreadIndex + 1}번째_펼침면.png`;
+      link.click();
+      showToast("펼침면 PNG를 저장했습니다.");
+    });
+  });
+
+  document.querySelectorAll("[data-enlarge-draft-image]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const figure = button.closest(".draft-spread-image");
+      const expanded = figure?.classList.toggle("expanded");
+      button.textContent = expanded ? "닫기" : "크게 보기";
     });
   });
 

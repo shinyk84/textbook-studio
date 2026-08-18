@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "processor_version": "1.0.0",
+  "document_id": "22개정_donga_textbook",
+  "title": "22개정 동아출판 _고등_스포츠문화_교과서",
+  "publisher": "동아출판",
+  "document_type": "교과서",
+  "source": "textbook/22개정 동아출판 _고등_스포츠문화_교과서.pdf",
+  "source_sha256": "a2f4fc6e7f2f788a1ca760de06efe4dc37cbc9a596c4dbd028948703d0cd9c34",
+  "processed_at": "2026-08-12T07:12:21.151569+00:00",
+  "source_pdf_pages": 196,
+  "physical_pages": 196,
+  "native_spread_document": false,
+  "spread_pairs": 97,
+  "spread_classification_counts": {
+    "spread": 27,
+    "uncertain": 18,
+    "facing_pages": 52
+  },
+  "page_chunks": 257,
+  "spread_chunks": 92,
+  "preview_height_px": 1100,
+  "notes": [
+    "원본 PDF는 변경하지 않았습니다.",
+    "chunks.jsonl은 중복을 줄인 기본 페이지 검색용입니다.",
+    "spread_chunks.jsonl은 펼침면 문맥이 필요한 보조 검색용입니다.",
+    "모든 마주 보는 페이지 쌍을 이미지와 spreads.jsonl에 보존했습니다."
+  ],
+  "curriculum_revision": "2022 개정",
+  "source_file": "textbook/22개정 동아출판 _고등_스포츠문화_교과서.pdf",
+  "source_size_bytes": 105269321,
+  "page_count": 196,
+  "chunk_count": 257,
+  "table_count": 0,
+  "warning_page_count": 18,
+  "page_index_status": "exact",
+  "outputs": [
+    "document.md",
+    "pages.jsonl",
+    "spreads.jsonl",
+    "chunks.jsonl",
+    "spread_chunks.jsonl",
+    "review.csv",
+    "report.md"
+  ]
+}

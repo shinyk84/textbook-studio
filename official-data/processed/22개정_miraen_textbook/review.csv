@@ -1,0 +1,16 @@
+﻿spread_id,page_ids,classification,confidence,signals,image
+s0002_0003,p0002|p0003,uncertain,0.5748,gutter_color_continuity,images/spreads/s0002_0003.jpg
+s0012_0013,p0012|p0013,uncertain,0.4802,gutter_color_continuity|shared_color_palette,images/spreads/s0012_0013.jpg
+s0016_0017,p0016|p0017,uncertain,0.5638,gutter_color_continuity|shared_color_palette,images/spreads/s0016_0017.jpg
+s0018_0019,p0018|p0019,uncertain,0.5171,gutter_color_continuity|shared_color_palette,images/spreads/s0018_0019.jpg
+s0024_0025,p0024|p0025,uncertain,0.4793,gutter_color_continuity|shared_color_palette,images/spreads/s0024_0025.jpg
+s0032_0033,p0032|p0033,uncertain,0.4488,gutter_color_continuity|shared_color_palette,images/spreads/s0032_0033.jpg
+s0092_0093,p0092|p0093,uncertain,0.4473,gutter_color_continuity|shared_color_palette,images/spreads/s0092_0093.jpg
+s0102_0103,p0102|p0103,uncertain,0.5532,gutter_color_continuity|shared_color_palette,images/spreads/s0102_0103.jpg
+s0112_0113,p0112|p0113,uncertain,0.5272,gutter_color_continuity|shared_color_palette,images/spreads/s0112_0113.jpg
+s0122_0123,p0122|p0123,uncertain,0.5492,gutter_color_continuity|shared_color_palette,images/spreads/s0122_0123.jpg
+s0132_0133,p0132|p0133,uncertain,0.5547,gutter_color_continuity|shared_color_palette,images/spreads/s0132_0133.jpg
+s0142_0143,p0142|p0143,uncertain,0.5492,gutter_color_continuity|shared_color_palette,images/spreads/s0142_0143.jpg
+s0152_0153,p0152|p0153,uncertain,0.5272,gutter_color_continuity|shared_color_palette,images/spreads/s0152_0153.jpg
+s0160_0161,p0160|p0161,uncertain,0.4477,gutter_color_continuity|shared_color_palette,images/spreads/s0160_0161.jpg
+s0188_0189,p0188|p0189,uncertain,0.4463,gutter_color_continuity|shared_color_palette,images/spreads/s0188_0189.jpg
