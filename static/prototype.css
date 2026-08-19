@@ -405,6 +405,7 @@
 .toggle-field {
   display: flex !important;
   align-items: center;
+  gap: 10px;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
