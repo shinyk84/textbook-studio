@@ -586,3 +586,13 @@
 - 검증: 이미지 생성 엔드포인트를 직접 호출해 실제 PNG(약 1.6MB, 유효한 PNG 매직바이트)를 받았고, 육안으로 "배드민턴 복식 경기를 위에서 본 편집 삽화"가 실제로 설명과 맞게 그려진 것을 확인함. 전체 자동 테스트 67개 통과.
 - 수정 파일: `app.py`, `static/prototype-draft-engine.js`, `static/prototype.js`, `static/prototype.css`, `static/prototype.html`(캐시 버전).
 - 다음 시작점: (1) 사용자가 브라우저에서 체크박스 켜고 실제 배치 생성해서 비용·속도·품질 확인. (2) PPT 다운로드를 실제 원고 구조로 다시 만드는 작업.
+
+### 2026-08-19 · 프로토타입 상태를 서버 DB에도 동기화(다른 컴퓨터에서 이전 초안이 안 보이던 문제)
+
+- 상태: 완료
+- 배경: 사용자가 다른 컴퓨터에서 프로토타입을 열었더니 이전에 생성한 초안들이 안 보인다고 지적함. 확인해보니 지금까지 이 프로토타입의 모든 상태(`projectStore`: 프로젝트·단원·초안 생성 이력 등)는 브라우저 `localStorage`에만 저장되고 있어서, 다른 컴퓨터·다른 브라우저에서는 항상 빈 상태로 시작하는 게 원래 설계였음(사용자에게 원인을 설명한 뒤, 서버 DB 동기화로 개선하기로 진행함).
+- 서버(`app.py`): 운영 서비스의 `workflow_stages`(단일 공유 레코드 + 낙관적 잠금 버전 관리) 패턴을 그대로 따라 `prototype_state` 테이블(`id=1` 고정 행, `payload`, `version`, `updated_at`)을 신설. `GET /api/prototype/state`(현재 저장값 조회, 없으면 `payload:null`)와 `POST /api/prototype/state`(저장, `expectedVersion`이 최신과 다르면 409 반환)를 추가. 편집자 여러 명이 동시에 쓰는 게 아니라 한 사람이 여러 기기에서 쓰는 상황을 가정해 프로젝트별이 아닌 단일 공유 레코드로 둠.
+- 클라이언트(`prototype.js`): `loadProjectStore()`의 마이그레이션·정합성 검사 로직을 `hydrateProjectStorePayload()`로 분리해 localStorage 값과 서버 값 양쪽에 재사용. 페이지 로드 시 `syncProjectStoreFromServer()`를 호출해 서버에 더 최신 데이터가 있으면 그걸로 덮어써서 다시 그린다. `persist()`가 호출될 때마다(거의 모든 편집 동작마다 호출됨) 2초 디바운스로 `POST /api/prototype/state`를 예약해, 매 입력마다 서버에 쏘지 않고 편집이 멈춘 뒤 한 번만 저장한다. 저장이 409로 충돌하면 서버의 최신값을 다시 불러와 덮어쓰고 토스트로 안내한다(복잡한 실시간 병합은 하지 않음 — 한 사람이 순차적으로 여러 기기를 쓰는 상황을 기준으로 설계함). localStorage는 그대로 유지해 오프라인일 때도 즉시 저장·복구되게 함.
+- 검증: 로컬 서버에 직접 `GET`(초기엔 빈 값) → `POST`(저장) → `GET`(같은 값 재확인) → 낡은 `expectedVersion`으로 `POST`(409 충돌 정상 반환)까지 실제로 호출해 확인함. 전체 자동 테스트 67개 통과.
+- 수정 파일: `app.py`, `static/prototype.js`, `static/prototype.html`(캐시 버전).
+- 다음 시작점: 사용자가 실제로 컴퓨터 A에서 저장 후 컴퓨터 B에서 열어 최신 초안이 보이는지 확인.

@@ -937,9 +937,8 @@ function migratePairedCatalogProjects(projects) {
   return next;
 }
 
-function loadProjectStore() {
+function hydrateProjectStorePayload(saved) {
   try {
-    const saved = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY));
     if (saved?.version === PROJECTS_STORAGE_VERSION && Array.isArray(saved.projects) && saved.projects.length) {
       saved.projects = migratePairedCatalogProjects(saved.projects).map((project) => {
         project.catalogId ||= inferredCatalogId(project);
@@ -958,11 +957,75 @@ function loadProjectStore() {
   } catch {
     // 손상된 다중 프로젝트 저장값은 구형 데이터 이전 또는 기본 프로젝트로 대체한다.
   }
+  return null;
+}
+
+function loadProjectStore() {
+  let parsed = null;
+  try {
+    parsed = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || "null");
+  } catch {
+    // 손상된 저장값은 무시하고 구형 데이터 이전 또는 기본 프로젝트로 대체한다.
+  }
+  const hydrated = hydrateProjectStorePayload(parsed);
+  if (hydrated) return hydrated;
   const oldState = legacyState();
   const firstProject = oldState
     ? migrateLegacyProject(oldState)
     : elementaryBandProject("3~4학년군", "초등 체육 3~4학년군");
   return { version: PROJECTS_STORAGE_VERSION, activeProjectId: firstProject.id, projects: [firstProject] };
+}
+
+let serverStateVersion = null;
+let serverSyncTimer = null;
+let serverSyncInFlight = false;
+
+async function syncProjectStoreFromServer({ silent = true } = {}) {
+  try {
+    const response = await fetch("/api/prototype/state");
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.error || !data.result?.payload) return;
+    const hydrated = hydrateProjectStorePayload(data.result.payload);
+    if (!hydrated) return;
+    projectStore = hydrated;
+    serverStateVersion = data.result.version;
+    useActiveBookState();
+    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projectStore));
+    renderWorkspace();
+    if (!silent) showToast("다른 컴퓨터에서 저장된 최신 내용을 불러왔습니다.");
+  } catch {
+    // 오프라인이거나 서버에 연결하지 못하면 로컬 저장값을 그대로 사용한다.
+  }
+}
+
+async function pushProjectStoreToServer() {
+  if (serverSyncInFlight) {
+    scheduleServerSync();
+    return;
+  }
+  serverSyncInFlight = true;
+  try {
+    const response = await fetch("/api/prototype/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: projectStore, expectedVersion: serverStateVersion }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.error) {
+      if (response.status === 409) await syncProjectStoreFromServer({ silent: false });
+      return;
+    }
+    serverStateVersion = data.result?.version ?? serverStateVersion;
+  } catch {
+    // 오프라인이거나 서버에 연결하지 못하면 다음 저장 때 다시 시도한다.
+  } finally {
+    serverSyncInFlight = false;
+  }
+}
+
+function scheduleServerSync() {
+  clearTimeout(serverSyncTimer);
+  serverSyncTimer = setTimeout(pushProjectStoreToServer, 2000);
 }
 
 function activeProject() {
@@ -1122,6 +1185,7 @@ function persist(message = "자동 저장됨") {
   const validation = state.currentStep === 0 ? projectSetupValidation() : pageValidation();
   const saveState = document.querySelector("#saveState");
   activeProject().updatedAt = new Date().toISOString();
+  scheduleServerSync();
   if (validation.unavailable) {
     localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projectStore));
     saveState.textContent = "임시 저장됨 · 공식 자료 미연결";
@@ -4063,3 +4127,5 @@ document.addEventListener("keydown", (event) => {
 
 render();
 persist("자동 저장됨");
+clearTimeout(serverSyncTimer);
+syncProjectStoreFromServer();

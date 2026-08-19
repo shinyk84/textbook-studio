@@ -313,6 +313,13 @@ def initialize_database() -> None:
                 created_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS prototype_state (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                payload TEXT NOT NULL,
+                version INTEGER NOT NULL DEFAULT 1,
+                updated_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS editor_accounts (
                 email TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL DEFAULT '',
@@ -3360,6 +3367,73 @@ def call_prototype_sports_culture_image(payload: dict) -> dict:
     return call_openai_for_sports_culture_image(description, size)
 
 
+# --- 프로토타입(static/prototype.js) 전체 상태 저장 — 지금까지 브라우저 localStorage에만
+# 있던 프로젝트·초안 데이터를 서버 DB에도 동기화해, 다른 컴퓨터에서 열어도 같은 내용을
+# 볼 수 있게 한다. 편집자 여러 명이 아니라 한 사람이 여러 기기에서 쓰는 상황을 가정해
+# 단일 공유 레코드(운영 서비스의 workflow_stages와 같은 패턴)로 저장한다.
+
+def prototype_state_record() -> dict | None:
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT payload, version, updated_at FROM prototype_state WHERE id = 1"
+        ).fetchone()
+    if row is None:
+        return None
+    return {
+        "payload": json.loads(row["payload"]),
+        "version": row["version"],
+        "updatedAt": row["updated_at"],
+    }
+
+
+def store_prototype_state(payload: dict, expected_version: int | None) -> dict:
+    now = utc_now()
+    encoded = json.dumps(payload, ensure_ascii=False)
+    with connect_db() as db:
+        current = db.execute(
+            "SELECT version FROM prototype_state WHERE id = 1"
+        ).fetchone()
+        if current is None:
+            db.execute(
+                "INSERT INTO prototype_state (id, payload, version, updated_at) VALUES (1, ?, 1, ?)",
+                (encoded, now),
+            )
+        else:
+            current_version = int(current["version"])
+            ensure_current_version(current_version, expected_version)
+            next_version = current_version + 1
+            updated = db.execute(
+                """
+                UPDATE prototype_state SET payload = ?, version = ?, updated_at = ?
+                WHERE id = 1 AND version = ?
+                """,
+                (encoded, next_version, now, current_version),
+            )
+            if updated.rowcount != 1:
+                raise VersionConflictError(
+                    "다른 컴퓨터에서 먼저 저장했습니다. 최신 내용을 다시 불러온 뒤 저장해 주세요."
+                )
+        db.commit()
+    return prototype_state_record()
+
+
+def call_prototype_state_get() -> dict:
+    record = prototype_state_record()
+    return record or {"payload": None, "version": 0, "updatedAt": None}
+
+
+def call_prototype_state_save(payload: dict) -> dict:
+    project_store = payload.get("payload")
+    if not isinstance(project_store, dict):
+        raise ValueError("저장할 프로젝트 데이터가 없습니다.")
+    expected_version = payload.get("expectedVersion")
+    if expected_version is not None and (
+        isinstance(expected_version, bool) or not isinstance(expected_version, int) or expected_version < 0
+    ):
+        raise ValueError("저장 기준 버전이 올바르지 않습니다.")
+    return store_prototype_state(project_store, expected_version or None)
+
+
 # --- 프로토타입(static/prototype.js) 모의심사 — 사용자가 업로드한 별도 PDF를 서버의
 # OPENAI_API_KEY로 채점한다. 초등은 22개 검정기준, 고등 체육 인정도서는 20개
 # 인정기준을 사용하며, 선택 프로젝트 ID로 기준을 구분한다.
@@ -4651,6 +4725,9 @@ class StudioHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/bootstrap":
             self.send_json(bootstrap_payload())
             return
+        if parsed.path == "/api/prototype/state":
+            self.send_json({"result": call_prototype_state_get()})
+            return
         if parsed.path == "/api/editors":
             try:
                 require_owner(self.current_user)
@@ -4820,6 +4897,22 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
             except AuthorizationError as exc:
                 self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:  # pragma: no cover - last-resort boundary
+                self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if parsed.path == "/api/prototype/state":
+            try:
+                if auth_config()["enabled"]:
+                    self.require_user()
+                self.send_json({"result": call_prototype_state_save(self.read_json())})
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            except VersionConflictError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.CONFLICT)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             except Exception as exc:  # pragma: no cover - last-resort boundary

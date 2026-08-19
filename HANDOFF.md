@@ -194,6 +194,7 @@
 - 인증: Supabase 이메일·비밀번호
 - 배포: Vercel 프로젝트 `textbook-studio`
 - 민감정보: `.env.local`과 Vercel 환경 변수에만 저장하고 Git에는 포함하지 않는다.
+- (2026-08-19) 스포츠 문화 프로토타입(`/prototype.html`)의 전체 상태(`projectStore`)는 원래 브라우저 `localStorage`에만 있어서 컴퓨터를 바꾸면 이전 내용이 안 보였다. 이제 `prototype_state` 테이블(`GET`/`POST /api/prototype/state`)에도 동기화되어(`persist()` 호출마다 2초 디바운스로 서버 저장), 다른 컴퓨터에서 열어도 최신 내용을 불러온다. localStorage는 오프라인 대비용으로 계속 유지됨.
 
 필요한 환경 변수 이름:
 
