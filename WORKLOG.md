@@ -671,3 +671,14 @@
 - 검증: 로컬 서버를 재시작(코드 변경은 실행 중인 파이썬 프로세스에 반영되지 않으므로 필수)한 뒤, 배드민턴 읽을거리 페이지를 실제로 두 번 생성해 절 제목이 "도구가 만들어 낸 경기의 언어", "여가 활동에서 널리 즐기는 스포츠로" 등 내용에 맞게 매번 다르게 나오고, 고정 문구("주제 만나기" 등)가 전혀 나오지 않음을 확인함. `tests/test_prototype_draft_engine.py`에 `test_external_ai_provider_uses_ai_chosen_section_titles_not_the_fixed_template`를 추가해, AI 응답의 제목이 그대로 매핑되고 고정 템플릿 문구가 결과에 없는지 검증. 전체 자동 테스트 70개 통과.
 - 수정 파일: `app.py`, `static/prototype-draft-engine.js`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
 - 다음 시작점: 사용자가 배포본에서 여러 소단원·특별 페이지를 생성해 절 제목이 실제로 매번 다르게 나오는지 직접 확인.
+
+### 2026-08-19 · PPT 다운로드가 실제 생성된 원고와 무관한 옛 구조를 쓰던 문제 수정
+
+- 상태: 완료
+- 배경: 이번 세션 초반에 이미 발견해 사용자에게 보고했던("PPT는 아직 그대로입니다... 별도 작업으로 남겨뒀습니다") 문제를 사용자가 재차 지적함("PPT 다운로드 하면 여전히 이상하게 나와").
+- 원인: `static/prototype.js`의 `addEntrySlidesToPptx`(`spreadsToPptx`/`draftBatchesToPptx` 둘 다 이걸 씀)가 `spread.intro`/`spread.activities`/`spread.support_boxes`/`spread.wrap_up`를 읽고 있었다. 이 필드들은 `prototype-draft-engine.js`의 `externalAiGenerate`가 여전히 하위 호환을 위해 채워 넣고 있었지만, 실제로는 화면 미리보기·TXT 내보내기가 쓰는 `spread.textbook_manuscript`(headline·sections·visuals, AI가 실제로 쓴 내용)와 완전히 무관한, 옛 시뮬레이션 시절의 범용 활동·보조단 텍스트였다. 그래서 PPT만 화면에 보이는 원고와 다른 내용으로 나왔다.
+- 수정: PPT 생성 로직을 전부 `spread.textbook_manuscript` 기반으로 새로 짬. 헤드라인·학습목표·발문을 상단에 놓고, 절(`sections[].title`/`paragraphs`, 이제 AI가 직접 정한 제목)을 좌우 쪽에 균등 배분해 채운다. 삽화는 두 제공자의 서로 다른 모양(`visuals:{left,right}` — 외부 AI, `visualBriefs` 문자열 3개 — 내부 규칙 기반)을 `manuscriptVisualColumns()`로 통일해서 처리하며, 실제 이미지(`imageBase64`)가 있으면 슬라이드에 진짜 이미지를 삽입하고 없으면 설명 문구만 보여 준다. 옛 `activities`/`support_boxes`/`intro`/`wrap_up` 필드는 PPT에서 더는 읽지 않는다(다른 곳에서 계속 쓰이므로 필드 자체는 남겨둠).
+- 검증: `tests/test_prototype_draft_engine.py`에 `test_pptx_export_uses_textbook_manuscript_not_the_old_activity_structure`를 추가함 — 가짜 `pres`/`slide` 객체(실제 pptxgenjs 라이브러리 없이 호출을 기록만 함)로 두 제공자 모양을 모두 넣어 실행한 뒤, 슬라이드에 헤드라인·절 제목·이미지(및 그 base64 데이터)·설명뿐인 삽화·내부 제공자의 헤드라인·브리프가 전부 나타나고, 옛 필드(intro/활동/마무리) 문구는 전혀 나타나지 않는지 확인함. pptxgenjs 번들 자체의 `addImage` 검증 로직(`base64,` 포함 여부만 확인)도 직접 확인해 `data:image/png;base64,...` 형식이 문제없이 통과함을 확인. 전체 자동 테스트 71개 통과.
+- 수정 파일: `static/prototype.js`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
+- 남은 문제: 실제 브라우저에서 pptxgenjs로 파일을 열어 육안 확인은 하지 못했다(이 환경에 브라우저가 없음). 절 개수가 많거나 문단이 길면 텍스트가 상자 안에서 잘려 보일 수 있어(현재 문단은 220자로 잘라서 넣음), 실제 파일을 열어보고 잘리는 지점을 조정할 필요가 있을 수 있다.
+- 다음 시작점: 사용자가 배포본에서 실제로 PPT를 다운로드해 열어보고, 화면에 보이는 원고와 실제로 일치하는지, 글자가 상자를 벗어나지 않는지 확인.

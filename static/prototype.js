@@ -1381,85 +1381,101 @@ function formatDraftBatchTimestamp(isoString) {
   return date.toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-const PPTX_SUPPORT_BOX_COLORS = ["4F8A5B", "C2622B", "2E6B8A", "7A4FA3", "A3742E"];
-
-function pptxAddActivityBlock(slide, activity, x, y, w, h) {
-  const headerH = Math.min(0.4, h * 0.3);
-  slide.addText(`활동 ${activity.number}  ${activity.title}`, {
-    x, y, w, h: headerH, bold: true, color: "FFFFFF", fontSize: 12, fill: { color: "2E6B8A" },
-  });
-  slide.addText(`${activity.objective}\n${activity.method.join(" → ")}`, {
-    x, y: y + headerH, w, h: Math.max(0.3, h - headerH - 0.05), fontSize: 10, color: "333333",
-    fill: { color: "FFFFFF" }, line: { color: "D5DDD7" }, valign: "top",
-  });
+function pptxTruncate(text, maxLength = 220) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  return clean.length > maxLength ? `${clean.slice(0, maxLength - 1)}…` : clean;
 }
 
-function pptxAddBoxBlock(slide, box, x, y, w, h, color) {
+// 두 생성 제공자의 원고 모양이 다르다 — 외부 AI는 visuals:{left,right}(크기·배치·설명)를,
+// 내부 규칙 기반 제공자는 visualBriefs(문자열 3개)를 준다. PPT는 둘 다 같은 모양으로 맞춰서 쓴다.
+function manuscriptVisualColumns(manuscript) {
+  if (manuscript.visuals) return { left: manuscript.visuals.left || [], right: manuscript.visuals.right || [] };
+  const briefs = (manuscript.visualBriefs || []).map((description) => ({ description }));
+  const half = Math.ceil(briefs.length / 2);
+  return { left: briefs.slice(0, half), right: briefs.slice(half) };
+}
+
+function pptxAddSectionBlock(slide, section, x, y, w, h) {
   const headerH = Math.min(0.35, h * 0.3);
-  slide.addText(`[${box.type}]`, {
-    x, y, w, h: headerH, bold: true, color: "FFFFFF", fontSize: 11, fill: { color },
+  slide.addText(`${section.number}. ${section.title}`, {
+    x, y, w, h: headerH, bold: true, color: "FFFFFF", fontSize: 11, fill: { color: "2E6B8A" },
   });
-  slide.addText(box.content, {
-    x, y: y + headerH, w, h: Math.max(0.3, h - headerH - 0.05), fontSize: 10, color: "333333",
+  slide.addText(pptxTruncate((section.paragraphs || []).join(" ")), {
+    x, y: y + headerH, w, h: Math.max(0.3, h - headerH - 0.05), fontSize: 9.5, color: "333333",
     fill: { color: "FFFFFF" }, line: { color: "D5DDD7" }, valign: "top",
   });
 }
 
-function pptxStackBlocks(slide, blocks, x, y, w, bottom) {
+function pptxAddVisualBlock(slide, visual, x, y, w, h) {
+  if (visual.imageBase64) {
+    const captionH = Math.min(0.3, h * 0.3);
+    slide.addImage({ data: `data:image/png;base64,${visual.imageBase64}`, x, y, w, h: Math.max(0.3, h - captionH) });
+    slide.addText(pptxTruncate(visual.description, 90), {
+      x, y: y + h - captionH, w, h: captionH, fontSize: 8, italic: true, color: "5B6B60", valign: "top",
+    });
+    return;
+  }
+  slide.addText(`[삽화] ${pptxTruncate(visual.description, 150)}`, {
+    x, y, w, h, fontSize: 9, italic: true, color: "5B6B60",
+    fill: { color: "F4F6F4" }, line: { color: "D5DDD7", dashType: "dash" }, valign: "top",
+  });
+}
+
+function pptxStackManuscriptBlocks(slide, blocks, x, y, w, bottom) {
   const height = blocks.length ? (bottom - y) / blocks.length : bottom - y;
   blocks.forEach((block) => {
-    if (block.kind === "activity") pptxAddActivityBlock(slide, block.data, x, y, w, height);
-    else pptxAddBoxBlock(slide, block.data, x, y, w, height, block.color);
+    if (block.kind === "section") pptxAddSectionBlock(slide, block.data, x, y, w, height);
+    else pptxAddVisualBlock(slide, block.data, x, y, w, height);
     y += height;
   });
 }
 
-// 펼침면 1개 = 슬라이드 1장, 실제 책처럼 왼쪽 쪽(소단원명·본문·활동1)과 오른쪽 쪽(나머지 활동·마무리)으로
-// 나눔. 보조단은 화면(renderSpreadDraft의 renderSupportBoxes)과 같은 규칙(인덱스 짝/홀수)으로 좌우에
-// 나눠 배치 — 실제로는 내용에 맞는 배치를 AI가 판단해야 하므로, 실제 API 연동 시 이 배치 규칙을
-// "어느 쪽에 놓을지"까지 모델이 정하게 바꿀 수 있음(예: support_boxes[].side를 응답에 포함).
+// 펼침면 1개 = 슬라이드 1장, 실제 책처럼 왼쪽 쪽과 오른쪽 쪽으로 나눔. 두 쪽 모두
+// spread.textbook_manuscript(화면 미리보기·TXT 내보내기가 쓰는 것과 같은 원고)를 그대로
+// 반영한다 — 절 개수는 매 생성마다 AI가 정하므로 절을 좌우로 균등 배분하고, 삽화는
+// 이미지가 있으면 실제로 삽입하고 없으면 설명 문구만 보여 준다.
 function addEntrySlidesToPptx(pres, entry, headingPrefix = "") {
   const leftX = 0.35;
   const rightX = 6.95;
   const colWidth = 6.0;
   const top = 0.25;
   const bottom = 7.3;
-  const wrapUpHeight = 0.9;
 
   entry.spreads.forEach((spread) => {
+    const manuscript = spread.textbook_manuscript;
     const slide = pres.addSlide();
     slide.addShape(pres.ShapeType.line, { x: 6.65, y: 0.15, w: 0, h: 7.2, line: { color: "CFD9D2", width: 1 } });
 
-    const coloredBoxes = spread.support_boxes.map((box, index) => ({
-      data: box,
-      kind: "box",
-      color: PPTX_SUPPORT_BOX_COLORS[index % PPTX_SUPPORT_BOX_COLORS.length],
-      side: index % 2 === 0 ? "left" : "right",
-    }));
-
     let y = top;
-    slide.addText(`${headingPrefix}${entry.frameworkName} · ${entry.smallUnitLabel}`, { x: leftX, y, w: colWidth, h: 0.45, fontSize: 14, bold: true, color: "215B3D" });
-    y += 0.5;
-    slide.addText(spread.intro, {
-      x: leftX, y, w: colWidth, h: 1.0, fontSize: 10.5, color: "333333", valign: "top",
+    slide.addText(`${headingPrefix}${entry.frameworkName} · ${entry.smallUnitLabel}`, {
+      x: leftX, y, w: colWidth, h: 0.28, fontSize: 10, color: "6B7A70",
+    });
+    y += 0.3;
+    slide.addText(manuscript.headline || "", {
+      x: leftX, y, w: colWidth, h: 0.55, fontSize: 15, bold: true, color: "215B3D", valign: "top",
+    });
+    y += 0.6;
+    const openingLine = manuscript.openingQuestion ? `${manuscript.learningGoal}\n→ ${manuscript.openingQuestion}` : manuscript.learningGoal;
+    slide.addText(pptxTruncate(openingLine, 260), {
+      x: leftX, y, w: colWidth, h: 0.9, fontSize: 9.5, color: "333333", valign: "top",
       fill: { color: "F4F6F4" }, line: { color: "D5DDD7" },
     });
-    y += 1.1;
-    const leftBlocks = [
-      { data: spread.activities[0], kind: "activity" },
-      ...coloredBoxes.filter((box) => box.side === "left"),
-    ];
-    pptxStackBlocks(slide, leftBlocks, leftX, y, colWidth, bottom);
+    y += 1.0;
 
-    const rightBlocks = [
-      ...spread.activities.slice(1).map((activity) => ({ data: activity, kind: "activity" })),
-      ...coloredBoxes.filter((box) => box.side === "right"),
-    ];
-    pptxStackBlocks(slide, rightBlocks, rightX, top, colWidth, bottom - wrapUpHeight - 0.1);
-    slide.addText(`마무리: ${spread.wrap_up}`, {
-      x: rightX, y: bottom - wrapUpHeight, w: colWidth, h: wrapUpHeight, fontSize: 10.5, italic: true, color: "215B3D",
-      fill: { color: "EDF5F0" }, valign: "top",
-    });
+    const sections = (manuscript.sections || []).map((section) => ({ data: section, kind: "section" }));
+    const half = Math.ceil(sections.length / 2);
+    const visualColumns = manuscriptVisualColumns(manuscript);
+
+    pptxStackManuscriptBlocks(
+      slide,
+      [...sections.slice(0, half), ...visualColumns.left.map((visual) => ({ data: visual, kind: "visual" }))],
+      leftX, y, colWidth, bottom,
+    );
+    pptxStackManuscriptBlocks(
+      slide,
+      [...sections.slice(half), ...visualColumns.right.map((visual) => ({ data: visual, kind: "visual" }))],
+      rightX, top, colWidth, bottom,
+    );
   });
 }
 

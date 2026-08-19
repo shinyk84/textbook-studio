@@ -450,6 +450,95 @@ global.fetch=async (url)=>{
         )
         self.assertNotIn("주제 만나기", result["titles"])
 
+    def test_pptx_export_uses_textbook_manuscript_not_the_old_activity_structure(self):
+        source = r"""
+const fs=require('fs');
+const s=fs.readFileSync('./static/prototype.js','utf8');
+const a=s.indexOf('function pptxTruncate');
+const b=s.indexOf('function spreadsToPptx');
+const api=new Function(s.slice(a,b)+'; return {addEntrySlidesToPptx};')();
+
+function makeSlideRecorder(store) {
+  const record = { shapes: [], texts: [], images: [] };
+  store.push(record);
+  return {
+    addShape: (opts) => record.shapes.push(opts),
+    addText: (text, opts) => record.texts.push({ text, opts }),
+    addImage: (opts) => record.images.push(opts),
+  };
+}
+const slides = [];
+const pres = { ShapeType: { line: 'line' }, addSlide: () => makeSlideRecorder(slides) };
+
+const entry = {
+  frameworkName: '전체 스타일 · 균형형',
+  smallUnitLabel: '스포츠 인문 문화 · 읽을거리',
+  spreads: [
+    {
+      // 옛 구조(activities/support_boxes/intro/wrap_up)도 같이 들고 있지만, PPT는 이제
+      // textbook_manuscript만 읽어야 한다 — 옛 필드가 남아 있어도 무시되는지 확인.
+      intro: '옛 인트로 문구',
+      activities: [{ number: 1, title: '옛 활동', objective: 'x', method: ['a'] }],
+      support_boxes: [{ type: '옛 보조', content: 'y' }],
+      wrap_up: '옛 마무리 문구',
+      textbook_manuscript: {
+        headline: '셔틀콕을 따라 읽는 스포츠 문화의 이동',
+        learningGoal: '배드민턴의 도구와 전략을 이해한다.',
+        openingQuestion: '스포츠가 이동하면 의미도 달라질까?',
+        sections: [
+          { number: 1, title: '도구가 만들어 낸 경기의 언어', paragraphs: ['문단1', '문단2'] },
+          { number: 2, title: '이동하는 스포츠, 달라지는 의미', paragraphs: ['문단3'] },
+        ],
+        visuals: {
+          left: [{ size: 'full', placement: 'background', description: '이미지 있는 삽화', imageBase64: 'AAAA' }],
+          right: [{ size: 'small', placement: 'top', description: '이미지 없는 삽화' }],
+        },
+      },
+    },
+    {
+      textbook_manuscript: {
+        headline: '내부 제공자 헤드라인',
+        learningGoal: 'g',
+        openingQuestion: '',
+        sections: [
+          { number: 1, title: '내부 절1', paragraphs: ['내부 문단1'] },
+        ],
+        visualBriefs: ['내부 삽화 설명1', '내부 삽화 설명2'],
+      },
+    },
+  ],
+};
+
+api.addEntrySlidesToPptx(pres, entry);
+
+const allTexts = slides.flatMap((slide) => slide.texts.map((t) => t.text));
+process.stdout.write(JSON.stringify({
+  slideCount: slides.length,
+  hasHeadline: allTexts.some((t) => t.includes('셔틀콕을 따라 읽는 스포츠 문화의 이동')),
+  hasSectionTitle: allTexts.some((t) => t.includes('도구가 만들어 낸 경기의 언어')),
+  hasOldIntro: allTexts.some((t) => t.includes('옛 인트로 문구')),
+  hasOldActivity: allTexts.some((t) => t.includes('옛 활동')),
+  hasOldWrapUp: allTexts.some((t) => t.includes('옛 마무리 문구')),
+  imageCount: slides[0].images.length,
+  imageDataStartsCorrectly: (slides[0].images[0]?.data || '').startsWith('data:image/png;base64,AAAA'),
+  hasPlainVisualCaption: allTexts.some((t) => t.includes('이미지 없는 삽화')),
+  hasInternalHeadline: allTexts.some((t) => t.includes('내부 제공자 헤드라인')),
+  hasInternalBrief: allTexts.some((t) => t.includes('내부 삽화 설명1')),
+}));
+"""
+        result = self.run_node(source)
+        self.assertEqual(result["slideCount"], 2)
+        self.assertTrue(result["hasHeadline"])
+        self.assertTrue(result["hasSectionTitle"])
+        self.assertFalse(result["hasOldIntro"])
+        self.assertFalse(result["hasOldActivity"])
+        self.assertFalse(result["hasOldWrapUp"])
+        self.assertEqual(result["imageCount"], 1)
+        self.assertTrue(result["imageDataStartsCorrectly"])
+        self.assertTrue(result["hasPlainVisualCaption"])
+        self.assertTrue(result["hasInternalHeadline"])
+        self.assertTrue(result["hasInternalBrief"])
+
 
 if __name__ == "__main__":
     unittest.main()
