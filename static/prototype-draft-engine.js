@@ -866,7 +866,50 @@
         visualBriefs: aiSpread.visual_briefs,
       }));
     } else {
-      manuscripts = Array.from({ length: spreadCount }, (_, index) => specialPageManuscriptFor(request, traceability, index));
+      const unitTitles = Object.keys(UNIT_CONTENT_PLANS);
+      const domainUnits = String(request.smallUnit.domain || "").includes("경기") ? unitTitles.slice(9) : unitTitles.slice(0, 9);
+      const evidencePool = domainUnits.flatMap((title) => (global.SPORTS_CULTURE_EVIDENCE?.units?.[title]?.evidence || []).filter((item) => item.documentType === "교과서"));
+      const spreadInputs = Array.from({ length: spreadCount }, (_, index) => {
+        const copies = index === 0 ? SPECIAL_PAGE_COPY : SPECIAL_PAGE_CONTINUATION_COPY;
+        const copy = copies[pageRole] || copies.special;
+        const windowSize = Math.min(5, evidencePool.length);
+        const windowStart = evidencePool.length ? (index * 5) % evidencePool.length : 0;
+        const evidenceWindow = Array.from({ length: windowSize }, (_, offset) => evidencePool[(windowStart + offset) % evidencePool.length]);
+        return {
+          index,
+          angle: copy.role,
+          sectionTitles: copy.titles,
+          evidence: evidenceWindow.map((item) => ({ documentType: item.documentType, excerpt: item.text })),
+        };
+      });
+      const standardCode = traceability.standardCodes[0];
+      const context = STANDARD_CONTEXT[standardCode] || STANDARD_CONTEXT["[12스문01-01]"];
+      const response = await postJsonForManuscript("/api/prototype/sports-culture-manuscript", {
+        smallUnit: request.smallUnit,
+        primaryType,
+        supportMode,
+        carrierSport: request.carrierSport,
+        sportMode,
+        styleLabel: request.framework?.name || "균형형",
+        thesis: `${request.smallUnit.domain || "스포츠 문화"} 대단원의 ${spreadInputs[0].angle}`,
+        standardContext: context,
+        sportReference: sportMode === "none" ? null : reference,
+        pageRole,
+        spreads: spreadInputs,
+      });
+      manuscripts = response.spreads.map((aiSpread, index) => ({
+        headline: aiSpread.headline,
+        learningGoal: aiSpread.learning_goal,
+        openingQuestion: aiSpread.opening_question,
+        layout: pageRole,
+        deck: aiSpread.deck,
+        sections: aiSpread.sections.map((section, sectionIndex) => ({
+          number: sectionIndex + 1,
+          title: spreadInputs[index].sectionTitles[sectionIndex],
+          paragraphs: section.paragraphs,
+        })),
+        visualBriefs: aiSpread.visual_briefs,
+      }));
     }
 
     const spreads = Array.from({ length: spreadCount }, (_, index) => {

@@ -3124,8 +3124,18 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
     if not spreads:
         raise ValueError("생성할 펼침면 정보가 없습니다.")
     section_count = len(spreads[0].get("sectionTitles", [])) or 4
+    page_role = context.get("page_role", "small-unit")
+    if page_role == "small-unit":
+        page_role_note = "지금 쓰는 지면은 소단원 본문이다. 제공된 근거는 이 소단원에 특정된 발췌문이다."
+    elif page_role == "unit-intro":
+        page_role_note = "지금 쓰는 지면은 대단원 도입이다. 이 대단원 전체를 여는 문제의식과 학습 방향을 제시한다."
+    elif page_role == "unit-closing":
+        page_role_note = "지금 쓰는 지면은 대단원 마무리다. 대단원에서 다룬 내용을 종합·정리하고 성찰을 유도한다."
+    else:
+        page_role_note = "지금 쓰는 지면은 대단원 안의 특별 페이지(읽을거리·인물과 진로·안전·문화 비평·프로젝트·수행평가 등)다. 본문 소단원과는 별도로, 확장된 사례나 활동을 다룬다."
     instructions = (
         "당신은 2022 개정 교육과정 고등학교 인정교과서 '스포츠 문화' 집필자다. "
+        f"{page_role_note} "
         "제공된 전처리 근거 발췌문(교과서·지도서 원문 일부)을 사실적 바탕으로 삼아, "
         "실제 고등학교 교과서에 실릴 법한 자연스러운 설명문 문단을 작성한다.\n"
         "다음을 반드시 지킨다.\n"
@@ -3134,7 +3144,9 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
         "2) 절 제목을 본문에서 그대로 되받아 설명하지 않는다(예: '이 절의 핵심은 ~이다', "
         "'~에 관한 자료는' 같은 자기 지시적 문장 금지). 절 제목은 화면에 이미 표시되므로 "
         "본문은 곧바로 내용을 설명하는 문장으로 시작한다.\n"
-        "3) 제공된 근거에 없는 수치·역사적 사실·규칙을 새로 지어내지 않는다.\n"
+        "3) 제공된 근거에 없는 수치·역사적 사실·규칙을 새로 지어내지 않는다. 도입·마무리· "
+        "특별 페이지처럼 여러 소단원을 종합하는 지면에서는 근거의 세부 사실을 벗어나지 "
+        "않는 범위에서 자유롭게 종합·재구성해도 된다.\n"
         "4) 종목이 지정되면 그 종목의 구체적 사례로 설명하고, 종목이 없으면(sport_mode가 "
         "none) 특정 종목에 치우치지 않는 일반적인 스포츠 문화 설명으로 쓴다.\n"
         "5) style_label 값에 따라 문체를 다르게 한다: '안정·정석형'은 개념과 역사 중심의 "
@@ -3225,6 +3237,7 @@ def call_prototype_sports_culture_manuscript(payload: dict) -> dict:
         "domain": small_unit.get("domain", ""),
         "middle_title": small_unit.get("middleTitle", ""),
         "standard_codes": small_unit.get("standardCodes", []),
+        "page_role": payload.get("pageRole", "small-unit"),
         "primary_type": payload.get("primaryType", "theory"),
         "support_mode": payload.get("supportMode", ""),
         "carrier_sport": payload.get("carrierSport", ""),
