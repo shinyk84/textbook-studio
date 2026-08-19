@@ -130,9 +130,10 @@ class PrototypeDraftEngineTests(unittest.TestCase):
         self.assertIn("textbookManuscriptText", prototype)
         self.assertIn("teacherGuideManuscriptText", prototype)
 
-    def test_sports_draft_studio_uses_one_global_slider_and_bulk_targets(self):
+    def test_sports_draft_studio_uses_one_global_style_picker_and_bulk_targets(self):
         prototype = PROTOTYPE.read_text(encoding="utf-8")
-        self.assertIn('id="bookStyleSlider"', prototype)
+        self.assertIn('data-book-style-value=', prototype)
+        self.assertIn('book-style-option', prototype)
         self.assertIn('data-draft-content-type=', prototype)
         self.assertIn('data-draft-support-mode=', prototype)
         self.assertIn('data-draft-target=', prototype)

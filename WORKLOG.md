@@ -528,3 +528,17 @@
 - 검증: 전체 자동 테스트 67개 통과.
 - 수정 파일: `tests/test_prototype_pdf_review.py`.
 - 다음 시작점: 사용자가 OpenAI 결제 수단·크레딧을 등록하면, 동일한 방식으로 다시 라이브 호출해 실제 생성 문장의 품질을 확인한다.
+
+### 2026-08-19 · 전체 스타일 버그 수정, 실사용 검증, 스타일 선택 UI 단순화, 펼침면 미리보기 HTML/CSS 전환
+
+- 상태: 완료
+- 전체 스타일 버그: `sportsCultureStyleProfile()`(`prototype.js`)에서 "안정·정석형"(0~33)과 "균형형"(34~66)이 둘 다 `id: "balanced"`를 반환해, 문체 분기에 쓰이는 유일한 지점(`manuscriptParagraphs`의 `taskVariants[framework.id]`)에서 두 스타일이 실질적으로 같은 결과를 냈다. 균형형에 `id: "activity"`를 부여해 세 스타일이 각자 다른 결과를 내도록 수정.
+- OpenAI 결제 등록 후 실사용 검증: 같은 소단원(가치·전략과 경기 참여자의 역할·배드민턴)을 "안정·정석형"과 "참신·활동형"으로 각각 실제 생성해 비교. 인용·자기 지시적 문장 없이 자연스러운 설명문으로 나왔고, 두 스타일이 문체·전개 방식에서 실제로 다르게 나옴을 확인(정석형은 정의부터 차분히 전개, 활동형은 장면·질문으로 시작해 활동을 강조).
+- 스타일 선택 UI 단순화: 1~100 슬라이더는 숫자상 100단계처럼 보이지만 실제로는 3단계(0~33/34~66/67~100)로만 분기해 결과가 나오므로, 숫자 표시가 있는 그레인지 없는 정밀도를 암시하는 문제가 있었음(사용자 지적). `#bookStyleSlider`(range input)를 3개 버튼(`.book-style-option`, 대표값 15/50/85)으로 교체하고 숫자 라벨(`#bookStyleValueLabel`)과 `framework.name`의 숫자 표기를 제거함.
+- 펼침면 미리보기 캔버스 → HTML/CSS 전환: 기존엔 `<canvas>`에 좌표를 계산해 픽셀로 직접 그려서(`drawDraftSpreadCanvas`) 인쇄물이 아니라 슬라이드처럼 보인다는 지적(사용자: "PPT처럼 구리다")을 받음. 새 함수 `renderSpreadPageView()`가 같은 데이터(헤드라인·학습목표·생각 열기·절 4개·시각자료 발주)를 실제 HTML/CSS로 그려 브라우저가 폰트·줄바꿈·간격을 처리하게 함. AI 이미지 생성은 검토했으나 텍스트가 많은 지면에는 부적합(글자 왜곡·오류 위험)하다고 판단해 채택하지 않음 — 이 전환은 순수 렌더링 변경으로 추가 API 비용이 들지 않음.
+  - 기존 `<canvas>`는 DOM에 유지하되 화면에서는 숨기고(`display:none`), PNG 저장 버튼(`data-download-draft-png`)은 그대로 이 캔버스의 `toDataURL()`을 사용하도록 유지함(내보내기 기능 하위 호환).
+  - "크게 보기" 확대 시 `.spread-page-view`가 커지도록 `.expanded` 규칙을 캔버스 대상에서 새 뷰 대상으로 변경함.
+- 회귀 방지: `tests/test_prototype_draft_engine.py`의 `test_sports_draft_studio_uses_one_global_slider_and_bulk_targets`가 제거된 `id="bookStyleSlider"`를 찾고 있어 실패함 → `data-book-style-value=`/`book-style-option` 마커를 확인하도록 수정(테스트명도 `..._style_picker_...`로 변경).
+- 검증: `node --check static/prototype.js`, 전체 자동 테스트 67개 통과. 실제 브라우저 렌더링(스크린샷)은 이 세션에서 직접 확인하지 못했으므로, 사용자가 강력 새로고침 후 육안 확인 필요.
+- 수정 파일: `static/prototype.js`, `static/prototype.css`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
+- 다음 시작점: 브라우저에서 새 3버튼 스타일 선택과 새 HTML/CSS 펼침면 미리보기가 실제로 잘 보이는지 확인. 문제 없으면 이번 변경분 커밋·푸시.

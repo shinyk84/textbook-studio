@@ -102,11 +102,17 @@ function sportsCultureSportModeLabel(mode) {
   return SPORTS_CULTURE_SPORT_MODES.find((item) => item.id === mode)?.label || "종목 없음";
 }
 
+const SPORTS_CULTURE_STYLE_CHOICES = [
+  { value: 15, id: "balanced", label: "안정·정석형", summary: "개념 설명과 교육과정 근거를 충분히 제시합니다." },
+  { value: 50, id: "activity", label: "균형형", summary: "설명, 자료, 활동과 시각 요소를 균형 있게 배치합니다." },
+  { value: 85, id: "creative", label: "참신·활동형", summary: "질문, 사례, 학생 활동과 시각 자료의 비중을 높입니다." },
+];
+
 function sportsCultureStyleProfile(value) {
   const styleValue = Math.max(0, Math.min(100, Number(value) || 0));
-  if (styleValue < 34) return { id: "balanced", label: "안정·정석형", summary: "개념 설명과 교육과정 근거를 충분히 제시합니다." };
-  if (styleValue < 67) return { id: "balanced", label: "균형형", summary: "설명, 자료, 활동과 시각 요소를 균형 있게 배치합니다." };
-  return { id: "creative", label: "참신·활동형", summary: "질문, 사례, 학생 활동과 시각 자료의 비중을 높입니다." };
+  if (styleValue < 34) return SPORTS_CULTURE_STYLE_CHOICES[0];
+  if (styleValue < 67) return SPORTS_CULTURE_STYLE_CHOICES[1];
+  return SPORTS_CULTURE_STYLE_CHOICES[2];
 }
 
 function sportsCultureStyleMetrics(value) {
@@ -2392,6 +2398,59 @@ function drawDraftSpreadCanvas(canvas, entry, spread) {
   context.fillRect(695, 24, 8, 852);
 }
 
+function renderSpreadSectionHtml(section) {
+  return `
+    <div class="spread-section">
+      <div class="spread-section-head"><span class="spread-section-number">${escapeHtml(String(section.number ?? ""))}</span><h3>${escapeHtml(section.title || "")}</h3></div>
+      ${(section.paragraphs || []).filter(Boolean).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}
+    </div>`;
+}
+
+function renderSpreadVisualRow(manuscript, pageIndex) {
+  const briefs = manuscript.visualBriefs || [];
+  return `
+    <div class="spread-visual-row">
+      ${[0, 1, 2].map((visualIndex) => `
+        <div class="spread-visual-box">
+          <span>${escapeHtml(briefs[(pageIndex * 2 + visualIndex) % Math.max(1, briefs.length)] || "편집 이미지 영역")}</span>
+        </div>`).join("")}
+    </div>`;
+}
+
+function renderSpreadPageView(entry, spread) {
+  const accentKey = { balanced: "balanced", activity: "activity", creative: "creative" }[entry.frameworkId] ? entry.frameworkId : "balanced";
+  const manuscript = spread.textbook_manuscript || {};
+  const sections = Array.isArray(manuscript.sections) ? manuscript.sections : [];
+  const leftSections = sections.slice(0, 2);
+  const rightSections = sections.slice(2, 4);
+  return `
+    <div class="spread-page-view spread-accent-${accentKey}">
+      <div class="spread-page spread-page-left">
+        <div class="spread-spine">
+          <span class="spread-page-number">${String(spread.left_page || 1).padStart(2, "0")}</span>
+          <span class="spread-spine-label">${escapeHtml(entry.smallUnitLabel || "스포츠 문화")}</span>
+        </div>
+        <div class="spread-page-body">
+          <h2 class="spread-headline">${escapeHtml(manuscript.headline || spread.title || "")}</h2>
+          <p class="spread-goal"><b>학습 목표</b> ${escapeHtml(manuscript.learningGoal || spread.intro || "")}</p>
+          ${manuscript.openingQuestion ? `<div class="spread-opening-question"><b>생각 열기</b> ${escapeHtml(manuscript.openingQuestion)}</div>` : ""}
+          ${leftSections.map(renderSpreadSectionHtml).join("")}
+          ${renderSpreadVisualRow(manuscript, 0)}
+          <div class="spread-page-footer">${escapeHtml(String(spread.left_page || 1))} · 스포츠 문화</div>
+        </div>
+      </div>
+      <div class="spread-gutter"></div>
+      <div class="spread-page spread-page-right">
+        <div class="spread-page-body">
+          <p class="spread-role-label">${escapeHtml(entry.primaryTypeLabel || "스포츠 문화")} · ${escapeHtml(spread.role || "")}</p>
+          ${rightSections.map(renderSpreadSectionHtml).join("")}
+          ${renderSpreadVisualRow(manuscript, 1)}
+          <div class="spread-page-footer">${escapeHtml(String(spread.right_page || 2))} · 스포츠 문화</div>
+        </div>
+      </div>
+    </div>`;
+}
+
 function renderDraftCanvases() {
   document.querySelectorAll("[data-draft-canvas]").forEach((canvas) => {
     const [batchIndex, entryIndex, spreadIndex] = canvas.dataset.draftCanvas.split(":").map(Number);
@@ -2412,7 +2471,8 @@ function renderSportsDraftImages(entry, batchIndex, entryIndex) {
       <div class="draft-spread-image-strip">
         ${entry.spreads.map((spread, spreadIndex) => `
           <figure class="draft-spread-image">
-            <canvas width="1400" height="900" data-draft-canvas="${batchIndex}:${entryIndex}:${spreadIndex}" aria-label="${escapeHtml(entry.frameworkName)} ${spreadIndex + 1}번 펼침면 이미지"></canvas>
+            ${renderSpreadPageView(entry, spread)}
+            <canvas width="1400" height="900" class="draft-spread-export-canvas" data-draft-canvas="${batchIndex}:${entryIndex}:${spreadIndex}" aria-label="${escapeHtml(entry.frameworkName)} ${spreadIndex + 1}번 펼침면 PNG 저장용" aria-hidden="true"></canvas>
             <figcaption>
               <span>${spreadIndex + 1}번째 펼침면 · ${escapeHtml(spread.role)}</span>
               <span class="draft-image-actions"><button type="button" data-enlarge-draft-image>크게 보기</button><button type="button" data-download-draft-png="${batchIndex}:${entryIndex}:${spreadIndex}">PNG 저장</button></span>
@@ -2582,9 +2642,10 @@ function renderSportsCultureDraftStudio() {
   return `
     ${sectionHeading("DRAFT STUDIO", "전체 스타일·초고 생성", "")}
     <section class="book-style-panel">
-      <div class="book-style-heading"><div><strong>전체 스타일</strong><span>${escapeHtml(style.label)} · ${escapeHtml(style.summary)}</span></div><b id="bookStyleValueLabel">${state.bookStyleValue}</b></div>
-      <input id="bookStyleSlider" type="range" min="0" max="100" step="1" value="${state.bookStyleValue}" />
-      <div class="book-style-scale"><span>안정·정석형</span><span>균형형</span><span>참신·활동형</span></div>
+      <div class="book-style-heading"><div><strong>전체 스타일</strong><span>${escapeHtml(style.summary)}</span></div></div>
+      <div class="book-style-options" role="radiogroup" aria-label="전체 스타일">
+        ${SPORTS_CULTURE_STYLE_CHOICES.map((choice) => `<button type="button" class="book-style-option${choice.value === style.value ? " active" : ""}" data-book-style-value="${choice.value}" role="radio" aria-checked="${choice.value === style.value}">${escapeHtml(choice.label)}</button>`).join("")}
+      </div>
     </section>
     <div class="generation-settings-grid compact-grid">
       <label class="editor-field"><span>생성 제공자</span><select id="draftProviderSelect">${providerOptions.map((provider) => `<option value="${escapeHtml(provider.id)}" ${provider.id === activeProvider?.id ? "selected" : ""}>${escapeHtml(provider.label)} · ${escapeHtml(provider.mode)}</option>`).join("")}</select></label>
@@ -3450,15 +3511,12 @@ function bindWorkspace() {
     });
   });
 
-  document.querySelector("#bookStyleSlider")?.addEventListener("input", (event) => {
-    state.bookStyleValue = Number(event.target.value);
-    const label = document.querySelector("#bookStyleValueLabel");
-    if (label) label.textContent = event.target.value;
-  });
-
-  document.querySelector("#bookStyleSlider")?.addEventListener("change", () => {
-    persist("스포츠 문화 전체 스타일 변경됨");
-    renderWorkspace();
+  document.querySelectorAll("[data-book-style-value]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.bookStyleValue = Number(button.dataset.bookStyleValue);
+      persist("스포츠 문화 전체 스타일 변경됨");
+      renderWorkspace();
+    });
   });
 
   document.querySelectorAll("[data-draft-target]").forEach((input) => {
@@ -3555,7 +3613,7 @@ function bindWorkspace() {
       button.disabled = true;
       try {
         const style = sportsCultureStyleProfile(state.bookStyleValue);
-        const framework = { id: style.id, name: `전체 스타일 ${state.bookStyleValue} · ${style.label}`, summary: style.summary };
+        const framework = { id: style.id, name: `전체 스타일 · ${style.label}`, summary: style.summary };
         const metrics = sportsCultureStyleMetrics(state.bookStyleValue);
         for (let index = 0; index < targets.length; index += 1) {
           const target = targets[index];
