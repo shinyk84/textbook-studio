@@ -10,6 +10,7 @@ import re
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from http import HTTPStatus
+from http.client import HTTPException as HttpClientError
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -3249,6 +3250,10 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
             "로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인하고 "
             "서버를 다시 실행해 주세요."
         ) from exc
+    except (HttpClientError, ConnectionError) as exc:
+        raise ValueError(
+            "OpenAI 응답을 받는 중 연결이 끊어졌습니다. 잠시 후 다시 시도해 주세요."
+        ) from exc
     except json.JSONDecodeError as exc:
         raise ValueError(
             "OpenAI 응답을 원고 형식으로 해석하지 못했습니다. 다시 생성해 주세요."
@@ -3350,6 +3355,10 @@ def call_openai_for_sports_culture_image(description: str, size: str) -> dict:
         raise ValueError(
             "로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인하고 "
             "서버를 다시 실행해 주세요."
+        ) from exc
+    except (HttpClientError, ConnectionError) as exc:
+        raise ValueError(
+            "OpenAI 이미지 응답을 받는 중 연결이 끊어졌습니다. 잠시 후 다시 시도해 주세요."
         ) from exc
     except json.JSONDecodeError as exc:
         raise ValueError(
