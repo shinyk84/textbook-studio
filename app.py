@@ -3071,6 +3071,19 @@ def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> d
             },
         },
     }
+    visual_item_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["size", "placement", "description"],
+        "properties": {
+            "size": {"type": "string", "enum": ["full", "half", "small"]},
+            "placement": {
+                "type": "string",
+                "enum": ["top", "bottom", "left", "right", "background", "inline"],
+            },
+            "description": {"type": "string"},
+        },
+    }
     spread_schema = {
         "type": "object",
         "additionalProperties": False,
@@ -3080,7 +3093,8 @@ def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> d
             "opening_question",
             "deck",
             "sections",
-            "visual_briefs",
+            "left_visuals",
+            "right_visuals",
         ],
         "properties": {
             "headline": {"type": "string"},
@@ -3093,11 +3107,17 @@ def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> d
                 "maxItems": section_count,
                 "items": section_schema,
             },
-            "visual_briefs": {
+            "left_visuals": {
                 "type": "array",
-                "minItems": 2,
+                "minItems": 0,
                 "maxItems": 3,
-                "items": {"type": "string"},
+                "items": visual_item_schema,
+            },
+            "right_visuals": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 3,
+                "items": visual_item_schema,
             },
         },
     }
@@ -3163,7 +3183,14 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
         "7) 각 절은 2~4개 문단으로 자연스럽게 흐르는 설명문으로 쓴다. 문단 개수나 "
         "'정의-사례-과제' 같은 고정 틀에 얽매이지 말고, 내용에 맞는 자연스러운 전개를 "
         "선택한다.\n"
-        "8) 고등학생이 읽기에 적절한 문장 길이와 어휘를 사용한다."
+        "8) 고등학생이 읽기에 적절한 문장 길이와 어휘를 사용한다.\n"
+        "9) left_visuals/right_visuals(각 페이지의 삽화 구성)는 펼침면마다 개수·크기를 "
+        "고정하지 않는다. 실제 고등학교 교과서는 페이지마다 삽화 구성이 다르다 — 개념 "
+        "설명이 중심인 페이지는 전면 삽화 하나(size: full)만 있거나 삽화가 전혀 없을 "
+        "수 있고, 여러 사례나 활동을 보여주는 페이지는 작은 컷(size: small) 여러 개가 "
+        "흩어져 있을 수 있다. 이번 페이지의 본문 내용과 그 절의 역할(개념 설명, 사례 "
+        "비교, 활동 안내 등)에 맞게 삽화 개수(0개도 가능)·크기·배치를 이 펼침면에서 "
+        "직접 판단해서 정한다. description에는 실제로 그릴 대상을 구체적으로 쓴다."
     )
     request_body = {
         "model": manuscript_ai_config()["model"],

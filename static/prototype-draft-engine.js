@@ -863,7 +863,7 @@
           title: sectionTitlesBySpread[index][sectionIndex],
           paragraphs: section.paragraphs,
         })),
-        visualBriefs: aiSpread.visual_briefs,
+        visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
       }));
     } else {
       const unitTitles = Object.keys(UNIT_CONTENT_PLANS);
@@ -908,7 +908,7 @@
           title: spreadInputs[index].sectionTitles[sectionIndex],
           paragraphs: section.paragraphs,
         })),
-        visualBriefs: aiSpread.visual_briefs,
+        visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
       }));
     }
 

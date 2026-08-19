@@ -2407,6 +2407,20 @@ function renderSpreadSectionHtml(section) {
 }
 
 function renderSpreadVisualRow(manuscript, pageIndex) {
+  // AI-generated manuscripts decide their own per-page layout (variable count/size);
+  // the older rule-based engine still emits a fixed 3-box visualBriefs array.
+  if (manuscript.visuals) {
+    const side = pageIndex === 0 ? "left" : "right";
+    const items = manuscript.visuals[side] || [];
+    if (!items.length) return "";
+    return `
+      <div class="spread-visual-flex">
+        ${items.map((item) => `
+          <div class="spread-visual-item size-${escapeHtml(item.size || "small")} placement-${escapeHtml(item.placement || "bottom")}">
+            <span>${escapeHtml(item.description || "편집 이미지 영역")}</span>
+          </div>`).join("")}
+      </div>`;
+  }
   const briefs = manuscript.visualBriefs || [];
   return `
     <div class="spread-visual-row">
