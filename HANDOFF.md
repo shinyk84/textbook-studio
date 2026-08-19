@@ -195,6 +195,7 @@
 - 배포: Vercel 프로젝트 `textbook-studio`
 - 민감정보: `.env.local`과 Vercel 환경 변수에만 저장하고 Git에는 포함하지 않는다.
 - (2026-08-19) 스포츠 문화 프로토타입(`/prototype.html`)의 전체 상태(`projectStore`)는 원래 브라우저 `localStorage`에만 있어서 컴퓨터를 바꾸면 이전 내용이 안 보였다. 이제 `prototype_state` 테이블(`GET`/`POST /api/prototype/state`)에도 동기화되어(`persist()` 호출마다 2초 디바운스로 서버 저장), 다른 컴퓨터에서 열어도 최신 내용을 불러온다. localStorage는 오프라인 대비용으로 계속 유지됨.
+- (2026-08-19) `/api/prototype/sports-culture-manuscript`는 OpenAI 호출 1건당 약 20~25초가 걸린다. 서버는 `urlopen(timeout=50)`, Vercel은 `vercel.json`의 `maxDuration: 60`으로 묶여 있어 펼침면 여러 개를 한 요청에 몰아 보내면(예: 4쪽=2펼침면 → 약 45초) 배포 환경 지연이 더해질 때 타임아웃이 난다. `static/prototype-draft-engine.js`의 `externalAiGenerate`는 이제 펼침면마다 별도 요청으로 나눠 `Promise.all`로 병렬 호출하므로, 펼침면 수가 늘어나도(대단원 도입·마무리·특별페이지 등) 요청 1건당 소요 시간은 늘지 않는다. 앞으로 이 엔드포인트를 건드릴 때는 한 요청에 여러 펼침면을 다시 묶지 않도록 주의한다.
 
 필요한 환경 변수 이름:
 

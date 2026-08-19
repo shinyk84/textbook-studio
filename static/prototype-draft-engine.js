@@ -864,7 +864,7 @@
         };
       });
       sectionTitlesBySpread = spreadInputs.map((item) => item.sectionTitles);
-      const response = await postJsonForManuscript("/api/prototype/sports-culture-manuscript", {
+      const responses = await Promise.all(spreadInputs.map((spreadInput) => postJsonForManuscript("/api/prototype/sports-culture-manuscript", {
         smallUnit: request.smallUnit,
         primaryType,
         supportMode,
@@ -874,21 +874,24 @@
         thesis,
         standardContext: context,
         sportReference: sportMode === "none" ? null : reference,
-        spreads: spreadInputs,
+        spreads: [spreadInput],
+      })));
+      manuscripts = responses.map((response, index) => {
+        const aiSpread = response.spreads[0];
+        return {
+          headline: aiSpread.headline,
+          learningGoal: aiSpread.learning_goal,
+          openingQuestion: aiSpread.opening_question,
+          layout: primaryType,
+          deck: aiSpread.deck,
+          sections: aiSpread.sections.map((section, sectionIndex) => ({
+            number: sectionIndex + 1,
+            title: sectionTitlesBySpread[index][sectionIndex],
+            paragraphs: section.paragraphs,
+          })),
+          visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
+        };
       });
-      manuscripts = response.spreads.map((aiSpread, index) => ({
-        headline: aiSpread.headline,
-        learningGoal: aiSpread.learning_goal,
-        openingQuestion: aiSpread.opening_question,
-        layout: primaryType,
-        deck: aiSpread.deck,
-        sections: aiSpread.sections.map((section, sectionIndex) => ({
-          number: sectionIndex + 1,
-          title: sectionTitlesBySpread[index][sectionIndex],
-          paragraphs: section.paragraphs,
-        })),
-        visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
-      }));
     } else {
       const unitTitles = Object.keys(UNIT_CONTENT_PLANS);
       const domainUnits = String(request.smallUnit.domain || "").includes("경기") ? unitTitles.slice(9) : unitTitles.slice(0, 9);
@@ -908,32 +911,35 @@
       });
       const standardCode = traceability.standardCodes[0];
       const context = STANDARD_CONTEXT[standardCode] || STANDARD_CONTEXT["[12스문01-01]"];
-      const response = await postJsonForManuscript("/api/prototype/sports-culture-manuscript", {
+      const responses = await Promise.all(spreadInputs.map((spreadInput) => postJsonForManuscript("/api/prototype/sports-culture-manuscript", {
         smallUnit: request.smallUnit,
         primaryType,
         supportMode,
         carrierSport: request.carrierSport,
         sportMode,
         styleLabel: request.framework?.name || "균형형",
-        thesis: `${request.smallUnit.domain || "스포츠 문화"} 대단원의 ${spreadInputs[0].angle}`,
+        thesis: `${request.smallUnit.domain || "스포츠 문화"} 대단원의 ${spreadInput.angle}`,
         standardContext: context,
         sportReference: sportMode === "none" ? null : reference,
         pageRole,
-        spreads: spreadInputs,
+        spreads: [spreadInput],
+      })));
+      manuscripts = responses.map((response, index) => {
+        const aiSpread = response.spreads[0];
+        return {
+          headline: aiSpread.headline,
+          learningGoal: aiSpread.learning_goal,
+          openingQuestion: aiSpread.opening_question,
+          layout: pageRole,
+          deck: aiSpread.deck,
+          sections: aiSpread.sections.map((section, sectionIndex) => ({
+            number: sectionIndex + 1,
+            title: spreadInputs[index].sectionTitles[sectionIndex],
+            paragraphs: section.paragraphs,
+          })),
+          visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
+        };
       });
-      manuscripts = response.spreads.map((aiSpread, index) => ({
-        headline: aiSpread.headline,
-        learningGoal: aiSpread.learning_goal,
-        openingQuestion: aiSpread.opening_question,
-        layout: pageRole,
-        deck: aiSpread.deck,
-        sections: aiSpread.sections.map((section, sectionIndex) => ({
-          number: sectionIndex + 1,
-          title: spreadInputs[index].sectionTitles[sectionIndex],
-          paragraphs: section.paragraphs,
-        })),
-        visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
-      }));
     }
     if (request.includeImages) await fillVisualImages(manuscripts);
 
