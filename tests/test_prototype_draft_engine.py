@@ -369,7 +369,7 @@ global.fetch=async (url)=>{
     manuscriptCalls+=1;
     return { ok:true, status:200, json: async()=>({result:{spreads:[{
       headline:'h', learning_goal:'g', opening_question:'q', deck:'d',
-      sections:[{paragraphs:['p1']},{paragraphs:['p2']},{paragraphs:['p3']},{paragraphs:['p4']}],
+      sections:[{title:'t1',paragraphs:['p1']},{title:'t2',paragraphs:['p2']},{title:'t3',paragraphs:['p3']},{title:'t4',paragraphs:['p4']}],
       left_visuals:[{size:'small',placement:'top',description:'a'},{size:'small',placement:'top',description:'b'},{size:'small',placement:'top',description:'c'}],
       right_visuals:[{size:'small',placement:'top',description:'d'},{size:'small',placement:'top',description:'e'},{size:'small',placement:'top',description:'f'}]
     }]}}) };
@@ -407,6 +407,48 @@ global.fetch=async (url)=>{
         self.assertEqual(result["manuscriptCalls"], 2)
         self.assertEqual(result["imageCalls"], 12)
         self.assertLessEqual(result["maxConcurrent"], 3)
+
+    def test_external_ai_provider_uses_ai_chosen_section_titles_not_the_fixed_template(self):
+        source = r"""
+const e=require('./static/prototype-draft-engine.js');
+global.fetch=async (url)=>{
+  if (String(url).includes('sports-culture-manuscript')) {
+    return { ok:true, status:200, json: async()=>({result:{spreads:[{
+      headline:'h', learning_goal:'g', opening_question:'q', deck:'d',
+      sections:[
+        {title:'인물의 첫 도전', paragraphs:['p1','p2']},
+        {title:'기록이 말해주는 것', paragraphs:['p3','p4']},
+        {title:'논쟁의 두 목소리', paragraphs:['p5','p6']}
+      ],
+      left_visuals:[], right_visuals:[]
+    }]}}) };
+  }
+  throw new Error('unexpected url:'+url);
+};
+(async()=>{
+  const framework={id:'balanced',name:'전체 스타일 50 · 균형형'};
+  const result=await e.generateDraftSet({
+    profileId:e.sportsCultureProfile().id,
+    providerId:e.externalAiProviderId,
+    carrierSport:'배드민턴',
+    sportMode:'primary',
+    primaryType:'theory',
+    pageRole:'special-reading',
+    styleValue:50,
+    smallUnit:{domain:'스포츠 인문 문화',middleTitle:'특별 페이지',smallTitle:'스포츠 인문 문화 읽을거리',pages:2,standardCodes:['[12스문01-01]']},
+    frameworks:[framework],
+    metricsByFramework:{balanced:{curriculum:5,feasibility:4,engagement:4,novelty:3,safety:5}}
+  });
+  const titles=result.entries[0].spreads[0].textbook_manuscript.sections.map(s=>s.title);
+  process.stdout.write(JSON.stringify({titles}));
+})().catch(error=>{console.error(error);process.exit(1);});
+"""
+        result = self.run_node(source)
+        self.assertEqual(
+            result["titles"],
+            ["인물의 첫 도전", "기록이 말해주는 것", "논쟁의 두 목소리"],
+        )
+        self.assertNotIn("주제 만나기", result["titles"])
 
 
 if __name__ == "__main__":

@@ -3069,8 +3069,9 @@ def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> d
     section_schema = {
         "type": "object",
         "additionalProperties": False,
-        "required": ["paragraphs"],
+        "required": ["title", "paragraphs"],
         "properties": {
+            "title": {"type": "string"},
             "paragraphs": {
                 "type": "array",
                 "minItems": 2,
@@ -3111,8 +3112,8 @@ def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> d
             "deck": {"type": "string"},
             "sections": {
                 "type": "array",
-                "minItems": section_count,
-                "maxItems": section_count,
+                "minItems": max(3, section_count - 1),
+                "maxItems": section_count + 1,
                 "items": section_schema,
             },
             "left_visuals": {
@@ -3192,7 +3193,15 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
         "수 있고, 여러 사례나 활동을 보여주는 페이지는 작은 컷(size: small) 여러 개가 "
         "흩어져 있을 수 있다. 이번 페이지의 본문 내용과 그 절의 역할(개념 설명, 사례 "
         "비교, 활동 안내 등)에 맞게 삽화 개수(0개도 가능)·크기·배치를 이 펼침면에서 "
-        "직접 판단해서 정한다. description에는 실제로 그릴 대상을 구체적으로 쓴다."
+        "직접 판단해서 정한다. description에는 실제로 그릴 대상을 구체적으로 쓴다.\n"
+        "10) 각 절(section)의 title은 입력에 참고용으로 제공되는 sectionTitles를 그대로 "
+        "베끼지 않는다. sectionTitles는 이 페이지 역할에 흔히 쓰이는 구성의 예시일 "
+        "뿐이며, 실제 절 제목과 절 개수는 이번 소단원·종목·근거 내용에 맞게 직접 "
+        "새로 정한다. 예를 들어 특별 페이지라도 다루는 사례가 인물 중심이면 인물의 "
+        "선택과 서사를 따라가는 절 구성이 될 수 있고, 통계나 논쟁이 중심이면 자료 "
+        "비교와 쟁점 구조를 따라가는 절 구성이 될 수 있다. 같은 page_role이라도 "
+        "종목이나 소단원이 다르면 절 제목의 표현과 순서, 개수(3~5개 사이)가 달라져야 "
+        "한다 — 매번 같은 뼈대를 반복하면 안 된다."
     )
     request_body = {
         "model": manuscript_ai_config()["model"],

@@ -661,3 +661,13 @@
 - 검증: 일부러 `prototype_state` 테이블이 없는 새 SQLite DB를 만들고, `initialize_database()`를 호출하지 않은 채 `call_prototype_state_get()`/`call_prototype_state_save()`를 직접 호출해 배포 환경과 같은 상황을 재현함 — 수정 전에는 이 상황을 재현하지 않았지만(로컬은 항상 `main()`으로 시작해 테이블이 이미 있었음), 수정 후에는 테이블이 없는 상태에서 첫 GET이 정상적으로 빈 값을 반환하고 이어지는 SAVE·GET도 정상 동작함을 확인했다. 전체 자동 테스트 69개 통과.
 - 수정 파일: `app.py`.
 - 다음 시작점: 배포가 끝나면 원래 컴퓨터에서 "지금 저장"을 다시 눌러 Network 탭에서 `state` 요청이 이제 200으로 성공하는지 확인 → 모바일에서 새로고침해 실제로 프로젝트가 넘어오는지 확인.
+
+### 2026-08-19 · AI 실시간 생성에서도 절 제목·구성이 매번 동일한 문제 수정("주제 만나기·자료 깊이 읽기·관점 넓히기·결과 만들기" 고정)
+
+- 상태: 완료
+- 배경: 사용자가 "원고의 구조가 왜 계속 동일해? API 넣으면 이것도 다양하게 나와야 하는 거 아냐?"라고 지적함. 특히 특별 페이지(읽을거리 등)는 매번 "주제 만나기·자료 깊이 읽기·관점 넓히기·결과 만들기"라는 같은 4개 절 제목으로 나왔다.
+- 원인: 지금까지 AI 실시간 생성 경로에서도 절 제목(그리고 절 개수)은 클라이언트(`static/prototype-draft-engine.js`)의 `MANUSCRIPT_BLUEPRINTS`/`SPECIAL_PAGE_COPY`에 고정된 값을 그대로 서버에 `sectionTitles`로 보내고, AI에게는 그 제목에 맞는 **본문 문단만** 채우도록 요청했다. 즉 AI는 문장은 새로 쓰지만 뼈대(절 제목·개수)는 전혀 결정하지 못했다 — 지난번 "삽화 레이아웃을 AI가 자유롭게 정하게 한 것"과 같은 문제가 절 구성에는 아직 남아 있었던 것.
+- 수정: `app.py`의 `sports_culture_manuscript_schema`에 각 절의 `title`을 AI가 직접 채우는 필수 필드로 추가하고, 절 개수도 고정값이 아니라 `max(3, 요청 개수-1)`~`요청 개수+1`의 범위로 완화함. 프롬프트에 새 규칙(10번)을 추가해 "입력의 sectionTitles는 참고용 예시일 뿐이니 그대로 베끼지 말고, 소단원·종목·근거 내용에 맞게 절 제목·개수(3~5개)를 직접 새로 정하라"고 명시함. `static/prototype-draft-engine.js`의 `externalAiGenerate`는 이제 절 제목을 만들 때 고정 배열(`sectionTitlesBySpread`/`spreadInputs[index].sectionTitles`)을 참조하지 않고 AI 응답의 `section.title`을 그대로 사용함(내부 규칙 기반 제공자는 원래대로 고정 템플릿을 그대로 씀 — AI를 호출하지 않으므로 구조를 직접 결정할 수 없음).
+- 검증: 로컬 서버를 재시작(코드 변경은 실행 중인 파이썬 프로세스에 반영되지 않으므로 필수)한 뒤, 배드민턴 읽을거리 페이지를 실제로 두 번 생성해 절 제목이 "도구가 만들어 낸 경기의 언어", "여가 활동에서 널리 즐기는 스포츠로" 등 내용에 맞게 매번 다르게 나오고, 고정 문구("주제 만나기" 등)가 전혀 나오지 않음을 확인함. `tests/test_prototype_draft_engine.py`에 `test_external_ai_provider_uses_ai_chosen_section_titles_not_the_fixed_template`를 추가해, AI 응답의 제목이 그대로 매핑되고 고정 템플릿 문구가 결과에 없는지 검증. 전체 자동 테스트 70개 통과.
+- 수정 파일: `app.py`, `static/prototype-draft-engine.js`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
+- 다음 시작점: 사용자가 배포본에서 여러 소단원·특별 페이지를 생성해 절 제목이 실제로 매번 다르게 나오는지 직접 확인.

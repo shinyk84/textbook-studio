@@ -857,7 +857,6 @@
     const reference = sportReferenceFor(request.carrierSport, sportMode);
 
     let manuscripts;
-    let sectionTitlesBySpread;
     if (pageRole === "small-unit") {
       const evidenceRecord = evidenceRecordFor(request.smallUnit);
       if (!evidenceRecord || !evidenceRecord.evidence?.length) {
@@ -886,7 +885,6 @@
           evidence: [...evidenceWindow, ...guideWindow].map((item) => ({ documentType: item.documentType, excerpt: item.text })),
         };
       });
-      sectionTitlesBySpread = spreadInputs.map((item) => item.sectionTitles);
       const responses = await Promise.all(spreadInputs.map((spreadInput) => postJsonForManuscript("/api/prototype/sports-culture-manuscript", {
         smallUnit: request.smallUnit,
         primaryType,
@@ -909,7 +907,7 @@
           deck: aiSpread.deck,
           sections: aiSpread.sections.map((section, sectionIndex) => ({
             number: sectionIndex + 1,
-            title: sectionTitlesBySpread[index][sectionIndex],
+            title: section.title,
             paragraphs: section.paragraphs,
           })),
           visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
@@ -957,7 +955,7 @@
           deck: aiSpread.deck,
           sections: aiSpread.sections.map((section, sectionIndex) => ({
             number: sectionIndex + 1,
-            title: spreadInputs[index].sectionTitles[sectionIndex],
+            title: section.title,
             paragraphs: section.paragraphs,
           })),
           visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
