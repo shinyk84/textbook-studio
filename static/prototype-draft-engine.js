@@ -779,12 +779,25 @@
 
   const EXTERNAL_AI_PROVIDER_ID = "external-ai-v1";
 
+  const REQUEST_TIMEOUT_MS = 55000;
+
   async function postJsonForManuscript(path, body) {
-    const response = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let response;
+    try {
+      response = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error?.name === "AbortError") throw new Error("서버 응답이 너무 오래 걸려 요청을 취소했습니다. 잠시 후 다시 시도해 주세요.");
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.error) {
       throw new Error(payload.error || `AI 원고 생성 요청이 실패했습니다(HTTP ${response.status}).`);
@@ -794,7 +807,7 @@
 
   const IMAGE_GENERATION_CONCURRENCY = 3;
 
-  async function fillVisualImages(manuscripts) {
+  async function fillVisualImages(manuscripts, onProgress) {
     const items = [];
     manuscripts.forEach((manuscript) => {
       if (!manuscript?.visuals) return;
@@ -803,6 +816,7 @@
       });
     });
     let cursor = 0;
+    let completed = 0;
     async function worker() {
       while (cursor < items.length) {
         const item = items[cursor];
@@ -815,6 +829,9 @@
           item.imageBase64 = result.imageBase64;
         } catch (error) {
           item.imageError = error?.message || "이미지 생성에 실패했습니다.";
+        } finally {
+          completed += 1;
+          onProgress?.(completed, items.length);
         }
       }
     }
@@ -947,7 +964,7 @@
         };
       });
     }
-    if (request.includeImages) await fillVisualImages(manuscripts);
+    if (request.includeImages) await fillVisualImages(manuscripts, request.onImageProgress);
 
     const spreads = Array.from({ length: spreadCount }, (_, index) => {
       const phaseId = phaseIds[index % phaseIds.length];

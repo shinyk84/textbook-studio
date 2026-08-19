@@ -3727,6 +3727,9 @@ function bindWorkspace() {
             pageRole: target.pageRole,
             styleValue: state.bookStyleValue,
             includeImages: Boolean(state.includeImages),
+            onImageProgress: (done, total) => {
+              button.textContent = `${index + 1}/${targets.length} 초고 구성 중… (이미지 ${done}/${total})`;
+            },
             smallUnit: target,
             frameworks: [framework],
             metricsByFramework: { [framework.id]: metrics },
@@ -3786,6 +3789,9 @@ function bindWorkspace() {
           primaryType: state.draftPrimaryType,
           secondaryType: state.draftSecondaryType,
           includeImages: Boolean(state.includeImages),
+          onImageProgress: (done, total) => {
+            button.textContent = `초안 구성 중… (이미지 ${done}/${total})`;
+          },
           smallUnit,
           frameworks: frameworkOptions(),
           metricsByFramework: state.frameworkMetrics,
