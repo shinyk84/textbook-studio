@@ -539,6 +539,56 @@ process.stdout.write(JSON.stringify({
         self.assertTrue(result["hasInternalHeadline"])
         self.assertTrue(result["hasInternalBrief"])
 
+    def test_variable_section_count_splits_evenly_without_dropping_content(self):
+        source = r"""
+const fs=require('fs');
+const s=fs.readFileSync('./static/prototype.js','utf8');
+const a=s.indexOf('function escapeHtml');
+const b=s.indexOf('function renderDraftCanvases');
+const api=new Function(s.slice(a,b)+'; return {renderSpreadPageView};')();
+const manuscript={
+  headline:'h', learningGoal:'g', openingQuestion:'q',
+  sections:[
+    {number:1,title:'절1',paragraphs:['p1']},
+    {number:2,title:'절2',paragraphs:['p2']},
+    {number:3,title:'절3',paragraphs:['p3']},
+    {number:4,title:'절4',paragraphs:['p4']},
+    {number:5,title:'절5',paragraphs:['p5']},
+  ],
+  visuals:{left:[],right:[]},
+};
+const entry={frameworkId:'balanced', primaryTypeLabel:'스포츠 문화', smallUnitLabel:'', frameworkName:''};
+const spread={textbook_manuscript:manuscript, left_page:1, right_page:2, role:'r'};
+const html=api.renderSpreadPageView(entry, spread);
+process.stdout.write(JSON.stringify({
+  hasAll: ['절1','절2','절3','절4','절5'].every((t)=>html.includes(t)),
+}));
+"""
+        result = self.run_node(source)
+        self.assertTrue(result["hasAll"])
+
+    def test_manuscript_page_visuals_normalizes_both_provider_shapes(self):
+        source = r"""
+const fs=require('fs');
+const s=fs.readFileSync('./static/prototype.js','utf8');
+const a=s.indexOf('function manuscriptPageVisuals');
+const b=s.indexOf('function loadCanvasImage');
+const api=new Function(s.slice(a,b)+'; return {manuscriptPageVisuals};')();
+const external={visuals:{left:[{description:'L1'}],right:[{description:'R1'},{description:'R2'}]}};
+const internal={visualBriefs:['B1','B2','B3']};
+process.stdout.write(JSON.stringify({
+  externalLeft: api.manuscriptPageVisuals(external,0).map(v=>v.description),
+  externalRight: api.manuscriptPageVisuals(external,1).map(v=>v.description),
+  internalLeft: api.manuscriptPageVisuals(internal,0).map(v=>v.description),
+  internalRight: api.manuscriptPageVisuals(internal,1).map(v=>v.description),
+}));
+"""
+        result = self.run_node(source)
+        self.assertEqual(result["externalLeft"], ["L1"])
+        self.assertEqual(result["externalRight"], ["R1", "R2"])
+        self.assertEqual(result["internalLeft"], ["B1", "B2"])
+        self.assertEqual(result["internalRight"], ["B3"])
+
 
 if __name__ == "__main__":
     unittest.main()

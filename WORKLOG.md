@@ -682,3 +682,15 @@
 - 수정 파일: `static/prototype.js`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
 - 남은 문제: 실제 브라우저에서 pptxgenjs로 파일을 열어 육안 확인은 하지 못했다(이 환경에 브라우저가 없음). 절 개수가 많거나 문단이 길면 텍스트가 상자 안에서 잘려 보일 수 있어(현재 문단은 220자로 잘라서 넣음), 실제 파일을 열어보고 잘리는 지점을 조정할 필요가 있을 수 있다.
 - 다음 시작점: 사용자가 배포본에서 실제로 PPT를 다운로드해 열어보고, 화면에 보이는 원고와 실제로 일치하는지, 글자가 상자를 벗어나지 않는지 확인.
+
+### 2026-08-19 · PNG 저장 시 이미지가 빈 네모 박스로 나오는 문제 수정 + 5개 절 중 일부가 화면에서 사라지는 문제도 함께 발견·수정
+
+- 상태: 완료
+- 배경: 사용자가 "이미지 생성은 되는데, PNG 다운받으면 그림이 다 사라지고 네모 박스만 나와"라고 지적함.
+- 원인 1(PNG): 화면 미리보기(`renderSpreadPageView`, 실제 `<img>` 태그로 이미지 표시)와 별도로, "PNG 저장" 버튼은 숨겨진 `<canvas>`를 그리는 `drawDraftSpreadCanvas`가 담당한다. 이 함수는 이번 세션에 삽화 기능을 추가하기 전부터 있던 옛 코드 그대로였다 — 항상 정확히 3개의 색칠된 사각형을 그리고, `manuscript.visualBriefs`(문자열)만 캡션으로 넣을 뿐, 실제 생성된 이미지(`imageBase64`)는 전혀 참조하지 않았다. 그래서 화면에는 실제 이미지가 보이는데 PNG에는 항상 색칠된 빈 박스만 나왔다.
+- 원인 2(부가 발견, 더 심각함): 이 문제를 고치다가, `renderSpreadPageView`(화면 미리보기)와 `drawDraftSpreadCanvas`(PNG) 둘 다 절을 `sections.slice(0,2)`/`slice(2,4)`로 **고정 인덱스**로 나누고 있다는 걸 발견했다. 바로 앞서 "AI가 절 개수를 3~5개 사이에서 직접 정하게" 고쳤는데, 5개 절이 나오면 인덱스 4(다섯 번째 절)는 `slice(2,4)`에 포함되지 않아 **화면에서도, PNG에서도 조용히 사라지고 있었다** — PPT는 이미 `Math.ceil(length/2)`로 동적 분배해 두어서 이 문제가 없었다.
+- 수정: (1) `renderSpreadPageView`·`drawDraftSpreadCanvas` 둘 다 절 분배를 `Math.ceil(sections.length / 2)` 기준 동적 분할로 바꿔 절이 몇 개든 전부 표시되게 함(PPT와 동일한 규칙). (2) `drawDraftSpreadCanvas`를 비동기 함수로 바꿔, 그리기 전에 `manuscript.visuals`(또는 내부 제공자의 `visualBriefs`)를 `manuscriptPageVisuals()`로 정규화하고, 실제 이미지가 있는 삽화는 `new Image()`로 미리 불러온 뒤 `context.drawImage()`로 캔버스에 직접 그려 넣는다. 이미지가 없는 삽화만 기존처럼 색칠된 박스 + 설명 문구로 대체한다. 삽화 개수도 항상 3개가 아니라 실제 개수(0~3개)만큼만 그린다.
+- 검증: `tests/test_prototype_draft_engine.py`에 두 테스트를 추가함 — ① 5개 절을 넣었을 때 화면 HTML에 5개 제목이 모두 나타나는지(부가로 발견한 버그의 회귀 테스트), ② `manuscriptPageVisuals`가 두 제공자의 서로 다른 모양(visuals/visualBriefs)을 올바르게 좌우로 정규화하는지. `data:` URI 이미지는 캔버스를 오염시키지 않아(`toDataURL` 계속 사용 가능) 별도 CORS 우회가 필요 없음을 확인. 전체 자동 테스트 73개 통과.
+- 수정 파일: `static/prototype.js`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
+- 남은 문제: 실제 브라우저에서 캔버스에 이미지가 로드된 뒤 다시 그려지는 타이밍(비동기)을 직접 눈으로 확인하지 못했다 — 이론상 이미지는 화면 렌더링 직후 백그라운드에서 불러와지고, 사용자가 "PNG 저장"을 누르는 시점엔 이미 로드되어 있을 가능성이 높지만, 매우 빠르게 클릭하면 이미지가 아직 로드되기 전이라 빈 박스로 저장될 수 있다.
+- 다음 시작점: 사용자가 배포본에서 이미지 포함 초안을 만들고 "PNG 저장"을 눌러 실제로 이미지가 포함되어 저장되는지, 절이 5개인 경우에도 전부 화면에 보이는지 확인.

@@ -2408,17 +2408,46 @@ function drawRoundedRect(context, x, y, width, height, radius, fill, stroke = nu
   }
 }
 
-function drawDraftSpreadCanvas(canvas, entry, spread) {
+// 두 생성 제공자의 삽화 모양이 다르다 — 외부 AI는 visuals:{left,right}(크기·배치·설명·이미지)를,
+// 내부 규칙 기반 제공자는 visualBriefs(문자열 배열)를 준다. PNG 미리보기도 PPT와 같은 규칙으로 맞춘다.
+function manuscriptPageVisuals(manuscript, pageIndex) {
+  if (manuscript.visuals) return (pageIndex === 0 ? manuscript.visuals.left : manuscript.visuals.right) || [];
+  const briefs = manuscript.visualBriefs || [];
+  const half = Math.ceil(briefs.length / 2);
+  return (pageIndex === 0 ? briefs.slice(0, half) : briefs.slice(half)).map((description) => ({ description }));
+}
+
+function loadCanvasImage(base64) {
+  return new Promise((resolve) => {
+    if (!base64) {
+      resolve(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = `data:image/png;base64,${base64}`;
+  });
+}
+
+async function drawDraftSpreadCanvas(canvas, entry, spread) {
   const context = canvas.getContext("2d");
   const accent = { balanced: "#596fc1", activity: "#db7048", creative: "#347f72" }[entry.frameworkId] || "#596fc1";
   const accentDark = { balanced: "#3e53a4", activity: "#ae4931", creative: "#236457" }[entry.frameworkId] || "#3e53a4";
   const pale = { balanced: "#eef1fb", activity: "#fff1eb", creative: "#eaf6f2" }[entry.frameworkId] || "#eef1fb";
   const manuscript = spread.textbook_manuscript || {};
   const sections = Array.isArray(manuscript.sections) ? manuscript.sections : [];
+  const sectionSplit = Math.ceil(sections.length / 2);
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#cfd4dc";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  const pages = [{ x: 18, sections: sections.slice(0, 2) }, { x: 704, sections: sections.slice(2, 4) }];
+  const pages = [
+    { x: 18, sections: sections.slice(0, sectionSplit), visuals: manuscriptPageVisuals(manuscript, 0) },
+    { x: 704, sections: sections.slice(sectionSplit), visuals: manuscriptPageVisuals(manuscript, 1) },
+  ];
+  const allVisuals = pages.flatMap((page) => page.visuals);
+  const loadedImages = await Promise.all(allVisuals.map((visual) => loadCanvasImage(visual.imageBase64)));
+  const imageByVisual = new Map(allVisuals.map((visual, index) => [visual, loadedImages[index]]));
   pages.forEach((page, pageIndex) => {
     drawRoundedRect(context, page.x, 18, 678, 864, 5, "#ffffff", "#c3c8d0");
     if (pageIndex === 0) {
@@ -2488,19 +2517,29 @@ function drawDraftSpreadCanvas(canvas, entry, spread) {
     context.lineTo(page.x, 882);
     context.closePath();
     context.fill();
-    const briefs = manuscript.visualBriefs || [];
-    [0, 1, 2].forEach((visualIndex) => {
-      const boxX = page.x + 42 + visualIndex * 205;
-      const boxY = visualY + 50 + (visualIndex === 1 ? 18 : 0);
-      const boxWidth = 178;
+    const visuals = page.visuals;
+    if (visuals.length) {
+      const gap = 14;
+      const boxWidth = (594 - gap * (visuals.length - 1)) / visuals.length;
       const boxHeight = 108;
-      drawRoundedRect(context, boxX, boxY, boxWidth, boxHeight, 8, visualIndex === 1 ? accent : accentDark);
-      context.fillStyle = "rgba(255,255,255,.2)";
-      context.fillRect(boxX + 10, boxY + 10, boxWidth - 20, 48);
-      context.fillStyle = "#263039";
-      context.font = "700 11px 'Malgun Gothic', sans-serif";
-      canvasWrappedText(context, briefs[(pageIndex * 2 + visualIndex) % Math.max(1, briefs.length)] || "편집 이미지 영역", boxX, boxY + boxHeight + 16, boxWidth, 14, 3);
-    });
+      visuals.forEach((visual, visualIndex) => {
+        const boxX = page.x + 42 + visualIndex * (boxWidth + gap);
+        const boxY = visualY + 50;
+        const image = imageByVisual.get(visual);
+        if (image) {
+          context.drawImage(image, boxX, boxY, boxWidth, boxHeight);
+          context.strokeStyle = "#c3c8d0";
+          context.strokeRect(boxX, boxY, boxWidth, boxHeight);
+        } else {
+          drawRoundedRect(context, boxX, boxY, boxWidth, boxHeight, 8, visualIndex % 2 === 0 ? accentDark : accent);
+          context.fillStyle = "rgba(255,255,255,.2)";
+          context.fillRect(boxX + 10, boxY + 10, boxWidth - 20, 48);
+        }
+        context.fillStyle = "#263039";
+        context.font = "700 11px 'Malgun Gothic', sans-serif";
+        canvasWrappedText(context, visual.description || "편집 이미지 영역", boxX, boxY + boxHeight + 16, boxWidth, 14, 3);
+      });
+    }
     context.fillStyle = "#697078";
     context.font = "12px 'Malgun Gothic', sans-serif";
     context.fillText(`${pageIndex === 0 ? spread.left_page : spread.right_page}  |  스포츠 문화`, page.x + 292, 858);
@@ -2547,8 +2586,9 @@ function renderSpreadPageView(entry, spread) {
   const accentKey = { balanced: "balanced", activity: "activity", creative: "creative" }[entry.frameworkId] ? entry.frameworkId : "balanced";
   const manuscript = spread.textbook_manuscript || {};
   const sections = Array.isArray(manuscript.sections) ? manuscript.sections : [];
-  const leftSections = sections.slice(0, 2);
-  const rightSections = sections.slice(2, 4);
+  const sectionSplit = Math.ceil(sections.length / 2);
+  const leftSections = sections.slice(0, sectionSplit);
+  const rightSections = sections.slice(sectionSplit);
   return `
     <div class="spread-page-view spread-accent-${accentKey}">
       <div class="spread-page spread-page-left">
