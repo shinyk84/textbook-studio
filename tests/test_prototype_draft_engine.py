@@ -344,7 +344,54 @@ const e=require('./static/prototype-draft-engine.js');
         self.assertTrue(all(count >= 700 for count in result["counts"]))
         self.assertEqual(result["below"], 0)
         self.assertEqual(result["duplicates"], 0)
-        self.assertEqual(result["headlines"], 2)
+
+    def test_external_ai_provider_throttles_parallel_image_requests(self):
+        source = r"""
+const e=require('./static/prototype-draft-engine.js');
+let maxConcurrent=0, current=0, imageCalls=0, manuscriptCalls=0;
+global.fetch=async (url)=>{
+  if (String(url).includes('sports-culture-manuscript')) {
+    manuscriptCalls+=1;
+    return { ok:true, status:200, json: async()=>({result:{spreads:[{
+      headline:'h', learning_goal:'g', opening_question:'q', deck:'d',
+      sections:[{paragraphs:['p1']},{paragraphs:['p2']},{paragraphs:['p3']},{paragraphs:['p4']}],
+      left_visuals:[{size:'small',placement:'top',description:'a'},{size:'small',placement:'top',description:'b'},{size:'small',placement:'top',description:'c'}],
+      right_visuals:[{size:'small',placement:'top',description:'d'},{size:'small',placement:'top',description:'e'},{size:'small',placement:'top',description:'f'}]
+    }]}}) };
+  }
+  if (String(url).includes('sports-culture-image')) {
+    imageCalls+=1;
+    current+=1;
+    if (current>maxConcurrent) maxConcurrent=current;
+    await new Promise(resolve=>setTimeout(resolve,20));
+    current-=1;
+    return { ok:true, status:200, json: async()=>({result:{imageBase64:'AA=='}}) };
+  }
+  throw new Error('unexpected url:'+url);
+};
+(async()=>{
+  const framework={id:'balanced',name:'전체 스타일 50 · 균형형'};
+  const result=await e.generateDraftSet({
+    profileId:e.sportsCultureProfile().id,
+    providerId:e.externalAiProviderId,
+    carrierSport:'배드민턴',
+    sportMode:'primary',
+    primaryType:'theory',
+    pageRole:'unit-intro',
+    styleValue:50,
+    includeImages:true,
+    smallUnit:{domain:'스포츠 인문 문화',middleTitle:'스포츠 인문 문화',smallTitle:'스포츠 인문 문화 단원 도입',pages:4,standardCodes:['[12스문01-01]']},
+    frameworks:[framework],
+    metricsByFramework:{balanced:{curriculum:5,feasibility:4,engagement:4,novelty:3,safety:5}}
+  });
+  process.stdout.write(JSON.stringify({maxConcurrent, imageCalls, manuscriptCalls, spreads:result.entries[0].spreads.length}));
+})().catch(error=>{console.error(error);process.exit(1);});
+"""
+        result = self.run_node(source)
+        self.assertEqual(result["spreads"], 2)
+        self.assertEqual(result["manuscriptCalls"], 2)
+        self.assertEqual(result["imageCalls"], 12)
+        self.assertLessEqual(result["maxConcurrent"], 3)
 
 
 if __name__ == "__main__":

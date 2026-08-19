@@ -792,28 +792,34 @@
     return payload.result;
   }
 
+  const IMAGE_GENERATION_CONCURRENCY = 3;
+
   async function fillVisualImages(manuscripts) {
-    const tasks = [];
+    const items = [];
     manuscripts.forEach((manuscript) => {
       if (!manuscript?.visuals) return;
       ["left", "right"].forEach((side) => {
-        (manuscript.visuals[side] || []).forEach((item) => {
-          tasks.push(
-            postJsonForManuscript("/api/prototype/sports-culture-image", {
-              description: item.description,
-              size: item.size,
-            })
-              .then((result) => {
-                item.imageBase64 = result.imageBase64;
-              })
-              .catch((error) => {
-                item.imageError = error?.message || "이미지 생성에 실패했습니다.";
-              })
-          );
-        });
+        (manuscript.visuals[side] || []).forEach((item) => items.push(item));
       });
     });
-    await Promise.all(tasks);
+    let cursor = 0;
+    async function worker() {
+      while (cursor < items.length) {
+        const item = items[cursor];
+        cursor += 1;
+        try {
+          const result = await postJsonForManuscript("/api/prototype/sports-culture-image", {
+            description: item.description,
+            size: item.size,
+          });
+          item.imageBase64 = result.imageBase64;
+        } catch (error) {
+          item.imageError = error?.message || "이미지 생성에 실패했습니다.";
+        }
+      }
+    }
+    const workerCount = Math.min(IMAGE_GENERATION_CONCURRENCY, items.length);
+    await Promise.all(Array.from({ length: workerCount }, () => worker()));
   }
 
   async function externalAiGenerate(request) {

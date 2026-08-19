@@ -196,6 +196,7 @@
 - 민감정보: `.env.local`과 Vercel 환경 변수에만 저장하고 Git에는 포함하지 않는다.
 - (2026-08-19) 스포츠 문화 프로토타입(`/prototype.html`)의 전체 상태(`projectStore`)는 원래 브라우저 `localStorage`에만 있어서 컴퓨터를 바꾸면 이전 내용이 안 보였다. 이제 `prototype_state` 테이블(`GET`/`POST /api/prototype/state`)에도 동기화되어(`persist()` 호출마다 2초 디바운스로 서버 저장), 다른 컴퓨터에서 열어도 최신 내용을 불러온다. localStorage는 오프라인 대비용으로 계속 유지됨.
 - (2026-08-19) `/api/prototype/sports-culture-manuscript`는 OpenAI 호출 1건당 약 20~25초가 걸린다. 서버는 `urlopen(timeout=50)`, Vercel은 `vercel.json`의 `maxDuration: 60`으로 묶여 있어 펼침면 여러 개를 한 요청에 몰아 보내면(예: 4쪽=2펼침면 → 약 45초) 배포 환경 지연이 더해질 때 타임아웃이 난다. `static/prototype-draft-engine.js`의 `externalAiGenerate`는 이제 펼침면마다 별도 요청으로 나눠 `Promise.all`로 병렬 호출하므로, 펼침면 수가 늘어나도(대단원 도입·마무리·특별페이지 등) 요청 1건당 소요 시간은 늘지 않는다. 앞으로 이 엔드포인트를 건드릴 때는 한 요청에 여러 펼침면을 다시 묶지 않도록 주의한다.
+- (2026-08-19) "이미지 포함"을 켜면 `static/prototype-draft-engine.js`의 `fillVisualImages`가 `/api/prototype/sports-culture-image`를 호출한다. 이미지 1건은 약 16초·약 2.3MB가 걸리는 무거운 요청이라, 한 펼침면당 최대 6개(좌우 각 최대 3개) 삽화 요청을 전부 동시에 쏘면 펼침면이 여러 개일 때(예: 단원 도입·마무리·특별페이지) 최대 12건 이상이 한꺼번에 나가 배포 환경에서 연결이 끊기는 문제가 있었다("fail to stream" 오류). 이제 `IMAGE_GENERATION_CONCURRENCY = 3` 워커 풀로 동시 요청 수를 3건으로 제한한다. 이 상수를 건드릴 때는 배포 환경의 동시 실행·요청 제한을 함께 고려한다.
 
 필요한 환경 변수 이름:
 
