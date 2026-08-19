@@ -990,7 +990,11 @@ async function syncProjectStoreFromServer({ silent = true } = {}) {
     projectStore = hydrated;
     serverStateVersion = data.result.version;
     useActiveBookState();
-    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projectStore));
+    try {
+      localStorage.setItem(PROJECTS_STORAGE_KEY, serializeProjectStoreForStorage(projectStore));
+    } catch {
+      // 저장 용량 초과 등으로 로컬 저장에 실패해도 서버에서 불러온 값은 화면에 반영한다.
+    }
     renderWorkspace();
     if (!silent) showToast("다른 컴퓨터에서 저장된 최신 내용을 불러왔습니다.");
   } catch {
@@ -1008,7 +1012,7 @@ async function pushProjectStoreToServer() {
     const response = await fetch("/api/prototype/state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ payload: projectStore, expectedVersion: serverStateVersion }),
+      body: JSON.stringify({ payload: projectStore, expectedVersion: serverStateVersion }, stripEmbeddedImages),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.error) {
@@ -1181,13 +1185,29 @@ function activeStageValidation() {
   return state.currentStep === 0 ? projectSetupValidation() : pageValidation();
 }
 
+// AI로 생성한 삽화(imageBase64)는 장당 수 MB에 달해 localStorage 용량 제한(QuotaExceededError)과
+// 서버 동기화 요청 크기 제한을 쉽게 넘긴다. 현재 세션 화면 표시에는 필요하지만, 저장·동기화되는
+// 값에서는 항상 제외한다 — 새로고침하면 이미지는 사라지고 다시 생성해야 하지만, 원고 자체와
+// 목록은 안전하게 유지된다.
+function stripEmbeddedImages(key, value) {
+  return key === "imageBase64" ? undefined : value;
+}
+
+function serializeProjectStoreForStorage(store) {
+  return JSON.stringify(store, stripEmbeddedImages);
+}
+
 function persist(message = "자동 저장됨") {
   const validation = state.currentStep === 0 ? projectSetupValidation() : pageValidation();
   const saveState = document.querySelector("#saveState");
   activeProject().updatedAt = new Date().toISOString();
   scheduleServerSync();
   if (validation.unavailable) {
-    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projectStore));
+    try {
+      localStorage.setItem(PROJECTS_STORAGE_KEY, serializeProjectStoreForStorage(projectStore));
+    } catch {
+      // 저장 용량 초과 등으로 로컬 저장에 실패해도, 방금 만든 초안이 화면에서 사라지면 안 된다.
+    }
     saveState.textContent = "임시 저장됨 · 공식 자료 미연결";
     saveState.classList.add("invalid");
     return true;
@@ -1198,7 +1218,11 @@ function persist(message = "자동 저장됨") {
     return false;
   }
   saveState.classList.remove("invalid");
-  localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projectStore));
+  try {
+    localStorage.setItem(PROJECTS_STORAGE_KEY, serializeProjectStoreForStorage(projectStore));
+  } catch {
+    // 저장 용량 초과 등으로 로컬 저장에 실패해도, 방금 만든 초안이 화면에서 사라지면 안 된다.
+  }
   saveState.textContent = `${message} · ${new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`;
   return true;
 }

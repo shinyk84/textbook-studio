@@ -92,6 +92,21 @@ class PrototypeDraftEngineTests(unittest.TestCase):
         self.assertIn(".framework-comparison-column .small-unit-heading .option-subtitle", css)
         self.assertIn("word-break: keep-all", css)
 
+    def test_persisted_storage_strips_embedded_images_to_avoid_quota_errors(self):
+        result = self.run_node(
+            "const fs=require('fs');"
+            "const s=fs.readFileSync('./static/prototype.js','utf8');"
+            "const a=s.indexOf('function stripEmbeddedImages');"
+            "const b=s.indexOf('function persist(',a);"
+            "const api=new Function(s.slice(a,b)+'; return {stripEmbeddedImages,serializeProjectStoreForStorage};')();"
+            "const store={projects:[{id:1,manuscript:{visuals:{left:[{description:'그림 설명',imageBase64:'A'.repeat(1000000)}]}}}]};"
+            "const serialized=api.serializeProjectStoreForStorage(store);"
+            "process.stdout.write(JSON.stringify({hasImage:serialized.includes('imageBase64'),hasDescription:serialized.includes('그림 설명'),length:serialized.length}));"
+        )
+        self.assertFalse(result["hasImage"])
+        self.assertTrue(result["hasDescription"])
+        self.assertLess(result["length"], 10000)
+
     def test_sports_are_selected_in_unit_step_and_linked_to_drafts(self):
         prototype = PROTOTYPE.read_text(encoding="utf-8")
         self.assertIn("책의 종목 후보", prototype)

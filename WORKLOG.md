@@ -639,3 +639,15 @@
 - 수정 파일: `app.py`.
 - 남은 문제: 정확한 발생 지점 미확정. 다음에 같은 오류가 뜨면 브라우저 개발자 도구(F12) → Console 탭의 오류 전문(빨간 글씨 전체)을 그대로 캡처해 전달받아야 한다.
 - 다음 시작점: 사용자가 다시 재현되면 브라우저 콘솔 오류 전문 확보 → 정확한 발생 계층(브라우저 vs Vercel) 확정 → 근본 수정.
+
+### 2026-08-19 · 진짜 원인 확정: localStorage 용량 초과("Failed to execute 'setItem'…exceeded the quota") — "fail to stream"의 실체
+
+- 상태: 완료
+- 배경: 사용자가 실제 화면 캡처를 보내줌 — "Failed to execute 'setItem' on 'Storage': Setting the value of 'ai-textbook-studio:v0.2:projects' exceeded the quota."라는, 이전에 "fail to stream"으로 전달됐던 것과 같은 상황(초안·이미지 생성이 끝난 뒤 알림이 뜨고 사라지지만 생성 목록에는 안 보임)에서 뜨는 진짜 오류 문구를 확인함. 즉 앞선 두 항목에서 추정만 하고 확정하지 못했던 원인이 이번에 명확해졌다.
+- 원인: `static/prototype.js`의 `persist()`는 매번 `projectStore` 전체(모든 프로젝트·책·초안 이력 포함)를 `JSON.stringify`해 `localStorage`에 저장한다. AI 이미지(1장당 약 2.3MB의 base64 문자열)가 `frameworkDraftLog`의 각 초안 항목에 그대로 포함되어 있어서, 이미지 포함 생성을 몇 번만 해도 전체 크기가 브라우저의 `localStorage` 용량 한도(보통 5~10MB)를 넘겼다. `localStorage.setItem`이 던지는 `QuotaExceededError`는 `persist()` 호출부를 감싸는 try/catch로 그대로 전파되어, 생성 직후 `state.frameworkDraftLog.push(...)`는 메모리에는 반영됐지만 그 다음에 실행되어야 할 `persist()`가 예외를 던지면서 이어지는 `renderWorkspace()`가 실행되지 못해 화면(생성 목록)에는 반영되지 않았던 것이다. 브라우저가 보여주는 이 오류 메시지를 사용자가 앞서 빠르게 사라지는 토스트로 봤을 때 "fail to stream"으로 옮겨 전달한 것으로 보인다(같은 근본 원인의 다른 표현).
+- 이 원인은 서버 동기화(`prototype_state`) 쪽에도 그대로 적용된다 — 이미지가 포함된 `projectStore` 전체를 서버에 그대로 보내면 Vercel의 요청 본문 크기 제한도 함께 위협한다.
+- 수정: `static/prototype.js`에 `stripEmbeddedImages`(JSON.stringify replacer)와 `serializeProjectStoreForStorage`를 추가해, `localStorage`에 저장하거나 서버(`/api/prototype/state`)로 동기화할 때는 항상 `imageBase64` 필드를 제외하도록 함. 화면에 보이는 현재 세션의 `projectStore`(메모리)에는 이미지가 그대로 남아 있어 지금 생성한 이미지는 정상적으로 보이지만, 저장·동기화되는 값에는 포함되지 않는다(새로고침하면 이미지는 사라지고 원고 텍스트는 그대로 남으며, 이미지는 다시 생성해야 함 — 의도된 트레이드오프). 세 곳의 `localStorage.setItem` 호출도 모두 try/catch로 감싸, 혹시 다른 이유로 저장에 실패해도 방금 만든 초안이 화면에서 사라지지 않게 함.
+- 검증: `tests/test_prototype_draft_engine.py`에 `test_persisted_storage_strips_embedded_images_to_avoid_quota_errors`를 추가함 — 1MB 크기의 가짜 `imageBase64`를 포함한 객체를 직렬화했을 때 실제로 이미지가 빠지고 다른 필드(`description`)는 남으며 결과 크기가 10KB 미만으로 줄어드는지 확인. 전체 자동 테스트 69개 통과.
+- 수정 파일: `static/prototype.js`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
+- 남은 문제: 새로고침 후 이미지가 사라지는 것은 현재로선 의도된 동작이다(이미지를 영구 저장할 별도 저장소가 없음). 만약 생성한 이미지를 세션을 넘어 계속 보존해야 한다면, localStorage/Postgres 텍스트 컬럼이 아닌 별도의 이미지 저장소(예: Vercel Blob, S3 등)가 필요하며 이는 별도 작업이다.
+- 다음 시작점: 사용자가 배포본에서 "이미지 포함" 생성을 다시 시도해, 생성이 끝난 뒤 목록에 정상적으로 나타나는지, 그리고 용량 초과 오류가 다시 뜨지 않는지 확인.
