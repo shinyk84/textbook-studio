@@ -651,3 +651,13 @@
 - 수정 파일: `static/prototype.js`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
 - 남은 문제: 새로고침 후 이미지가 사라지는 것은 현재로선 의도된 동작이다(이미지를 영구 저장할 별도 저장소가 없음). 만약 생성한 이미지를 세션을 넘어 계속 보존해야 한다면, localStorage/Postgres 텍스트 컬럼이 아닌 별도의 이미지 저장소(예: Vercel Blob, S3 등)가 필요하며 이는 별도 작업이다.
 - 다음 시작점: 사용자가 배포본에서 "이미지 포함" 생성을 다시 시도해, 생성이 끝난 뒤 목록에 정상적으로 나타나는지, 그리고 용량 초과 오류가 다시 뜨지 않는지 확인.
+
+### 2026-08-19 · 다른 컴퓨터(모바일)에서 계속 01단계부터 시작 — 실제 원인은 prototype_state 테이블이 배포본에 없었음
+
+- 상태: 완료
+- 배경: 원래 컴퓨터에서 "지금 저장"을 눌러도 모바일에서는 계속 01단계(빈 프로젝트)로 시작한다고 사용자가 재차 보고함. 사용자에게 브라우저 개발자 도구(F12) → Network 탭에서 직접 확인해 달라고 요청했고, 사용자가 캡처를 보내줌: `POST /api/prototype/state`가 **HTTP 500**으로 실패하고 있었다(요청 자체는 정상적으로 나가고 있었음 — Initiator: auth-client.js).
+- 원인 확정: `initialize_database()`(모든 테이블을 `CREATE TABLE IF NOT EXISTS`로 만드는 함수, `prototype_state`도 포함)는 로컬 개발 서버의 `main()` 안에서만 호출된다. 그런데 Vercel 배포 진입점(`api/index.py`)은 `class handler(StudioHandler): pass` 뿐이고 `initialize_database()`를 전혀 호출하지 않는다. 즉 배포된 Postgres DB에는 지금까지 한 번도 `prototype_state` 테이블이 생성된 적이 없었고, 모든 GET/POST 요청이 "테이블이 존재하지 않음" 오류로 실패하면서 500을 반환하고 있었다(다른 기존 테이블들은 과거에 별도로 한 번 마이그레이션됐던 것으로 보이며, 이번에 새로 추가한 `prototype_state`만 그 대상에서 빠졌던 것).
+- 수정: `app.py`에 `ensure_prototype_state_table(db)`를 추가해 `prototype_state_record()`(조회)와 `store_prototype_state()`(저장) 양쪽에서 쿼리 직전에 항상 `CREATE TABLE IF NOT EXISTS`를 실행하도록 함 — 요청마다 스스로 테이블 존재를 보장하므로, 배포 환경에 별도 마이그레이션 단계가 필요 없다(멱등이라 반복 실행해도 안전하고 비용이 거의 없음).
+- 검증: 일부러 `prototype_state` 테이블이 없는 새 SQLite DB를 만들고, `initialize_database()`를 호출하지 않은 채 `call_prototype_state_get()`/`call_prototype_state_save()`를 직접 호출해 배포 환경과 같은 상황을 재현함 — 수정 전에는 이 상황을 재현하지 않았지만(로컬은 항상 `main()`으로 시작해 테이블이 이미 있었음), 수정 후에는 테이블이 없는 상태에서 첫 GET이 정상적으로 빈 값을 반환하고 이어지는 SAVE·GET도 정상 동작함을 확인했다. 전체 자동 테스트 69개 통과.
+- 수정 파일: `app.py`.
+- 다음 시작점: 배포가 끝나면 원래 컴퓨터에서 "지금 저장"을 다시 눌러 Network 탭에서 `state` 요청이 이제 200으로 성공하는지 확인 → 모바일에서 새로고침해 실제로 프로젝트가 넘어오는지 확인.

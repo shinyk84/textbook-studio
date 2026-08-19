@@ -3380,9 +3380,28 @@ def call_prototype_sports_culture_image(payload: dict) -> dict:
 # 있던 프로젝트·초안 데이터를 서버 DB에도 동기화해, 다른 컴퓨터에서 열어도 같은 내용을
 # 볼 수 있게 한다. 편집자 여러 명이 아니라 한 사람이 여러 기기에서 쓰는 상황을 가정해
 # 단일 공유 레코드(운영 서비스의 workflow_stages와 같은 패턴)로 저장한다.
+#
+# initialize_database()는 로컬 서버(main())에서만 실행되고 Vercel 배포(api/index.py)에서는
+# 호출되지 않으므로, 이 테이블은 요청마다 존재를 스스로 보장한다(CREATE TABLE IF NOT EXISTS는
+# 반복 실행해도 안전하고 비용이 거의 없다).
+
+def ensure_prototype_state_table(db) -> None:
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS prototype_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            payload TEXT NOT NULL,
+            version INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL
+        );
+        """
+    )
+    db.commit()
+
 
 def prototype_state_record() -> dict | None:
     with connect_db() as db:
+        ensure_prototype_state_table(db)
         row = db.execute(
             "SELECT payload, version, updated_at FROM prototype_state WHERE id = 1"
         ).fetchone()
@@ -3399,6 +3418,7 @@ def store_prototype_state(payload: dict, expected_version: int | None) -> dict:
     now = utc_now()
     encoded = json.dumps(payload, ensure_ascii=False)
     with connect_db() as db:
+        ensure_prototype_state_table(db)
         current = db.execute(
             "SELECT version FROM prototype_state WHERE id = 1"
         ).fetchone()
