@@ -573,3 +573,16 @@
 - 검증: 실기형(배드민턴)·개념형(스포츠 문화의 의미와 형성) 두 소단원을 실제로 생성해 확인 — 왼쪽 절반+작은컷, 오른쪽 절반 2개처럼 고정 3개가 아닌 구성이 나왔고, 삽화 설명이 실제 그 펼침면 내용(관념문화, 참여자 역할 관계도 등)과 맞아떨어짐. 다만 샘플이 2건뿐이라 "전면 1개" "삽화 없음" 같은 더 극단적인 다양성은 아직 직접 보지 못함 — 실제 사용 중 다양한 소단원에서 계속 확인 필요. 전체 자동 테스트 67개 통과.
 - 수정 파일: `app.py`, `static/prototype-draft-engine.js`, `static/prototype.js`, `static/prototype.css`, `static/prototype.html`(캐시 버전).
 - 다음 시작점: (1) 사용자가 브라우저에서 여러 소단원에 걸쳐 실제로 삽화 구성이 다양하게 나오는지 확인. (2) 이전에 논의한 "실제 이미지 생성"(현재는 설명 텍스트만 있는 자리)을 이 유연한 레이아웃 위에 얹을지는 별도 결정 필요.
+
+### 2026-08-19 · 삽화 실제 이미지 생성(옵션) 추가, TXT 내보내기 옛 구조 버그 발견·수정
+
+- 상태: 완료
+- 배경: 사용자가 실제 생성 결과를 보고 "이미지는 왜 안 나오고 글자·큰 네모 박스만 있냐"고 질문 — 지난 세션에서 레이아웃 구조(개수·크기)만 유연하게 만들고, 그 자리를 실제 이미지로 채우는 건 구현하지 않았던 상태였음. 사용자가 이미지 생성을 구현하되 **켜고 끌 수 있는 옵션**으로 만들 것을 요청함(비용 때문).
+- 서버(`app.py`): `call_openai_for_sports_culture_image()`(+`call_prototype_sports_culture_image()`) 신설, OpenAI 이미지 생성(`POST /v1/images/generations`, 모델 `gpt-image-2`)을 호출해 `b64_json`을 받아 반환. 삽화 크기(`full`/`half`→`1536x1024`, `small`→`1024x1024`)에 따라 해상도를 다르게 요청해 비용을 통제함. 프롬프트에 "실제 인물을 닮게 그리지 말 것, 글자를 그리지 말 것"을 명시함(이미지 생성 모델이 텍스트를 정확히 못 그리는 한계 때문). 새 엔드포인트 `POST /api/prototype/sports-culture-image`는 기존 원고 생성 엔드포인트와 동일한 로그인·오류 처리 패턴을 따름.
+- 클라이언트(`prototype-draft-engine.js`): `externalAiGenerate`에 `request.includeImages`가 true일 때만 실행되는 `fillVisualImages()`를 추가. 원고·레이아웃을 다 받은 뒤 모든 `left_visuals`/`right_visuals` 항목에 대해 이미지 생성을 병렬로 요청하고, 항목별로 성공하면 `imageBase64`를 붙이고 실패하면 그 항목만 문구 placeholder로 남긴다(한 이미지가 실패해도 전체 생성이 실패하지 않음).
+- 화면(`prototype.js`): "생성 제공자" 옆에 **"삽화 이미지" 체크박스**를 추가(`state.includeImages`, 기본 꺼짐). 일괄 생성·단일 생성 양쪽 호출에 모두 전달. 렌더러(`renderSpreadVisualRow`)는 `imageBase64`가 있으면 실제 `<img>`로, 없으면 기존처럼 설명 문구 placeholder로 그린다.
+- 부수 발견·수정: `textbookManuscriptText()`(교과서 원고 TXT 내보내기)가 "[사진·삽화·정보 그래픽 발주]" 목록을 여전히 옛 `manuscript.visualBriefs`(지난 세션에서 없어진 필드)로만 채워서, AI 생성 원고에서는 이 목록이 항상 빈 칸이었음(사용자가 "TXT·PPT가 최신 구조를 반영하냐"고 물어봐서 발견함). `manuscript.visuals` 유무로 분기해 새 구조(좌/우, 크기·배치·설명)도 출력하도록 수정.
+- 확인했지만 이번엔 손대지 않은 것: **PPT 다운로드**는 지금의 교과서 원고(헤드라인·절·문단·삽화)를 전혀 쓰지 않고, 그보다 훨씬 오래된 "활동 카드" 구조(`activities`/`support_boxes`)를 그대로 쓰고 있음이 확인됨 — 사용자에게 보고했고, 다시 만들어야 한다는 데 동의했지만 아직 착수 전.
+- 검증: 이미지 생성 엔드포인트를 직접 호출해 실제 PNG(약 1.6MB, 유효한 PNG 매직바이트)를 받았고, 육안으로 "배드민턴 복식 경기를 위에서 본 편집 삽화"가 실제로 설명과 맞게 그려진 것을 확인함. 전체 자동 테스트 67개 통과.
+- 수정 파일: `app.py`, `static/prototype-draft-engine.js`, `static/prototype.js`, `static/prototype.css`, `static/prototype.html`(캐시 버전).
+- 다음 시작점: (1) 사용자가 브라우저에서 체크박스 켜고 실제 배치 생성해서 비용·속도·품질 확인. (2) PPT 다운로드를 실제 원고 구조로 다시 만드는 작업.

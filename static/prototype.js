@@ -387,6 +387,7 @@ function ensureSportsCultureDraftSettings(book) {
     book.draftPrimaryType = ["participation", "project"].includes(book.draftPrimaryType) ? "practice" : "theory";
   }
   book.bookStyleValue = Math.max(0, Math.min(100, Number(book.bookStyleValue ?? 50)));
+  book.includeImages = Boolean(book.includeImages);
   if (!Array.isArray(book.selectedDraftSmallUnitKeys)) book.selectedDraftSmallUnitKeys = [];
   if (!Array.isArray(book.specialPages)) book.specialPages = [];
   if (!book.sportsCultureUnitStructureVersion && isLegacySportsCultureDefault(book.units)) {
@@ -1173,7 +1174,13 @@ function textbookManuscriptText(entry) {
       (section.paragraphs || []).forEach((paragraph) => lines.push(paragraph));
       lines.push("");
     });
-    lines.push("[사진·삽화·정보 그래픽 발주]", ...(manuscript.visualBriefs || []).map((brief) => `- ${brief}`), "");
+    const visualLines = manuscript.visuals
+      ? [
+          ...(manuscript.visuals.left || []).map((item) => `- (좌) [${item.size}/${item.placement}] ${item.description}`),
+          ...(manuscript.visuals.right || []).map((item) => `- (우) [${item.size}/${item.placement}] ${item.description}`),
+        ]
+      : (manuscript.visualBriefs || []).map((brief) => `- ${brief}`);
+    lines.push("[사진·삽화·정보 그래픽 발주]", ...visualLines, "");
   });
   return lines.join("\r\n");
 }
@@ -2416,7 +2423,8 @@ function renderSpreadVisualRow(manuscript, pageIndex) {
     return `
       <div class="spread-visual-flex">
         ${items.map((item) => `
-          <div class="spread-visual-item size-${escapeHtml(item.size || "small")} placement-${escapeHtml(item.placement || "bottom")}">
+          <div class="spread-visual-item size-${escapeHtml(item.size || "small")} placement-${escapeHtml(item.placement || "bottom")}${item.imageBase64 ? " has-image" : ""}">
+            ${item.imageBase64 ? `<img src="data:image/png;base64,${item.imageBase64}" alt="${escapeHtml(item.description || "")}" />` : ""}
             <span>${escapeHtml(item.description || "편집 이미지 영역")}</span>
           </div>`).join("")}
       </div>`;
@@ -2663,6 +2671,7 @@ function renderSportsCultureDraftStudio() {
     </section>
     <div class="generation-settings-grid compact-grid">
       <label class="editor-field"><span>생성 제공자</span><select id="draftProviderSelect">${providerOptions.map((provider) => `<option value="${escapeHtml(provider.id)}" ${provider.id === activeProvider?.id ? "selected" : ""}>${escapeHtml(provider.label)} · ${escapeHtml(provider.mode)}</option>`).join("")}</select></label>
+      <label class="editor-field"><span>삽화 이미지</span><span><input type="checkbox" id="includeImagesToggle" ${state.includeImages ? "checked" : ""} /> AI 실시간 생성 시 삽화도 함께 생성(추가 비용·시간 소요)</span></label>
       <div class="editor-field"><span>생성 순서</span><strong>표본 확인 → 다중 선택 → 일괄 생성</strong></div>
     </div>
     <section class="draft-target-panel">
@@ -3609,6 +3618,11 @@ function bindWorkspace() {
     renderWorkspace();
   });
 
+  document.querySelector("#includeImagesToggle")?.addEventListener("change", (event) => {
+    state.includeImages = event.target.checked;
+    persist("삽화 이미지 포함 여부 변경됨");
+  });
+
   document.querySelector("#generateDraftButton")?.addEventListener("click", async (event) => {
     if (isSportsCultureProject()) {
       const targetsByKey = new Map(sportsCultureDraftTargets().map((item) => [item.key, item]));
@@ -3648,6 +3662,7 @@ function bindWorkspace() {
             supportMode,
             pageRole: target.pageRole,
             styleValue: state.bookStyleValue,
+            includeImages: Boolean(state.includeImages),
             smallUnit: target,
             frameworks: [framework],
             metricsByFramework: { [framework.id]: metrics },
@@ -3706,6 +3721,7 @@ function bindWorkspace() {
           carrierSport: state.carrierSport,
           primaryType: state.draftPrimaryType,
           secondaryType: state.draftSecondaryType,
+          includeImages: Boolean(state.includeImages),
           smallUnit,
           frameworks: frameworkOptions(),
           metricsByFramework: state.frameworkMetrics,

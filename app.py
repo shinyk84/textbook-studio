@@ -3278,6 +3278,88 @@ def call_prototype_sports_culture_manuscript(payload: dict) -> dict:
     return call_openai_for_sports_culture_manuscript(context)
 
 
+VISUAL_SIZE_TO_IMAGE_SIZE = {
+    "full": "1536x1024",
+    "half": "1536x1024",
+    "small": "1024x1024",
+}
+
+
+def call_openai_for_sports_culture_image(description: str, size: str) -> dict:
+    api_key = secret_environment_value("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+    if not description.strip():
+        raise ValueError("이미지로 그릴 내용(description)이 없습니다.")
+    image_size = VISUAL_SIZE_TO_IMAGE_SIZE.get(size, "1024x1024")
+    prompt = (
+        "고등학교 스포츠 문화 인정교과서 편집 시안에 들어갈 삽화 초안. 실제 인물 "
+        "사진처럼 특정인을 닮게 그리지 말고, 일반적인 편집 삽화·다이어그램 스타일로 "
+        f"그린다. 텍스트나 글자는 그리지 않는다. 장면 설명: {description}"
+    )
+    request_body = {
+        "model": "gpt-image-2",
+        "prompt": prompt,
+        "size": image_size,
+        "n": 1,
+    }
+    request = Request(
+        "https://api.openai.com/v1/images/generations",
+        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urlopen(request, timeout=50) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        try:
+            message = json.loads(detail).get("error", {}).get("message", detail)
+        except json.JSONDecodeError:
+            message = detail
+        if exc.code == HTTPStatus.UNAUTHORIZED:
+            raise ValueError(
+                "OpenAI API 키가 유효하지 않습니다. 등록한 키를 다시 확인해 주세요."
+            ) from exc
+        if exc.code == HTTPStatus.TOO_MANY_REQUESTS:
+            if "quota" in message.lower() or "billing" in message.lower():
+                raise ValueError(
+                    "OpenAI API 사용 가능 금액이 없습니다. OpenAI API 결제 설정과 "
+                    "사용 한도를 확인한 뒤 다시 시도해 주세요."
+                ) from exc
+            raise ValueError(
+                "OpenAI API 요청이 잠시 너무 많습니다. 잠시 후 다시 시도해 주세요."
+            ) from exc
+        raise ValueError(f"OpenAI 이미지 생성 오류: {message[:500]}") from exc
+    except TimeoutError as exc:
+        raise ValueError(
+            "OpenAI 이미지 생성 제한 시간(50초)을 초과했습니다. 잠시 후 다시 시도해 주세요."
+        ) from exc
+    except URLError as exc:
+        raise ValueError(
+            "로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인하고 "
+            "서버를 다시 실행해 주세요."
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "OpenAI 응답을 이미지 형식으로 해석하지 못했습니다. 다시 생성해 주세요."
+        ) from exc
+    items = payload.get("data") or []
+    if not items or not items[0].get("b64_json"):
+        raise ValueError("OpenAI가 이미지 데이터를 반환하지 않았습니다.")
+    return {"imageBase64": items[0]["b64_json"]}
+
+
+def call_prototype_sports_culture_image(payload: dict) -> dict:
+    description = str(payload.get("description", ""))
+    size = str(payload.get("size", "small"))
+    return call_openai_for_sports_culture_image(description, size)
+
+
 # --- 프로토타입(static/prototype.js) 모의심사 — 사용자가 업로드한 별도 PDF를 서버의
 # OPENAI_API_KEY로 채점한다. 초등은 22개 검정기준, 고등 체육 인정도서는 20개
 # 인정기준을 사용하며, 선택 프로젝트 ID로 기준을 구분한다.
@@ -4717,6 +4799,22 @@ class StudioHandler(BaseHTTPRequestHandler):
                     self.require_user()
                 self.send_json(
                     {"result": call_prototype_sports_culture_manuscript(self.read_json())}
+                )
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:  # pragma: no cover - last-resort boundary
+                self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if parsed.path == "/api/prototype/sports-culture-image":
+            try:
+                if auth_config()["enabled"]:
+                    self.require_user()
+                self.send_json(
+                    {"result": call_prototype_sports_culture_image(self.read_json())}
                 )
             except AuthenticationError as exc:
                 self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)

@@ -792,6 +792,30 @@
     return payload.result;
   }
 
+  async function fillVisualImages(manuscripts) {
+    const tasks = [];
+    manuscripts.forEach((manuscript) => {
+      if (!manuscript?.visuals) return;
+      ["left", "right"].forEach((side) => {
+        (manuscript.visuals[side] || []).forEach((item) => {
+          tasks.push(
+            postJsonForManuscript("/api/prototype/sports-culture-image", {
+              description: item.description,
+              size: item.size,
+            })
+              .then((result) => {
+                item.imageBase64 = result.imageBase64;
+              })
+              .catch((error) => {
+                item.imageError = error?.message || "이미지 생성에 실패했습니다.";
+              })
+          );
+        });
+      });
+    });
+    await Promise.all(tasks);
+  }
+
   async function externalAiGenerate(request) {
     if (request.profileId !== SPORTS_CULTURE_PROFILE.id) throw new Error("AI 생성 제공자는 현재 스포츠 문화 프로필만 지원합니다.");
     const sportMode = ["none", "examples", "primary"].includes(request.sportMode) ? request.sportMode : "primary";
@@ -911,6 +935,7 @@
         visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
       }));
     }
+    if (request.includeImages) await fillVisualImages(manuscripts);
 
     const spreads = Array.from({ length: spreadCount }, (_, index) => {
       const phaseId = phaseIds[index % phaseIds.length];
