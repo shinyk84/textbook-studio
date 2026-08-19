@@ -3138,12 +3138,6 @@ def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> d
 
 def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
     api_key = secret_environment_value("OPENAI_API_KEY")
-    print(
-        f"[diag] OPENAI_API_KEY length={len(api_key)} "
-        f"prefix={api_key[:12]!r} suffix={api_key[-6:]!r}"
-        if api_key
-        else "[diag] OPENAI_API_KEY is empty"
-    )
     if not api_key:
         raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
     spreads = context.get("spreads", [])
