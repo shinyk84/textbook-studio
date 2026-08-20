@@ -773,3 +773,17 @@
 - 검증: CSS 변경이라 자동 테스트로 직접 검증하기는 어려움 — 전체 자동 테스트 76개(회귀 없음)만 확인. 실제 모바일에서 좌우 스크롤이 생기는지는 사용자 확인 필요.
 - 수정 파일: `static/prototype.css`, `static/prototype.html`(캐시 버전).
 - 다음 시작점: 사용자가 실제 모바일에서 이번에는 좌우 스크롤이 생기는지, 오른쪽 페이지·이미지가 보이는지 확인. (참고: 초안 3개를 한꺼번에 비교하는 화면(`framework-comparison-grid` 기본, single-draft 아님)도 같은 720px 강제 폭을 쓰는데 이건 원래부터 `overflow-x:auto`였으므로 이번 문제와 무관하지만, 혹시 그 화면에서도 비슷한 증상이 보이면 함께 확인해야 함.)
+
+### 2026-08-20(계속3) · 모바일 가로 스크롤 — 두 차례 수정에도 재현됨, 진단 도중 사용자 요청으로 일시 중단
+
+- 상태: 중단(미해결) — 사용자가 "일단 여기까지만 하고 기록 남겨줘"라고 명시적으로 요청해 코드 수정 없이 진행 상황만 기록함.
+- 배경: `.framework-comparison-grid.single-draft`의 `overflow-x`를 `auto`로 되돌린 수정(바로 앞 항목)을 배포한 뒤에도 사용자가 "지금도 가로 스크롤 없어"라고 재확인함.
+- 진행한 진단: 데스크톱에서 직접 재현이 안 되어, 크롬 개발자 도구의 기기 시뮬레이션(반응형 모드, 400×824)으로 실제 좁은 화면을 흉내내어 함께 확인하는 중이었다. 사용자가 보내준 캡처에서 확인된 것:
+  - DOM 구조는 예상대로 나타남: `.draft-image-comparison-card` → `.draft-spread-image-strip`(flex, scroll-snap) → `figure.draft-spread-image` → `.spread-page-view.spread-accent-balanced`(grid) → `.spread-page.spread-page-left`(grid) → `.spread-spine` + `.spread-page-body`(flex).
+  - `.spread-page-body`(왼쪽 쪽 본문 영역)를 선택했을 때 Computed 탭의 콘텐츠 상자 크기가 **282.516×440.922px**로 나타남 — 400px 너비의 시뮬레이션 화면 안에서 왼쪽 페이지 본문이 이미 이 정도로 작게 눌려 있다는 뜻이다.
+  - 이 화면(왼쪽 미리보기 패널)에는 왼쪽 페이지만 보이고, 그 오른쪽으로 스크롤해서 오른쪽 페이지(및 삽화)를 볼 수 있는 흔적이 캡처만으로는 확인되지 않았다.
+  - `overflow-x`가 실제로 `auto`로 계산되는지, 어느 조상 요소의 너비가 실제로 얼마인지(예: `.framework-comparison-grid.single-draft`, `.draft-image-comparison-card`, `.draft-spread-image-strip`의 실제 렌더링 너비)는 아직 Styles/Computed 탭에서 직접 확인하지 못한 채 중단됨.
+  - 가능성 있는 미확인 원인: (1) `@media (max-width: 760px) { .framework-comparison-grid, ... { grid-template-columns: 1fr; } }`처럼 더 낮은 특이도의 규칙이 실제로는 다른 방식으로 적용되고 있을 가능성(특이도 재계산이 틀렸을 수 있음), (2) `.spread-page-view`의 `min-width:620px` 자체가 어떤 이유로 적용되지 않고 있을 가능성(캐시, 다른 규칙에 덮어써짐 등), (3) 지금까지 본 적 없는 또 다른 조상 요소의 폭 제한.
+- 남은 문제: 미해결. 다음에 이어서 진단할 때는 `.spread-page-view`·`.framework-comparison-grid.single-draft`·`.draft-spread-image-strip`을 각각 선택해 Computed 탭에서 실제 렌더링 너비(width)와 `overflow-x` 계산값을 확인하고, Styles 탭에서 어떤 규칙이 최종적으로 이겼는지(취소선으로 표시된 규칙들 포함) 확인하는 것부터 시작해야 한다.
+- 수정 파일: 없음(진단만 진행, 코드 변경 없음).
+- 다음 시작점: 위에서 못한 Computed/Styles 탭 확인을 이어서 진행 — 정확히 어느 요소의 어느 규칙이 가로 스크롤을 막고 있는지 실측으로 확인.
