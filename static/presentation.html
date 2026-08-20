@@ -327,7 +327,7 @@
   .time-row .num {
     font-family: "IBM Plex Mono", monospace;
     font-weight: 500;
-    font-size: clamp(64px, 10vw, 100px);
+    font-size: clamp(50px, 8vw, 84px);
     color: var(--accent);
     font-variant-numeric: tabular-nums;
     line-height: 1;
@@ -336,7 +336,32 @@
   .time-row .label {
     font-size: 17px;
     color: var(--ink-soft);
-    max-width: 24ch;
+    max-width: 26ch;
+  }
+
+  .time-stats {
+    display: flex;
+    gap: 34px;
+    margin: 6px 0 22px;
+  }
+
+  .time-stats div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .time-stats b {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+    font-size: 24px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .time-stats span {
+    font-size: 12.5px;
+    color: var(--ink-soft);
   }
 
   .slide.closing .note {
@@ -449,8 +474,13 @@
   <section class="slide closing">
     <span class="slide-mark">05 / 05</span>
     <h2>개발에 걸린 시간</h2>
-    <div class="time-row"><span class="num">13</span><span class="label">시간 — 8/19~8/20 이틀 집중 작업, 기록 기준</span></div>
-    <p class="note">5단계 골격 자체는 7월 말부터 별도로 준비됨.</p>
+    <div class="time-row"><span class="num">16–22</span><span class="label">시간 — 실제 순수 작업 시간 추정</span></div>
+    <div class="time-stats">
+      <div><b>10일</b><span>전체 기간(8/10~8/20)</span></div>
+      <div><b>5일</b><span>실제 작업일</span></div>
+      <div><b>21건</b><span>관련 커밋</span></div>
+    </div>
+    <p class="note">최초 프로토타입(8/10) → 5단계 배포(8/12) 약 2일, 이후 지금 형태로 다듬는 데 약 10일. 순수 작업량은 약 2~3일치 근무시간.</p>
     <p class="final">"고정된 결과물에서, 근거에 기반해 매번 새로 만들어지는 결과물로."</p>
   </section>
 
