@@ -46,109 +46,131 @@
 
   * { box-sizing: border-box; }
 
+  html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+
   body {
     margin: 0;
     background: var(--paper);
     color: var(--ink);
     font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
-    font-size: 14px;
-    line-height: 1.55;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
 
-  .sheet {
-    max-width: 1040px;
-    margin: 0 auto;
-    padding: 40px 48px 34px;
-  }
-
-  header.masthead {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     display: flex;
-    justify-content: space-between;
     align-items: baseline;
-    gap: 24px;
+    gap: 18px;
+    background: var(--paper);
     border-bottom: 2.5px solid var(--ink);
-    padding-bottom: 14px;
-    margin-bottom: 22px;
+    padding: 16px 5vw;
   }
 
-  header.masthead h1 {
-    font-family: "Noto Serif KR", serif;
-    font-weight: 700;
-    font-size: 27px;
-    letter-spacing: -0.01em;
-    margin: 0;
-    text-wrap: balance;
-  }
-
-  header.masthead .kicker {
-    font-size: 11.5px;
+  .topbar .kicker {
+    font-size: 12px;
     letter-spacing: 0.14em;
     color: var(--accent);
     font-weight: 700;
     text-transform: uppercase;
-    margin: 0 0 6px;
-  }
-
-  header.masthead .meta {
-    text-align: right;
-    font-size: 12px;
-    color: var(--ink-soft);
     white-space: nowrap;
-    line-height: 1.6;
   }
 
-  .lede {
-    font-size: 14.5px;
-    color: var(--ink-soft);
-    margin: 0 0 26px;
-    max-width: 74ch;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: 1.35fr 1fr;
-    gap: 30px;
-  }
-
-  section h2 {
+  .topbar .title {
     font-family: "Noto Serif KR", serif;
-    font-size: 15px;
     font-weight: 700;
-    margin: 0 0 10px;
+    font-size: 17px;
+    color: var(--ink-soft);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .slide {
+    min-height: 100vh;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 12vh 5vw 8vh;
     display: flex;
-    align-items: baseline;
-    gap: 8px;
+    flex-direction: column;
+    justify-content: center;
+    scroll-snap-align: start;
+    position: relative;
+    border-bottom: 1px solid var(--line);
   }
 
-  section h2 .num {
+  .slide:last-of-type { border-bottom: none; }
+
+  .slide-mark {
+    position: absolute;
+    top: 28px;
+    right: 5vw;
     font-family: "IBM Plex Mono", monospace;
-    font-size: 11px;
+    font-size: 15px;
+    letter-spacing: 0.04em;
     color: var(--accent);
-    font-weight: 500;
+    font-variant-numeric: tabular-nums;
   }
 
-  section + section { margin-top: 22px; }
+  .slide h2 {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 700;
+    font-size: clamp(30px, 4.2vw, 44px);
+    margin: 0 0 34px;
+    text-wrap: balance;
+  }
 
+  /* --- Slide 0: title --- */
+  .slide.title h1 {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 700;
+    font-size: clamp(34px, 5.6vw, 58px);
+    line-height: 1.25;
+    margin: 0 0 22px;
+    text-wrap: balance;
+  }
+
+  .slide.title p {
+    font-size: clamp(16px, 1.7vw, 20px);
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  .slide.title .badge {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 18px;
+  }
+
+  /* --- Slide 1: comparison table --- */
   .compare-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: clamp(16px, 1.8vw, 20px);
   }
 
   .compare-table th {
     text-align: left;
     font-weight: 700;
-    font-size: 11px;
-    letter-spacing: 0.06em;
+    font-size: 13px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ink-soft);
-    padding: 0 10px 8px 0;
+    padding: 0 14px 14px 0;
     border-bottom: 1px solid var(--line);
   }
 
   .compare-table td {
-    padding: 10px 10px 10px 0;
+    padding: 18px 14px 18px 0;
     border-bottom: 1px solid var(--line);
     vertical-align: top;
   }
@@ -157,14 +179,13 @@
 
   .compare-table td.label {
     font-weight: 700;
-    width: 15%;
+    width: 16%;
     white-space: nowrap;
-    padding-right: 14px;
   }
 
   .compare-table td.before {
     color: var(--old);
-    width: 40%;
+    width: 36%;
   }
 
   .compare-table td.after {
@@ -172,31 +193,26 @@
     font-weight: 500;
   }
 
-  .arrow-cell { color: var(--accent); font-weight: 700; width: 4%; text-align: center; }
+  .arrow-cell { color: var(--accent); font-weight: 700; width: 5%; text-align: center; }
 
-  .quote {
-    font-style: normal;
-    color: var(--ink-soft);
-  }
+  .quote { color: var(--ink-soft); }
+  .quote b { color: var(--accent); font-weight: 700; }
 
-  .quote b {
-    color: var(--accent);
-    font-weight: 700;
-  }
-
+  /* --- Slide 2: errors --- */
   ol.errors {
     margin: 0;
     padding: 0;
     list-style: none;
     counter-reset: err;
-    font-size: 13.5px;
+    font-size: clamp(17px, 2vw, 22px);
   }
 
   ol.errors li {
     counter-increment: err;
     display: flex;
-    gap: 10px;
-    padding: 7px 0;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 14px 0;
     border-bottom: 1px solid var(--line);
   }
 
@@ -206,44 +222,40 @@
     content: counter(err);
     font-family: "IBM Plex Mono", monospace;
     font-weight: 500;
-    font-size: 12px;
+    font-size: 16px;
     color: var(--paper-raised);
     background: var(--accent);
-    width: 18px;
-    height: 18px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex: none;
-    margin-top: 1px;
+    margin-top: 2px;
   }
 
   .errors-note {
-    margin: 10px 0 0;
-    font-size: 12px;
+    margin: 24px 0 0;
+    font-size: 15px;
     color: var(--ink-soft);
+    max-width: 68ch;
   }
 
-  .card {
-    background: var(--paper-raised);
-    border: 1px solid var(--line);
-    border-radius: 3px;
-    padding: 14px 16px;
-  }
-
+  /* --- Slide 3: remaining tasks --- */
   ul.plain {
     margin: 0;
     padding: 0;
     list-style: none;
-    font-size: 13px;
+    font-size: clamp(16px, 1.9vw, 21px);
   }
 
   ul.plain li {
-    padding: 7px 0;
+    padding: 16px 0;
     border-bottom: 1px solid var(--line);
     display: flex;
-    gap: 8px;
+    gap: 14px;
+    max-width: 74ch;
   }
 
   ul.plain li:last-child { border-bottom: none; }
@@ -256,209 +268,191 @@
 
   ul.plain li b { font-weight: 700; }
 
+  /* --- Slide 4: cost --- */
   .cost-figure {
     display: flex;
     align-items: baseline;
-    gap: 10px;
-    margin: 4px 0 10px;
+    gap: 16px;
+    margin: 4px 0 20px;
   }
 
   .cost-figure .num {
     font-family: "IBM Plex Mono", monospace;
     font-weight: 500;
-    font-size: 26px;
+    font-size: clamp(52px, 8vw, 84px);
     color: var(--accent);
     font-variant-numeric: tabular-nums;
+    line-height: 1;
   }
 
   .cost-figure .unit {
-    font-size: 12px;
+    font-size: 16px;
     color: var(--ink-soft);
   }
 
   .cost-detail {
-    font-size: 12.5px;
+    font-size: 16px;
     color: var(--ink-soft);
-    margin: 0 0 10px;
+    margin: 0 0 20px;
+    max-width: 70ch;
   }
 
   .warn-box {
     background: var(--warn-soft);
-    border-left: 3px solid var(--warn);
-    padding: 9px 12px;
-    font-size: 12.5px;
-    border-radius: 0 3px 3px 0;
+    border-left: 4px solid var(--warn);
+    padding: 16px 20px;
+    font-size: 17px;
+    border-radius: 0 4px 4px 0;
+    max-width: 70ch;
+    margin-bottom: 16px;
   }
 
   .warn-box b { color: var(--warn); }
 
   .sources {
-    margin-top: 8px;
-    font-size: 11px;
+    font-size: 12.5px;
     color: var(--ink-soft);
   }
 
   .sources a { color: var(--ink-soft); text-decoration: underline; text-decoration-color: var(--line); }
 
+  /* --- Slide 5: time + closing --- */
   .time-row {
     display: flex;
     align-items: baseline;
-    gap: 10px;
+    gap: 18px;
+    margin-bottom: 10px;
+  }
+
+  .time-row .num {
     font-family: "IBM Plex Mono", monospace;
-    font-size: 21px;
+    font-weight: 500;
+    font-size: clamp(64px, 10vw, 100px);
     color: var(--accent);
     font-variant-numeric: tabular-nums;
-    margin-bottom: 4px;
+    line-height: 1;
   }
 
-  .time-row span.label {
-    font-family: "Noto Sans KR", sans-serif;
-    font-size: 12.5px;
+  .time-row .label {
+    font-size: 17px;
     color: var(--ink-soft);
+    max-width: 24ch;
   }
 
-  footer.colophon {
-    margin-top: 28px;
-    padding-top: 14px;
-    border-top: 2.5px solid var(--ink);
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 20px;
-  }
-
-  footer.colophon p {
-    font-family: "Noto Serif KR", serif;
+  .slide.closing .note {
     font-size: 15px;
-    font-weight: 500;
-    margin: 0;
-    text-wrap: balance;
+    color: var(--ink-soft);
+    margin: 0 0 60px;
   }
 
-  footer.colophon .stamp {
-    font-size: 11px;
-    color: var(--ink-soft);
-    white-space: nowrap;
-    text-align: right;
+  .slide.closing .final {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 500;
+    font-size: clamp(24px, 3.4vw, 36px);
+    text-wrap: balance;
+    border-top: 2.5px solid var(--ink);
+    padding-top: 28px;
+    margin: 0;
   }
 
   @media (max-width: 720px) {
-    .sheet { padding: 28px 20px; }
-    .grid { grid-template-columns: 1fr; }
-    header.masthead { flex-direction: column; align-items: flex-start; }
-    header.masthead .meta { text-align: left; }
+    .slide { padding: 16vh 6vw 8vh; }
     .compare-table { display: block; overflow-x: auto; }
-    footer.colophon { flex-direction: column; align-items: flex-start; }
+    .compare-table td.label { white-space: normal; }
   }
 </style>
 </head>
 <body>
-<div class="sheet">
 
-  <header class="masthead">
-    <div>
-      <p class="kicker">프로토타입 v0.1 · 결과 비교</p>
-      <h1>스포츠 문화 초고 생성, 무엇이 달라졌나</h1>
-    </div>
-    <div class="meta">기존 9단계 → 5단계로 재구성<br>2026. 8. 20</div>
+  <header class="topbar">
+    <span class="kicker">프로토타입 v0.1</span>
+    <span class="title">스포츠 문화 초고 생성 — 결과 비교</span>
   </header>
 
-  <p class="lede">기존 단계 중 불필요한 부분을 줄여 5단계로 다시 짰고, 그 과정에서 4개 출판사의 교과서·지도서 자료를 더 폭넓게 살펴 실제 교과서가 쓰는 집필 방식을 초고 생성에 반영했다.</p>
+  <section class="slide title">
+    <p class="badge">기존 9단계 → 5단계로 재구성 · 2026. 8. 20</p>
+    <h1>스포츠 문화 초고 생성,<br>무엇이 달라졌나</h1>
+    <p>기존 단계 중 불필요한 부분을 줄여 5단계로 다시 짰고, 그 과정에서 4개 출판사의 교과서·지도서 자료를 더 폭넓게 살펴 실제 교과서가 쓰는 집필 방식을 초고 생성에 반영했다.</p>
+  </section>
 
-  <div class="grid">
-    <div class="col-main">
+  <section class="slide">
+    <span class="slide-mark">01 / 05</span>
+    <h2>결과물 비교</h2>
+    <table class="compare-table">
+      <tr><th>구분</th><th>이전</th><th></th><th>지금</th></tr>
+      <tr>
+        <td class="label">문장</td>
+        <td class="before">같은 조건이면 항상 같은 문장</td>
+        <td class="arrow-cell">→</td>
+        <td class="after">매번 새로 집필돼 문장이 달라짐</td>
+      </tr>
+      <tr>
+        <td class="label">절 구성</td>
+        <td class="before">소단원과 무관하게 같은 제목 4개 반복</td>
+        <td class="arrow-cell">→</td>
+        <td class="after">소단원마다 다른 제목 — <span class="quote">예: <b>"도구가 만들어 낸 경기의 언어"</b></span></td>
+      </tr>
+      <tr>
+        <td class="label">단원 마무리</td>
+        <td class="before">본문과 똑같은 설명글</td>
+        <td class="arrow-cell">→</td>
+        <td class="after">복습·체크리스트·활동 중심 — <span class="quote">예: <b>"나의 배움 점검표"</b></span></td>
+      </tr>
+      <tr>
+        <td class="label">실기형</td>
+        <td class="before">이론형과 내용 구분이 거의 없음</td>
+        <td class="arrow-cell">→</td>
+        <td class="after">역할 수행·참여 활동 중심으로 차별화</td>
+      </tr>
+      <tr>
+        <td class="label">삽화</td>
+        <td class="before">내용과 무관한 고정 틀</td>
+        <td class="arrow-cell">→</td>
+        <td class="after">내용에 맞는 이미지를 직접 생성(선택 사항)</td>
+      </tr>
+    </table>
+  </section>
 
-      <section>
-        <h2><span class="num">01</span>결과물 비교</h2>
-        <table class="compare-table">
-          <tr><th>구분</th><th>이전</th><th></th><th>지금</th></tr>
-          <tr>
-            <td class="label">문장</td>
-            <td class="before">같은 조건이면 항상 같은 문장</td>
-            <td class="arrow-cell">→</td>
-            <td class="after">매번 새로 집필돼 문장이 달라짐</td>
-          </tr>
-          <tr>
-            <td class="label">절 구성</td>
-            <td class="before">소단원과 무관하게 같은 제목 4개 반복</td>
-            <td class="arrow-cell">→</td>
-            <td class="after">소단원마다 다른 제목 — <span class="quote">예: <b>"도구가 만들어 낸 경기의 언어"</b></span></td>
-          </tr>
-          <tr>
-            <td class="label">단원 마무리</td>
-            <td class="before">본문과 똑같은 설명글</td>
-            <td class="arrow-cell">→</td>
-            <td class="after">복습·체크리스트·활동 중심 — <span class="quote">예: <b>"나의 배움 점검표"</b></span></td>
-          </tr>
-          <tr>
-            <td class="label">실기형</td>
-            <td class="before">이론형과 내용 구분이 거의 없음</td>
-            <td class="arrow-cell">→</td>
-            <td class="after">역할 수행·참여 활동 중심으로 차별화</td>
-          </tr>
-          <tr>
-            <td class="label">삽화</td>
-            <td class="before">내용과 무관한 고정 틀</td>
-            <td class="arrow-cell">→</td>
-            <td class="after">내용에 맞는 이미지를 직접 생성(선택 사항)</td>
-          </tr>
-        </table>
-      </section>
+  <section class="slide">
+    <span class="slide-mark">02 / 05</span>
+    <h2>개발 중 발견한 주요 오류</h2>
+    <ol class="errors">
+      <li>전체 스타일 3종 중 2종이 실제로는 같은 결과로 나옴</li>
+      <li>절 제목이 내용과 무관하게 항상 같은 틀로 고정됨</li>
+      <li>"실기형"을 골라도 "이론형"과 똑같이 생성됨</li>
+      <li>절 개수가 늘어나면서 일부 절 내용이 화면에서 빠짐</li>
+      <li>생성한 삽화가 다른 컴퓨터에서는 보이지 않음</li>
+    </ol>
+    <p class="errors-note">자료가 최종 원고까지 전달되는 여러 단계에서 값이 누락·왜곡되던 지점들 — 모두 확인 후 수정 완료.</p>
+  </section>
 
-      <section>
-        <h2><span class="num">02</span>개발 중 발견한 주요 오류</h2>
-        <ol class="errors">
-          <li>전체 스타일 3종 중 2종이 실제로는 같은 결과로 나옴</li>
-          <li>절 제목이 내용과 무관하게 항상 같은 틀로 고정됨</li>
-          <li>"실기형"을 골라도 "이론형"과 똑같이 생성됨</li>
-          <li>절 개수가 늘어나면서 일부 절 내용이 화면에서 빠짐</li>
-          <li>생성한 삽화가 다른 컴퓨터에서는 보이지 않음</li>
-        </ol>
-        <p class="errors-note">자료가 최종 원고까지 전달되는 여러 단계에서 값이 누락·왜곡되던 지점들 — 모두 확인 후 수정 완료.</p>
-      </section>
+  <section class="slide">
+    <span class="slide-mark">03 / 05</span>
+    <h2>아직 남은 과제</h2>
+    <ul class="plain">
+      <li>종목·스타일·유형 전체 조합은 다 확인하지 못함(대표 사례 위주로 검토)</li>
+      <li><b>모의심사(5단계) 미실행</b> — AI 초고 자체를 심사하는 기능이 아니라, 편집자가 수정을 마친 최종본을 올려 심사받는 용도. 이 흐름은 아직 검증 전</li>
+      <li>휴대폰 화면에서 일부가 잘려 보이는 문제 — 수정 중</li>
+      <li>PPT로 내보내면 화면 배치와 100% 같지는 않음</li>
+    </ul>
+  </section>
 
-    </div>
+  <section class="slide">
+    <span class="slide-mark">04 / 05</span>
+    <h2>180쪽 전체 1회 생성 비용</h2>
+    <div class="cost-figure"><span class="num">$20–30</span><span class="unit">내외 · 근사치</span></div>
+    <p class="cost-detail">펼침면 90개 기준 — 텍스트 90회 생성 + 삽화 평균 3장(총 약 270장). 실제 시세: 이미지 장당 3~8센트, 텍스트는 백만 토큰당 입력 $5 · 출력 $30(최상위 등급 기준).</p>
+    <div class="warn-box"><b>결과가 만족스러울 때까지</b> 보통 여러 번 다시 만들게 됨 — 2~3회 재생성 시 비용도 2~3배 이상.</div>
+    <p class="sources">3자 집계 기준 · 발표 전 실제 청구 내역 재확인 권장 — <a href="https://wavespeed.ai/blog/posts/gpt-image-2-pricing-2026/">WaveSpeed</a>, <a href="https://unifically.com/blogs/gpt-image-2">Unifically</a>, <a href="https://www.finout.io/blog/gpt-5.6-pricing-2026-sol-terra-and-luna-tiers-explained">Finout</a></p>
+  </section>
 
-    <div class="col-side">
+  <section class="slide closing">
+    <span class="slide-mark">05 / 05</span>
+    <h2>개발에 걸린 시간</h2>
+    <div class="time-row"><span class="num">13</span><span class="label">시간 — 8/19~8/20 이틀 집중 작업, 기록 기준</span></div>
+    <p class="note">5단계 골격 자체는 7월 말부터 별도로 준비됨.</p>
+    <p class="final">"고정된 결과물에서, 근거에 기반해 매번 새로 만들어지는 결과물로."</p>
+  </section>
 
-      <section>
-        <h2><span class="num">03</span>아직 남은 과제</h2>
-        <div class="card">
-          <ul class="plain">
-            <li>종목·스타일·유형 전체 조합은 다 확인하지 못함(대표 사례 위주로 검토)</li>
-            <li><b>모의심사(5단계) 미실행</b> — AI 초고 자체를 심사하는 기능이 아니라, 편집자가 수정을 마친 최종본을 올려 심사받는 용도. 이 흐름은 아직 검증 전</li>
-            <li>휴대폰 화면에서 일부가 잘려 보이는 문제 — 수정 중</li>
-            <li>PPT로 내보내면 화면 배치와 100% 같지는 않음</li>
-          </ul>
-        </div>
-      </section>
-
-      <section>
-        <h2><span class="num">04</span>180쪽 전체 1회 생성 비용</h2>
-        <div class="card">
-          <div class="cost-figure"><span class="num">$20–30</span><span class="unit">내외 · 근사치</span></div>
-          <p class="cost-detail">펼침면 90개 기준 — 텍스트 90회 생성 + 삽화 평균 3장(총 약 270장). 실제 시세: 이미지 장당 3~8센트, 텍스트는 백만 토큰당 입력 $5 · 출력 $30(최상위 등급 기준).</p>
-          <div class="warn-box"><b>결과가 만족스러울 때까지</b> 보통 여러 번 다시 만들게 됨 — 2~3회 재생성 시 비용도 2~3배 이상.</div>
-          <p class="sources">3자 집계 기준 · 발표 전 실제 청구 내역 재확인 권장 — <a href="https://wavespeed.ai/blog/posts/gpt-image-2-pricing-2026/">WaveSpeed</a>, <a href="https://unifically.com/blogs/gpt-image-2">Unifically</a>, <a href="https://www.finout.io/blog/gpt-5.6-pricing-2026-sol-terra-and-luna-tiers-explained">Finout</a></p>
-        </div>
-      </section>
-
-      <section>
-        <h2><span class="num">05</span>개발에 걸린 시간</h2>
-        <div class="card">
-          <div class="time-row">13<span class="label">시간 (8/19~8/20 이틀 집중 작업, 기록 기준)</span></div>
-          <p class="cost-detail" style="margin-bottom:0;">5단계 골격 자체는 7월 말부터 별도로 준비됨.</p>
-        </div>
-      </section>
-
-    </div>
-  </div>
-
-  <footer class="colophon">
-    <p>고정된 결과물에서, 근거에 기반해 매번 새로 만들어지는 결과물로.</p>
-    <div class="stamp">스포츠 문화 초고 생성 · 프로토타입 v0.1</div>
-  </footer>
-
-</div>
 </body>
 </html>
