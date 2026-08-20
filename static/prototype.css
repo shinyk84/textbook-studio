@@ -2371,6 +2371,7 @@
   grid-template-columns: 1fr auto 1fr;
   aspect-ratio: 1400 / 900;
   width: 100%;
+  min-width: 620px;
   overflow: hidden;
   border: 1px solid #d3dbd6;
   border-radius: 7px;
@@ -2659,6 +2660,7 @@
   padding: 24px;
   border-radius: 14px;
   background: rgb(18 29 23 / 92%);
+  overflow-x: auto;
 }
 
 .draft-spread-image.expanded .spread-page-view {
