@@ -2852,8 +2852,7 @@ function renderSportsCultureDraftStudio() {
     </section>
     <div class="generation-settings-grid compact-grid">
       <label class="editor-field"><span>생성 제공자</span><select id="draftProviderSelect">${providerOptions.map((provider) => `<option value="${escapeHtml(provider.id)}" ${provider.id === activeProvider?.id ? "selected" : ""}>${escapeHtml(provider.label)} · ${escapeHtml(provider.mode)}</option>`).join("")}</select></label>
-      <label class="toggle-field"><input type="checkbox" id="includeImagesToggle" ${state.includeImages ? "checked" : ""} /><span>삽화 이미지 — AI 실시간 생성 시 삽화도 함께 생성 (추가 비용·시간 소요)</span></label>
-      <div class="editor-field"><span>생성 순서</span><strong>표본 확인 → 다중 선택 → 일괄 생성</strong></div>
+      <label class="editor-field toggle-editor-field"><span>삽화 이미지</span><span class="toggle-editor-control"><input type="checkbox" id="includeImagesToggle" ${state.includeImages ? "checked" : ""} /> AI 실시간 생성 시 삽화도 함께 생성 (추가 비용·시간 소요)</span></label>
     </div>
     <section class="draft-target-panel">
       <div class="draft-target-heading"><div><strong>소단원 유형과 생성 대상</strong></div><span id="draftTargetSelectedCount">${selectedKeys.size}개 선택</span></div>

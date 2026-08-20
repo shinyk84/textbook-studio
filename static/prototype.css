@@ -1831,6 +1831,25 @@
   line-height: 1.45;
 }
 
+.toggle-editor-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #d7dfda;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.toggle-editor-control input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
 .content-type-settings {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
