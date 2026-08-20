@@ -762,3 +762,14 @@
 - 참고(텀 관련 질문에 대한 답): 생성 후 다른 기기에서 보이기까지 약간의 지연은 정상이다 — 저장 자체는 생성 직후 즉시 이루어지지만, 이미지는 텍스트와 별도로 저장되어 있어 다른 기기가 페이지를 열 때 본문을 먼저 보여준 뒤 이미지들을 하나씩(동시 3개 제한) 다시 받아오기 때문에 몇 초~1분 정도 걸릴 수 있다.
 - 수정 파일: `static/prototype.css`, `static/prototype.html`(캐시 버전).
 - 다음 시작점: 사용자가 실제 모바일에서 펼침면을 좌우로 스크롤해 오른쪽 페이지와 이미지가 보이는지 확인.
+- **후속 수정 필요**: 배포 후 사용자가 "좌우 스크롤 안 나와"라고 재확인해 줘서, 아래 항목에서 진짜 원인을 다시 찾음.
+
+### 2026-08-20(계속2) · 위 수정으로도 스크롤이 안 생긴 진짜 원인 — `.framework-comparison-grid.single-draft`가 스크롤을 꺼 두고 있었음
+
+- 상태: 완료
+- 배경: 바로 앞 수정(`.spread-page-view`에 `min-width:620px`)을 배포한 뒤에도 사용자가 "모바일에서 스크롤 안 나와"/"좌우 스크롤 안 나와"라고 재확인함.
+- 진짜 원인: 초안 이력의 "회차 단위 아코디언"(한 항목을 펼쳤을 때 보이는 화면, 사용자가 캡처로 보여준 "PPT 다운로드" 버튼이 있는 화면)은 `.framework-comparison-grid.single-draft` 클래스를 쓴다. 이 클래스는 `grid-template-columns: minmax(720px, 1fr)`로 칸 너비를 최소 720px로 강제하면서, 기본 `.framework-comparison-grid`가 이미 갖고 있던 `overflow-x: auto`(가로 스크롤 제공)를 `overflow-x: visible`로 덮어써서 **스크롤 자체를 꺼 버리고 있었다.** 즉 내 앞선 수정(`.spread-page-view`의 `min-width:620px`)은 이미 720px로 더 크게 고정돼 있던 바깥 칸보다 작아서 애초에 아무 효과가 없었고, 진짜 문제는 그보다 한 단계 바깥에 있었다. 스크롤이 꺼진 채로 칸이 화면보다 넓으니, 넘치는 부분이 상위 요소들(`.draft-log-body`, `.draft-log-list`, `.draft-image-comparison-card`)의 `overflow:hidden`에 의해 조용히 잘렸다.
+- 수정: `.framework-comparison-grid.single-draft`의 `overflow-x: visible`을 `overflow-x: auto`로 바꿔, 이 뷰에서도 원래 다중 비교 뷰(`.framework-comparison-grid` 기본값)처럼 가로 스크롤이 다시 생기도록 함. 상위 요소들은 모두 `min-width:0`을 갖고 있어 이 스크롤 컨테이너가 위로 새지 않고 정확히 이 지점에서 잡힌다는 것도 함께 확인함.
+- 검증: CSS 변경이라 자동 테스트로 직접 검증하기는 어려움 — 전체 자동 테스트 76개(회귀 없음)만 확인. 실제 모바일에서 좌우 스크롤이 생기는지는 사용자 확인 필요.
+- 수정 파일: `static/prototype.css`, `static/prototype.html`(캐시 버전).
+- 다음 시작점: 사용자가 실제 모바일에서 이번에는 좌우 스크롤이 생기는지, 오른쪽 페이지·이미지가 보이는지 확인. (참고: 초안 3개를 한꺼번에 비교하는 화면(`framework-comparison-grid` 기본, single-draft 아님)도 같은 720px 강제 폭을 쓰는데 이건 원래부터 `overflow-x:auto`였으므로 이번 문제와 무관하지만, 혹시 그 화면에서도 비슷한 증상이 보이면 함께 확인해야 함.)

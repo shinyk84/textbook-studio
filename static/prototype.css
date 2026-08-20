@@ -2127,7 +2127,7 @@
   width: 100%;
   max-width: 100%;
   grid-template-columns: minmax(720px, 1fr);
-  overflow-x: visible;
+  overflow-x: auto;
 }
 
 @media (max-width: 980px) {
