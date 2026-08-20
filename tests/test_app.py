@@ -403,6 +403,24 @@ class StudioDataTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.app.approve_workflow_stage("outline")
 
+    def test_prototype_image_round_trips_and_rejects_unknown_id(self):
+        image_id = self.app.store_prototype_image("QQ==")
+        self.assertEqual(self.app.fetch_prototype_image(image_id), "QQ==")
+        self.assertEqual(self.app.call_prototype_image_get(image_id), {"imageBase64": "QQ=="})
+        self.assertIsNone(self.app.fetch_prototype_image("no-such-id"))
+        with self.assertRaises(ValueError):
+            self.app.call_prototype_image_get("no-such-id")
+
+    def test_sports_culture_image_endpoint_stores_and_returns_image_id(self):
+        original = self.app.call_openai_for_sports_culture_image
+        self.app.call_openai_for_sports_culture_image = lambda description, size: {"imageBase64": "QQ=="}
+        try:
+            result = self.app.call_prototype_sports_culture_image({"description": "테스트", "size": "small"})
+        finally:
+            self.app.call_openai_for_sports_culture_image = original
+        self.assertEqual(result["imageBase64"], "QQ==")
+        self.assertEqual(self.app.fetch_prototype_image(result["imageId"]), "QQ==")
+
 
 if __name__ == "__main__":
     unittest.main()

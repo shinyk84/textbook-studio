@@ -827,6 +827,7 @@
             size: item.size,
           });
           item.imageBase64 = result.imageBase64;
+          item.imageId = result.imageId;
         } catch (error) {
           item.imageError = error?.message || "이미지 생성에 실패했습니다.";
         } finally {

@@ -980,6 +980,54 @@ let serverStateVersion = null;
 let serverSyncTimer = null;
 let serverSyncInFlight = false;
 
+// 삽화 이미지는 저장·동기화 시 imageId만 남고 imageBase64는 빠진다(위 store 설명 참고).
+// 어느 컴퓨터에서 열든, 화면에 없는 imageBase64를 이 id로 다시 받아와 채운다.
+function collectAllVisualItems() {
+  const items = [];
+  (projectStore.projects || []).forEach((project) => {
+    Object.values(project.books || {}).forEach((book) => {
+      (book.frameworkDraftLog || []).forEach((batch) => {
+        (batch.entries || []).forEach((entry) => {
+          (entry.spreads || []).forEach((spread) => {
+            const visuals = spread.textbook_manuscript?.visuals;
+            if (!visuals) return;
+            ["left", "right"].forEach((side) => {
+              (visuals[side] || []).forEach((item) => items.push(item));
+            });
+          });
+        });
+      });
+    });
+  });
+  return items;
+}
+
+async function rehydrateMissingImages() {
+  const items = collectAllVisualItems().filter((item) => item.imageId && !item.imageBase64);
+  if (!items.length) return;
+  let cursor = 0;
+  let restored = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const item = items[cursor];
+      cursor += 1;
+      try {
+        const response = await fetch(`/api/prototype/image/${encodeURIComponent(item.imageId)}`);
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.result?.imageBase64) {
+          item.imageBase64 = data.result.imageBase64;
+          restored += 1;
+        }
+      } catch {
+        // 네트워크 오류면 이번엔 건너뛰고 다음에 다시 시도한다.
+      }
+    }
+  }
+  const workerCount = Math.min(3, items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  if (restored) renderWorkspace();
+}
+
 async function syncProjectStoreFromServer({ silent = true } = {}) {
   try {
     const response = await fetch("/api/prototype/state");
@@ -999,6 +1047,8 @@ async function syncProjectStoreFromServer({ silent = true } = {}) {
     if (!silent) showToast("다른 컴퓨터에서 저장된 최신 내용을 불러왔습니다.");
   } catch {
     // 오프라인이거나 서버에 연결하지 못하면 로컬 저장값을 그대로 사용한다.
+  } finally {
+    rehydrateMissingImages();
   }
 }
 
@@ -3194,9 +3244,20 @@ function renderMockReview() {
     ${state.mockReview && previousResultMatches ? renderMockReviewResult(state.mockReview) : ""}`;
 }
 
+// 드롭다운·체크박스를 바꿀 때마다 전체 화면을 다시 그리므로, 그대로 두면 스크롤 위치가
+// 매번 맨 위로 초기화된다(특히 소단원 목록처럼 자체 스크롤이 있는 영역). 다시 그리기 전의
+// 창·목록 스크롤 위치를 기억했다가 다시 그린 뒤 그대로 복원한다.
 function renderWorkspace() {
   const renderers = [renderProject, renderCurriculum, renderUnits, renderFrameworks, renderMockReview];
   const workspace = document.querySelector("#workspace");
+  const windowScrollY = window.scrollY;
+  const innerScrollTops = Array.from(workspace.querySelectorAll(".draft-target-list, .special-page-list")).map((el) => el.scrollTop);
+  const restoreScroll = () => {
+    window.scrollTo(0, windowScrollY);
+    workspace.querySelectorAll(".draft-target-list, .special-page-list").forEach((el, index) => {
+      if (innerScrollTops[index] != null) el.scrollTop = innerScrollTops[index];
+    });
+  };
   workspace.replaceChildren();
   const project = activeProject();
   if (state.currentStep > 0 && isPairedProject(project) && project.viewMode === "compare") {
@@ -3215,11 +3276,13 @@ function renderWorkspace() {
     document.querySelector("#workspace").innerHTML = `
       <div class="comparison-heading"><p class="section-kicker">GRADE COMPARISON</p><h2>${escapeHtml(project.band || project.pairLabel || project.name)} 비교 보기</h2><p>같은 단계의 두 학년책을 나란히 확인합니다. 수정하려면 왼쪽에서 학년을 선택하세요.</p></div>
       <div class="book-comparison-grid">${panels}</div>`;
+    restoreScroll();
     return;
   }
   document.querySelector("#workspace").innerHTML = renderers[state.currentStep]();
   bindWorkspace();
   renderDraftCanvases();
+  restoreScroll();
 }
 
 function bindWorkspace() {

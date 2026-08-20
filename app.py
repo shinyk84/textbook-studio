@@ -7,6 +7,7 @@ import json
 import mimetypes
 import os
 import re
+import secrets
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -3157,9 +3158,29 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
     if page_role == "small-unit":
         page_role_note = "지금 쓰는 지면은 소단원 본문이다. 제공된 근거는 이 소단원에 특정된 발췌문이다."
     elif page_role == "unit-intro":
-        page_role_note = "지금 쓰는 지면은 대단원 도입이다. 이 대단원 전체를 여는 문제의식과 학습 방향을 제시한다."
+        page_role_note = (
+            "지금 쓰는 지면은 대단원 도입이다. 실제 고등학교 교과서의 대단원 도입은 "
+            "분석적인 설명문이 아니라 다음과 같이 구성된다: (1) 이 단원이 다루는 범위를 "
+            "압축해 안내하는 2~4문장짜리 짧은 소개글(예: '이 단원에서는 ~을 이해할 수 "
+            "있다', '이 단원을 배우면 ~을 실천할 수 있다'), (2) 이 단원에 속한 소단원 "
+            "제목들을 번호와 함께 나열하는 목차 미리보기, (3) 필요하면 짧은 학습 목표 "
+            "문장 여러 개(각 한 문장) 또는 단원을 여는 질문 하나. 절 하나가 여러 문장이 "
+            "이어지는 긴 문단을 쓰지 않는다 — section의 title과 paragraphs를 위 (1)~(3) "
+            "같은 서로 다른 역할로 나누어 짧게 구성한다."
+        )
     elif page_role == "unit-closing":
-        page_role_note = "지금 쓰는 지면은 대단원 마무리다. 대단원에서 다룬 내용을 종합·정리하고 성찰을 유도한다."
+        page_role_note = (
+            "지금 쓰는 지면은 대단원 마무리다. 실제 고등학교 교과서의 대단원 마무리는 "
+            "분석적인 설명문이 아니라, 서로 다른 역할을 맡은 짧은 활동 블록 여러 개로 "
+            "구성된다. 다음 유형 중 이 단원 내용에 맞는 것들을 절(section)로 구성한다 — "
+            "배운 내용을 빈칸 채우기·짧은 문답·용어 연결로 정리하는 복습 블록, 이 "
+            "단원의 학습 목표에 맞춰 예/아니오나 O/X, 우수·보통·미흡 등으로 스스로 "
+            "점검하는 자기평가 체크리스트, 배운 내용을 새로운 사례나 자신의 경험에 "
+            "적용해 글이나 계획을 쓰게 하는 활동·프로젝트 프롬프트. 각 section의 "
+            "paragraphs는 학생에게 직접 지시하는 짧은 문장('~해 보자', '~적어 보자', "
+            "'~점검해 보자', '~판단하여 고쳐 보자' 등)으로 쓰고, 다음 문장으로 자연스럽게 "
+            "이어지는 분석적인 설명 문단을 쓰지 않는다."
+        )
     else:
         page_role_note = "지금 쓰는 지면은 대단원 안의 특별 페이지(읽을거리·인물과 진로·안전·문화 비평·프로젝트·수행평가 등)다. 본문 소단원과는 별도로, 확장된 사례나 활동을 다룬다."
     instructions = (
@@ -3183,9 +3204,10 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
         "문체, '균형형'은 그 중간으로 쓴다.\n"
         "6) 여러 펼침면이 주어지면 펼침면마다 다른 내용과 사례를 다루고, 같은 문장이나 "
         "표현을 반복하지 않는다.\n"
-        "7) 각 절은 2~4개 문단으로 자연스럽게 흐르는 설명문으로 쓴다. 문단 개수나 "
-        "'정의-사례-과제' 같은 고정 틀에 얽매이지 말고, 내용에 맞는 자연스러운 전개를 "
-        "선택한다.\n"
+        "7) 소단원 본문(page_role이 small-unit)이나 특별 페이지의 설명 중심 절은 2~4개 "
+        "문단으로 자연스럽게 흐르는 설명문으로 쓴다. 문단 개수나 '정의-사례-과제' 같은 "
+        "고정 틀에 얽매이지 말고, 내용에 맞는 자연스러운 전개를 선택한다. 단, 대단원 "
+        "도입·마무리(unit-intro/unit-closing)는 이 규칙 대신 아래 11)을 따른다.\n"
         "8) 고등학생이 읽기에 적절한 문장 길이와 어휘를 사용한다.\n"
         "9) left_visuals/right_visuals(각 페이지의 삽화 구성)는 펼침면마다 개수·크기를 "
         "고정하지 않는다. 실제 고등학교 교과서는 페이지마다 삽화 구성이 다르다 — 개념 "
@@ -3201,7 +3223,12 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
         "선택과 서사를 따라가는 절 구성이 될 수 있고, 통계나 논쟁이 중심이면 자료 "
         "비교와 쟁점 구조를 따라가는 절 구성이 될 수 있다. 같은 page_role이라도 "
         "종목이나 소단원이 다르면 절 제목의 표현과 순서, 개수(3~5개 사이)가 달라져야 "
-        "한다 — 매번 같은 뼈대를 반복하면 안 된다."
+        "한다 — 매번 같은 뼈대를 반복하면 안 된다.\n"
+        "11) 대단원 도입(unit-intro)·마무리(unit-closing)는 위 page_role 설명에 따라 "
+        "목차 미리보기·학습 목표·자기평가 체크리스트·활동 프롬프트 같은 짧고 구체적인 "
+        "항목으로 구성한다. 이 두 역할에서는 paragraphs의 각 문자열을 한두 문장 이내의 "
+        "짧은 항목(목차 한 줄, 체크리스트 한 문항, 활동 지시문 한 개 등)으로 쓰고, 절 "
+        "하나에 여러 문장이 이어지는 긴 문단을 담지 않는다."
     )
     request_body = {
         "model": manuscript_ai_config()["model"],
@@ -3379,10 +3406,58 @@ def call_openai_for_sports_culture_image(description: str, size: str) -> dict:
     return {"imageBase64": items[0]["b64_json"]}
 
 
+# 생성된 이미지(base64, 장당 약 2~3MB)는 projectStore에 그대로 두면 localStorage 용량과
+# 서버 동기화 요청 크기를 넘겨서(WORKLOG "Stop persisting AI-generated images" 참고) 클라이언트가
+# 저장·동기화 시 imageBase64를 항상 제외한다. 그 대신 이미지를 여기 별도 테이블에 저장하고
+# 가벼운 id만 projectStore에 남겨, 다른 컴퓨터에서도 그 id로 이미지를 다시 받아 볼 수 있게 한다.
+
+def ensure_prototype_image_table(db) -> None:
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS prototype_image (
+            id TEXT PRIMARY KEY,
+            image_base64 TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        """
+    )
+    db.commit()
+
+
+def store_prototype_image(image_base64: str) -> str:
+    image_id = secrets.token_hex(16)
+    with connect_db() as db:
+        ensure_prototype_image_table(db)
+        db.execute(
+            "INSERT INTO prototype_image (id, image_base64, created_at) VALUES (?, ?, ?)",
+            (image_id, image_base64, utc_now()),
+        )
+        db.commit()
+    return image_id
+
+
+def fetch_prototype_image(image_id: str) -> str | None:
+    with connect_db() as db:
+        ensure_prototype_image_table(db)
+        row = db.execute(
+            "SELECT image_base64 FROM prototype_image WHERE id = ?", (image_id,)
+        ).fetchone()
+    return row["image_base64"] if row else None
+
+
 def call_prototype_sports_culture_image(payload: dict) -> dict:
     description = str(payload.get("description", ""))
     size = str(payload.get("size", "small"))
-    return call_openai_for_sports_culture_image(description, size)
+    result = call_openai_for_sports_culture_image(description, size)
+    image_id = store_prototype_image(result["imageBase64"])
+    return {"imageBase64": result["imageBase64"], "imageId": image_id}
+
+
+def call_prototype_image_get(image_id: str) -> dict:
+    image_base64 = fetch_prototype_image(image_id)
+    if image_base64 is None:
+        raise ValueError("이미지를 찾을 수 없습니다. 다시 생성해 주세요.")
+    return {"imageBase64": image_base64}
 
 
 # --- 프로토타입(static/prototype.js) 전체 상태 저장 — 지금까지 브라우저 localStorage에만
@@ -4765,6 +4840,14 @@ class StudioHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/prototype/state":
             self.send_json({"result": call_prototype_state_get()})
+            return
+        prototype_image_prefix = "/api/prototype/image/"
+        if parsed.path.startswith(prototype_image_prefix):
+            try:
+                image_id = unquote(parsed.path[len(prototype_image_prefix) :])
+                self.send_json({"result": call_prototype_image_get(image_id)})
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
             return
         if parsed.path == "/api/editors":
             try:
