@@ -60,6 +60,22 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  [contenteditable="true"] {
+    cursor: text;
+    border-radius: 2px;
+    outline: 1px dashed transparent;
+    transition: outline-color 0.12s ease, background 0.12s ease;
+  }
+
+  [contenteditable="true"]:hover {
+    outline-color: var(--old);
+  }
+
+  [contenteditable="true"]:focus {
+    outline: 1.5px solid var(--accent);
+    background: var(--paper-raised);
+  }
+
   .topbar {
     position: sticky;
     top: 0;
@@ -380,109 +396,207 @@
     margin: 0;
   }
 
+  .edit-toolbar {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 8px 8px 16px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  }
+
+  .edit-toolbar .saved-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--old);
+    flex: none;
+    transition: background 0.15s ease;
+  }
+
+  .edit-toolbar.just-saved .saved-dot {
+    background: var(--accent);
+  }
+
+  .edit-toolbar button {
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  .edit-toolbar button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
   @media (max-width: 720px) {
     .slide { padding: 16vh 6vw 8vh; }
     .compare-table { display: block; overflow-x: auto; }
     .compare-table td.label { white-space: normal; }
+    .edit-toolbar { font-size: 11.5px; padding: 7px 7px 7px 12px; }
+  }
+
+  @media print {
+    .edit-toolbar { display: none; }
   }
 </style>
 </head>
 <body>
 
   <header class="topbar">
-    <span class="kicker">프로토타입 v0.1</span>
-    <span class="title">스포츠 문화 초고 생성 — 결과 비교</span>
+    <span class="kicker" data-ek="topbar-kicker">프로토타입 v0.1</span>
+    <span class="title" data-ek="topbar-title">스포츠 문화 초고 생성 — 결과 비교</span>
   </header>
 
   <section class="slide title">
-    <p class="badge">기존 9단계 → 5단계로 재구성 · 2026. 8. 20</p>
-    <h1>스포츠 문화 초고 생성,<br>무엇이 달라졌나</h1>
-    <p>기존 단계 중 불필요한 부분을 줄여 5단계로 다시 짰고, 그 과정에서 4개 출판사의 교과서·지도서 자료를 더 폭넓게 살펴 실제 교과서가 쓰는 집필 방식을 초고 생성에 반영했다.</p>
+    <p class="badge" data-ek="title-badge">기존 9단계 → 5단계로 재구성 · 2026. 8. 20</p>
+    <h1 data-ek="title-h1">스포츠 문화 초고 생성,<br>무엇이 달라졌나</h1>
+    <p data-ek="title-lede">기존 단계 중 불필요한 부분을 줄여 5단계로 다시 짰고, 그 과정에서 4개 출판사의 교과서·지도서 자료를 더 폭넓게 살펴 실제 교과서가 쓰는 집필 방식을 초고 생성에 반영했다.</p>
   </section>
 
   <section class="slide">
     <span class="slide-mark">01 / 05</span>
-    <h2>결과물 비교</h2>
+    <h2 data-ek="s1-h2">결과물 비교</h2>
     <table class="compare-table">
-      <tr><th>구분</th><th>이전</th><th></th><th>지금</th></tr>
+      <tr><th data-ek="s1-th1">구분</th><th data-ek="s1-th2">이전</th><th></th><th data-ek="s1-th3">지금</th></tr>
       <tr>
-        <td class="label">문장</td>
-        <td class="before">같은 조건이면 항상 같은 문장</td>
+        <td class="label" data-ek="s1-r1-label">문장</td>
+        <td class="before" data-ek="s1-r1-before">같은 조건이면 항상 같은 문장</td>
         <td class="arrow-cell">→</td>
-        <td class="after">매번 새로 집필돼 문장이 달라짐</td>
+        <td class="after" data-ek="s1-r1-after">매번 새로 집필돼 문장이 달라짐</td>
       </tr>
       <tr>
-        <td class="label">절 구성</td>
-        <td class="before">소단원과 무관하게 같은 제목 4개 반복</td>
+        <td class="label" data-ek="s1-r2-label">절 구성</td>
+        <td class="before" data-ek="s1-r2-before">소단원과 무관하게 같은 제목 4개 반복</td>
         <td class="arrow-cell">→</td>
-        <td class="after">소단원마다 다른 제목 — <span class="quote">예: <b>"도구가 만들어 낸 경기의 언어"</b></span></td>
+        <td class="after" data-ek="s1-r2-after">소단원마다 다른 제목 — <span class="quote">예: <b>"도구가 만들어 낸 경기의 언어"</b></span></td>
       </tr>
       <tr>
-        <td class="label">단원 마무리</td>
-        <td class="before">본문과 똑같은 설명글</td>
+        <td class="label" data-ek="s1-r3-label">단원 마무리</td>
+        <td class="before" data-ek="s1-r3-before">본문과 똑같은 설명글</td>
         <td class="arrow-cell">→</td>
-        <td class="after">복습·체크리스트·활동 중심 — <span class="quote">예: <b>"나의 배움 점검표"</b></span></td>
+        <td class="after" data-ek="s1-r3-after">복습·체크리스트·활동 중심 — <span class="quote">예: <b>"나의 배움 점검표"</b></span></td>
       </tr>
       <tr>
-        <td class="label">실기형</td>
-        <td class="before">이론형과 내용 구분이 거의 없음</td>
+        <td class="label" data-ek="s1-r4-label">실기형</td>
+        <td class="before" data-ek="s1-r4-before">이론형과 내용 구분이 거의 없음</td>
         <td class="arrow-cell">→</td>
-        <td class="after">역할 수행·참여 활동 중심으로 차별화</td>
+        <td class="after" data-ek="s1-r4-after">역할 수행·참여 활동 중심으로 차별화</td>
       </tr>
       <tr>
-        <td class="label">삽화</td>
-        <td class="before">내용과 무관한 고정 틀</td>
+        <td class="label" data-ek="s1-r5-label">삽화</td>
+        <td class="before" data-ek="s1-r5-before">내용과 무관한 고정 틀</td>
         <td class="arrow-cell">→</td>
-        <td class="after">내용에 맞는 이미지를 직접 생성(선택 사항)</td>
+        <td class="after" data-ek="s1-r5-after">내용에 맞는 이미지를 직접 생성(선택 사항)</td>
       </tr>
     </table>
   </section>
 
   <section class="slide">
     <span class="slide-mark">02 / 05</span>
-    <h2>개발 중 발견한 주요 오류</h2>
+    <h2 data-ek="s2-h2">개발 중 발견한 주요 오류</h2>
     <ol class="errors">
-      <li>전체 스타일 3종 중 2종이 실제로는 같은 결과로 나옴</li>
-      <li>절 제목이 내용과 무관하게 항상 같은 틀로 고정됨</li>
-      <li>"실기형"을 골라도 "이론형"과 똑같이 생성됨</li>
-      <li>절 개수가 늘어나면서 일부 절 내용이 화면에서 빠짐</li>
-      <li>생성한 삽화가 다른 컴퓨터에서는 보이지 않음</li>
+      <li data-ek="s2-li1">전체 스타일 3종 중 2종이 실제로는 같은 결과로 나옴</li>
+      <li data-ek="s2-li2">절 제목이 내용과 무관하게 항상 같은 틀로 고정됨</li>
+      <li data-ek="s2-li3">"실기형"을 골라도 "이론형"과 똑같이 생성됨</li>
+      <li data-ek="s2-li4">절 개수가 늘어나면서 일부 절 내용이 화면에서 빠짐</li>
+      <li data-ek="s2-li5">생성한 삽화가 다른 컴퓨터에서는 보이지 않음</li>
     </ol>
-    <p class="errors-note">자료가 최종 원고까지 전달되는 여러 단계에서 값이 누락·왜곡되던 지점들 — 모두 확인 후 수정 완료.</p>
+    <p class="errors-note" data-ek="s2-note">자료가 최종 원고까지 전달되는 여러 단계에서 값이 누락·왜곡되던 지점들 — 모두 확인 후 수정 완료.</p>
   </section>
 
   <section class="slide">
     <span class="slide-mark">03 / 05</span>
-    <h2>아직 남은 과제</h2>
+    <h2 data-ek="s3-h2">아직 남은 과제</h2>
     <ul class="plain">
-      <li>종목·스타일·유형 전체 조합은 다 확인하지 못함(대표 사례 위주로 검토)</li>
-      <li><b>모의심사(5단계) 미실행</b> — AI 초고 자체를 심사하는 기능이 아니라, 편집자가 수정을 마친 최종본을 올려 심사받는 용도. 이 흐름은 아직 검증 전</li>
-      <li>휴대폰 화면에서 일부가 잘려 보이는 문제 — 수정 중</li>
-      <li>PPT로 내보내면 화면 배치와 100% 같지는 않음</li>
+      <li data-ek="s3-li1">종목·스타일·유형 전체 조합은 다 확인하지 못함(대표 사례 위주로 검토)</li>
+      <li data-ek="s3-li2"><b>모의심사(5단계) 미실행</b> — AI 초고 자체를 심사하는 기능이 아니라, 편집자가 수정을 마친 최종본을 올려 심사받는 용도. 이 흐름은 아직 검증 전</li>
+      <li data-ek="s3-li3">휴대폰 화면에서 일부가 잘려 보이는 문제 — 수정 중</li>
+      <li data-ek="s3-li4">PPT로 내보내면 화면 배치와 100% 같지는 않음</li>
     </ul>
   </section>
 
   <section class="slide">
     <span class="slide-mark">04 / 05</span>
-    <h2>180쪽 전체 1회 생성 비용</h2>
-    <div class="cost-figure"><span class="num">$20–30</span><span class="unit">내외 · 근사치</span></div>
-    <p class="cost-detail">펼침면 90개 기준 — 텍스트 90회 생성 + 삽화 평균 3장(총 약 270장). 실제 시세: 이미지 장당 3~8센트, 텍스트는 백만 토큰당 입력 $5 · 출력 $30(최상위 등급 기준).</p>
-    <div class="warn-box"><b>결과가 만족스러울 때까지</b> 보통 여러 번 다시 만들게 됨 — 2~3회 재생성 시 비용도 2~3배 이상.</div>
+    <h2 data-ek="s4-h2">180쪽 전체 1회 생성 비용</h2>
+    <div class="cost-figure"><span class="num" data-ek="s4-num">$20–30</span><span class="unit" data-ek="s4-unit">내외 · 근사치</span></div>
+    <p class="cost-detail" data-ek="s4-detail">펼침면 90개 기준 — 텍스트 90회 생성 + 삽화 평균 3장(총 약 270장). 실제 시세: 이미지 장당 3~8센트, 텍스트는 백만 토큰당 입력 $5 · 출력 $30(최상위 등급 기준).</p>
+    <div class="warn-box" data-ek="s4-warn"><b>결과가 만족스러울 때까지</b> 보통 여러 번 다시 만들게 됨 — 2~3회 재생성 시 비용도 2~3배 이상.</div>
     <p class="sources">3자 집계 기준 · 발표 전 실제 청구 내역 재확인 권장 — <a href="https://wavespeed.ai/blog/posts/gpt-image-2-pricing-2026/">WaveSpeed</a>, <a href="https://unifically.com/blogs/gpt-image-2">Unifically</a>, <a href="https://www.finout.io/blog/gpt-5.6-pricing-2026-sol-terra-and-luna-tiers-explained">Finout</a></p>
   </section>
 
   <section class="slide closing">
     <span class="slide-mark">05 / 05</span>
-    <h2>개발에 걸린 시간</h2>
-    <div class="time-row"><span class="num">16–22</span><span class="label">시간 — 실제 순수 작업 시간 추정</span></div>
+    <h2 data-ek="s5-h2">개발에 걸린 시간</h2>
+    <div class="time-row"><span class="num" data-ek="s5-num">16–22</span><span class="label" data-ek="s5-label">시간 — 실제 순수 작업 시간 추정</span></div>
     <div class="time-stats">
-      <div><b>10일</b><span>전체 기간(8/10~8/20)</span></div>
-      <div><b>5일</b><span>실제 작업일</span></div>
-      <div><b>21건</b><span>관련 커밋</span></div>
+      <div><b data-ek="s5-stat1-num">10일</b><span data-ek="s5-stat1-label">전체 기간(8/10~8/20)</span></div>
+      <div><b data-ek="s5-stat2-num">5일</b><span data-ek="s5-stat2-label">실제 작업일</span></div>
+      <div><b data-ek="s5-stat3-num">21건</b><span data-ek="s5-stat3-label">관련 커밋</span></div>
     </div>
-    <p class="note">최초 프로토타입(8/10) → 5단계 배포(8/12) 약 2일, 이후 지금 형태로 다듬는 데 약 10일. 순수 작업량은 약 2~3일치 근무시간.</p>
-    <p class="final">"고정된 결과물에서, 근거에 기반해 매번 새로 만들어지는 결과물로."</p>
+    <p class="note" data-ek="s5-note">최초 프로토타입(8/10) → 5단계 배포(8/12) 약 2일, 이후 지금 형태로 다듬는 데 약 10일. 순수 작업량은 약 2~3일치 근무시간.</p>
+    <p class="final" data-ek="s5-final">"고정된 결과물에서, 근거에 기반해 매번 새로 만들어지는 결과물로."</p>
   </section>
+
+  <script>
+  (function () {
+    var STORAGE_KEY = "sports-culture-presentation-edits-v1";
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch (e) { saved = {}; }
+
+    var editableEls = Array.prototype.slice.call(document.querySelectorAll("[data-ek]"));
+    editableEls.forEach(function (el) {
+      var key = el.getAttribute("data-ek");
+      if (saved[key] != null) el.innerHTML = saved[key];
+      el.setAttribute("contenteditable", "true");
+      el.setAttribute("spellcheck", "false");
+    });
+
+    var toolbar = document.createElement("div");
+    toolbar.className = "edit-toolbar";
+    toolbar.innerHTML =
+      '<span class="saved-dot" aria-hidden="true"></span>' +
+      '<span>클릭해서 글자 수정 · 이 브라우저에 자동 저장</span>' +
+      '<button type="button" data-action="reset">원본으로 되돌리기</button>';
+    document.body.appendChild(toolbar);
+
+    var savedTimer;
+    function flashSaved() {
+      toolbar.classList.add("just-saved");
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(function () { toolbar.classList.remove("just-saved"); }, 900);
+    }
+
+    document.addEventListener("input", function (event) {
+      var el = event.target.closest && event.target.closest("[data-ek]");
+      if (!el) return;
+      saved[el.getAttribute("data-ek")] = el.innerHTML;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      flashSaved();
+    });
+
+    toolbar.querySelector('[data-action="reset"]').addEventListener("click", function () {
+      if (confirm("이 브라우저에 저장된 수정 내용을 모두 지우고 원본으로 되돌릴까요?")) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      }
+    });
+  })();
+  </script>
 
 </body>
 </html>
