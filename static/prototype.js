@@ -1032,6 +1032,15 @@ function scheduleServerSync() {
   serverSyncTimer = setTimeout(pushProjectStoreToServer, 2000);
 }
 
+// 초고 생성처럼 결과를 잃으면 안 되는 중요한 저장 시점에는 2초 디바운스를 기다리지 않고
+// 곧바로 서버에 동기화한다(로그인 상태라면 "지금 저장"을 따로 누르지 않아도 됨).
+function persistNow(message) {
+  const saved = persist(message);
+  clearTimeout(serverSyncTimer);
+  pushProjectStoreToServer();
+  return saved;
+}
+
 function activeProject() {
   return projectStore.projects.find((project) => project.id === projectStore.activeProjectId) || projectStore.projects[0];
 }
@@ -2556,30 +2565,52 @@ function renderSpreadSectionHtml(section) {
     </div>`;
 }
 
-function renderSpreadVisualRow(manuscript, pageIndex) {
-  // AI-generated manuscripts decide their own per-page layout (variable count/size);
-  // the older rule-based engine still emits a fixed 3-box visualBriefs array.
+// AI-generated manuscripts decide their own per-page visual layout (variable count/size/
+// placement); the older rule-based engine still emits a fixed 3-box visualBriefs array.
+// Normalize both into the same {size, placement, description, imageBase64} item shape.
+function manuscriptSideVisuals(manuscript, pageIndex) {
   if (manuscript.visuals) {
     const side = pageIndex === 0 ? "left" : "right";
-    const items = manuscript.visuals[side] || [];
-    if (!items.length) return "";
-    return `
-      <div class="spread-visual-flex">
-        ${items.map((item) => `
-          <div class="spread-visual-item size-${escapeHtml(item.size || "small")} placement-${escapeHtml(item.placement || "bottom")}${item.imageBase64 ? " has-image" : ""}">
-            ${item.imageBase64 ? `<img src="data:image/png;base64,${item.imageBase64}" alt="${escapeHtml(item.description || "")}" />` : ""}
-            <span>${escapeHtml(item.description || "편집 이미지 영역")}</span>
-          </div>`).join("")}
-      </div>`;
+    return manuscript.visuals[side] || [];
   }
   const briefs = manuscript.visualBriefs || [];
+  const half = Math.ceil(briefs.length / 2);
+  return (pageIndex === 0 ? briefs.slice(0, half) : briefs.slice(half)).map((description) => ({ description, placement: "bottom" }));
+}
+
+function renderVisualItemHtml(item) {
   return `
-    <div class="spread-visual-row">
-      ${[0, 1, 2].map((visualIndex) => `
-        <div class="spread-visual-box">
-          <span>${escapeHtml(briefs[(pageIndex * 2 + visualIndex) % Math.max(1, briefs.length)] || "편집 이미지 영역")}</span>
-        </div>`).join("")}
+    <div class="spread-visual-item size-${escapeHtml(item.size || "small")} placement-${escapeHtml(item.placement || "bottom")}${item.imageBase64 ? " has-image" : ""}">
+      ${item.imageBase64 ? `<img src="data:image/png;base64,${item.imageBase64}" alt="${escapeHtml(item.description || "")}" />` : ""}
+      <span>${escapeHtml(item.description || "편집 이미지 영역")}</span>
     </div>`;
+}
+
+function renderSpreadVisualGroup(items) {
+  if (!items.length) return "";
+  return `<div class="spread-visual-flex">${items.map(renderVisualItemHtml).join("")}</div>`;
+}
+
+// placement이 실제 지면 위치에도 반영되도록 나눈다: top은 본문 위, background(실제 이미지가
+// 있을 때만)는 페이지 전체 배경, 나머지(bottom/left/right/inline 및 이미지 없는 background)는
+// 본문 아래 한 줄에 놓는다.
+function splitVisualsByPlacement(items) {
+  const backgroundItem = items.find((item) => item.placement === "background" && item.imageBase64);
+  const remaining = items.filter((item) => item !== backgroundItem);
+  const topItems = remaining.filter((item) => item.placement === "top");
+  const bottomItems = remaining.filter((item) => item.placement !== "top");
+  return { backgroundItem, topItems, bottomItems };
+}
+
+function renderSpreadPageVisuals(items) {
+  const { backgroundItem, topItems, bottomItems } = splitVisualsByPlacement(items);
+  return {
+    backgroundHtml: backgroundItem
+      ? `<img class="spread-page-background-image" src="data:image/png;base64,${backgroundItem.imageBase64}" alt="" aria-hidden="true" />`
+      : "",
+    topHtml: renderSpreadVisualGroup(topItems),
+    bottomHtml: renderSpreadVisualGroup(bottomItems),
+  };
 }
 
 function renderSpreadPageView(entry, spread) {
@@ -2589,6 +2620,8 @@ function renderSpreadPageView(entry, spread) {
   const sectionSplit = Math.ceil(sections.length / 2);
   const leftSections = sections.slice(0, sectionSplit);
   const rightSections = sections.slice(sectionSplit);
+  const leftVisuals = renderSpreadPageVisuals(manuscriptSideVisuals(manuscript, 0));
+  const rightVisuals = renderSpreadPageVisuals(manuscriptSideVisuals(manuscript, 1));
   return `
     <div class="spread-page-view spread-accent-${accentKey}">
       <div class="spread-page spread-page-left">
@@ -2597,20 +2630,24 @@ function renderSpreadPageView(entry, spread) {
           <span class="spread-spine-label">${escapeHtml(entry.smallUnitLabel || "스포츠 문화")}</span>
         </div>
         <div class="spread-page-body">
+          ${leftVisuals.backgroundHtml}
           <h2 class="spread-headline">${escapeHtml(manuscript.headline || spread.title || "")}</h2>
           <p class="spread-goal"><b>학습 목표</b> ${escapeHtml(manuscript.learningGoal || spread.intro || "")}</p>
           ${manuscript.openingQuestion ? `<div class="spread-opening-question"><b>생각 열기</b> ${escapeHtml(manuscript.openingQuestion)}</div>` : ""}
+          ${leftVisuals.topHtml}
           ${leftSections.map(renderSpreadSectionHtml).join("")}
-          ${renderSpreadVisualRow(manuscript, 0)}
+          ${leftVisuals.bottomHtml}
           <div class="spread-page-footer">${escapeHtml(String(spread.left_page || 1))} · 스포츠 문화</div>
         </div>
       </div>
       <div class="spread-gutter"></div>
       <div class="spread-page spread-page-right">
         <div class="spread-page-body">
+          ${rightVisuals.backgroundHtml}
           <p class="spread-role-label">${escapeHtml(entry.primaryTypeLabel || "스포츠 문화")} · ${escapeHtml(spread.role || "")}</p>
+          ${rightVisuals.topHtml}
           ${rightSections.map(renderSpreadSectionHtml).join("")}
-          ${renderSpreadVisualRow(manuscript, 1)}
+          ${rightVisuals.bottomHtml}
           <div class="spread-page-footer">${escapeHtml(String(spread.right_page || 2))} · 스포츠 문화</div>
         </div>
       </div>
@@ -3829,7 +3866,7 @@ function bindWorkspace() {
           });
         }
         expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
-        persist(`${targets.length}개 스포츠 문화 초고 생성됨`);
+        persistNow(`${targets.length}개 스포츠 문화 초고 생성됨`);
         renderWorkspace();
         showToast(`${targets.length}개 항목의 초고를 생성했습니다.`);
       } catch (error) {
@@ -3894,7 +3931,7 @@ function bindWorkspace() {
         entries: generated,
       });
       expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
-      persist(isSportsCultureProject() ? "내부 데이터 초안 생성됨" : "AI 초안 생성됨");
+      persistNow(isSportsCultureProject() ? "내부 데이터 초안 생성됨" : "AI 초안 생성됨");
       renderWorkspace();
       showToast(isSportsCultureProject() ? "내부 데이터로 체제 3개의 초안을 생성했습니다." : "체제 3개의 초안을 생성했습니다.");
     } catch (error) {

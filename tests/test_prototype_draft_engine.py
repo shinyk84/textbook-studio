@@ -567,6 +567,39 @@ process.stdout.write(JSON.stringify({
         result = self.run_node(source)
         self.assertTrue(result["hasAll"])
 
+    def test_visual_placement_actually_changes_where_content_renders(self):
+        source = r"""
+const fs=require('fs');
+const s=fs.readFileSync('./static/prototype.js','utf8');
+const a=s.indexOf('function escapeHtml');
+const b=s.indexOf('function renderDraftCanvases');
+const api=new Function(s.slice(a,b)+'; return {renderSpreadPageView};')();
+const manuscript={
+  headline:'헤드라인', learningGoal:'g', openingQuestion:'',
+  sections:[{number:1,title:'절1',paragraphs:['p1']}],
+  visuals:{
+    left:[
+      {size:'small',placement:'top',description:'상단삽화'},
+      {size:'full',placement:'background',description:'배경삽화',imageBase64:'AAAA'},
+      {size:'small',placement:'bottom',description:'하단삽화'},
+    ],
+    right:[],
+  },
+};
+const entry={frameworkId:'balanced', primaryTypeLabel:'스포츠 문화', smallUnitLabel:'', frameworkName:''};
+const spread={textbook_manuscript:manuscript, left_page:1, right_page:2, role:'r'};
+const html=api.renderSpreadPageView(entry, spread);
+process.stdout.write(JSON.stringify({
+  topBeforeSection: html.indexOf('상단삽화') >= 0 && html.indexOf('상단삽화') < html.indexOf('절1'),
+  bottomAfterSection: html.indexOf('하단삽화') > html.indexOf('절1'),
+  hasBackgroundImg: html.includes('spread-page-background-image') && html.includes('base64,AAAA'),
+}));
+"""
+        result = self.run_node(source)
+        self.assertTrue(result["topBeforeSection"])
+        self.assertTrue(result["bottomAfterSection"])
+        self.assertTrue(result["hasBackgroundImg"])
+
     def test_manuscript_page_visuals_normalizes_both_provider_shapes(self):
         source = r"""
 const fs=require('fs');

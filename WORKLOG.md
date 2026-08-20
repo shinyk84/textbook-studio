@@ -694,3 +694,16 @@
 - 수정 파일: `static/prototype.js`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
 - 남은 문제: 실제 브라우저에서 캔버스에 이미지가 로드된 뒤 다시 그려지는 타이밍(비동기)을 직접 눈으로 확인하지 못했다 — 이론상 이미지는 화면 렌더링 직후 백그라운드에서 불러와지고, 사용자가 "PNG 저장"을 누르는 시점엔 이미 로드되어 있을 가능성이 높지만, 매우 빠르게 클릭하면 이미지가 아직 로드되기 전이라 빈 박스로 저장될 수 있다.
 - 다음 시작점: 사용자가 배포본에서 이미지 포함 초안을 만들고 "PNG 저장"을 눌러 실제로 이미지가 포함되어 저장되는지, 절이 5개인 경우에도 전부 화면에 보이는지 확인.
+
+### 2026-08-19 · 삽화가 항상 하단에만 나오는 문제 수정, 생성 시 서버 저장을 즉시 실행하도록 변경
+
+- 상태: 완료
+- 배경: 사용자가 세 가지를 한 번에 지적함 — (1) "이미지 생성 때 왜 하단에만 삽화가 생성돼? 상황에 맞게 레이아웃이 골고루 되어야 하지 않아?", (2) PPT·PNG가 웹 화면과 계속 다르게 나왔다는 재확인성 불만(직전 두 항목에서 이미 원인 규명·수정함), (3) "지금저장 버튼을 왜 매번 눌러야 돼? 로그인된 상태에서 생성되면 다 자동저장 되게 해줘."
+- 원인(삽화 위치): AI 응답의 `left_visuals`/`right_visuals`에는 각 삽화마다 `placement`(top/bottom/left/right/background/inline)이 들어 있었지만, 화면 렌더링(`renderSpreadVisualRow`)은 이 값을 CSS 클래스 이름으로만 붙였을 뿐 실제 배치에는 반영하지 않았다. 모든 삽화가 예외 없이 절 본문 전부가 끝난 뒤 하단의 가로 한 줄(`spread-visual-flex`, `margin-top:auto`)에 들어갔고, `placement-top`의 `order:-1`은 그 한 줄 안에서만 작동해 다른 절 본문과의 상대 위치에는 아무 영향이 없었다. 즉 AI가 아무리 다양한 배치를 골라도 화면에는 항상 같은 자리에 나왔다.
+- 수정: `static/prototype.js`의 `renderSpreadVisualRow`를 없애고 `manuscriptSideVisuals`(두 제공자 모양 통일) → `splitVisualsByPlacement`(top/background(실제 이미지 있을 때만)/나머지로 분리) → `renderSpreadPageVisuals`(위치별 HTML 생성)로 나눴다. `renderSpreadPageView`는 이제 top 삽화를 절 본문 **위**에, background 삽화가 있으면 페이지 전체의 옅은 배경 이미지로(새 CSS `.spread-page-background-image`, `.spread-page-body`에 `position:relative` 추가), 나머지(bottom/left/right/inline)는 기존처럼 절 본문 **아래** 한 줄에 배치한다. 실제로 눈에 띄게 다른 배치가 나오게 된 것은 top·background 두 가지이고, left/right/inline은 당분간 "하단 줄" 취급으로 남겨 뒀다(진짜 좌우 배치·본문 사이 삽입은 더 큰 레이아웃 작업이 필요해 이번엔 범위에서 제외).
+- 원인(자동저장): 사실 초고 생성 후에는 이미 `persist()`가 자동 호출되고 있었고, `persist()`는 항상 `scheduleServerSync()`(2초 디바운스 후 서버 저장)를 실행한다 — 즉 "지금 저장"을 누르지 않아도 이미 자동 저장되고 있었다. 다만 2초 디바운스 동안 탭을 닫거나 다른 기기로 넘어가면 그 저장이 누락될 수 있는 여지가 있었고, 사용자는 앞선 서버 동기화 500 오류 시절의 불신 때문에 계속 수동으로 누르고 있었던 것으로 보인다.
+- 수정(자동저장): `persistNow(message)` 함수를 추가해 `persist()` 호출 직후 디바운스를 기다리지 않고 즉시 `pushProjectStoreToServer()`를 실행하도록 함. 초고 생성이 끝나는 두 지점(일괄 생성, 체제 3개 비교 생성) 모두 `persist(...)` 대신 `persistNow(...)`를 쓰도록 바꿔서, 로그인 상태라면 생성이 끝나자마자 곧바로 서버에 저장된다.
+- 검증: `tests/test_prototype_draft_engine.py`에 `test_visual_placement_actually_changes_where_content_renders`를 추가함 — top 삽화가 절 본문보다 앞에 나오는지, bottom 삽화는 뒤에 나오는지, background(이미지 있음)는 별도 배경 이미지 태그로 나오는지 직접 확인. 전체 자동 테스트 74개 통과.
+- 수정 파일: `static/prototype.js`, `static/prototype.css`, `static/prototype.html`(캐시 버전), `tests/test_prototype_draft_engine.py`.
+- 남은 문제: PPT·PNG 저장은 여전히 절 본문을 전부 나열한 뒤 삽화를 한 줄로 배치하는 구조라, 화면의 top/background 배치까지 그대로 반영하지는 않는다(텍스트·이미지 내용 자체는 일치함). left/right/inline 배치도 화면상 실제 좌우 배치·본문 삽입까지는 구현하지 않았다.
+- 다음 시작점: 사용자가 배포본에서 새로 초안을 생성해 삽화 배치가 실제로 다양하게 나오는지, "지금 저장"을 누르지 않아도 자동으로 서버에 저장되는지 확인.
