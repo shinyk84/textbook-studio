@@ -190,8 +190,10 @@
 
 - 로컬 데이터: `data/studio.db` SQLite
 - 공통 전처리 데이터: `official-data/processed`(Git·Vercel 포함)
-- 배포 데이터: `POSTGRES_URL`이 있으면 Supabase Postgres
-- 인증: Supabase 이메일·비밀번호
+- 배포 데이터: `POSTGRES_URL`이 있으면 그 Postgres(Vercel Postgres/Neon 권장)
+- 인증: **자체 구현**(2026-09-03, Supabase Auth 폐기). `editor_accounts.password_hash`(PBKDF2-SHA256)에 비밀번호를 직접 저장하고, `auth_sessions` 테이블에 발급한 토큰을 저장해 `Authorization: Bearer <token>`으로 검증한다. `POST /api/auth/login`은 계정이 있으면 비밀번호 검증, `password_hash`가 비어있으면(관리자가 이메일만 등록한 초대 상태) 그 로그인 시도의 비밀번호를 그대로 등록한다(부트스트랩) — 이메일 발송 없이 신규/초기 관리자 계정을 만드는 방식. 관리자가 `/editors`에서 "비밀번호 초기화"를 누르면 `password_hash`를 비우고 세션을 전부 삭제해 같은 부트스트랩 흐름을 재사용한다.
+  - **왜 바꿨는지**: 예전에 쓰던 Supabase 프로젝트가 장기간 미사용으로 완전히 삭제되어(DNS 조회 자체가 안 됨) 로그인과 `POSTGRES_URL` 데이터(초안 생성 이력 등)가 동시에 끊긴 사고가 있었다. Supabase Auth 재사용은 같은 사고를 반복할 위험이 있어 외부 인증 서비스 의존 자체를 없앴다.
+  - **DB 사고 재발 방지**: 새 Postgres를 무엇으로 쓰든, 주기적 백업(예: `pg_dump`를 Vercel Cron으로 예약해 별도 저장소에 보관) 없이는 이번과 같은 전체 유실이 다시 일어날 수 있다 — 아직 구현 전이니 다음 작업자가 최우선으로 고려할 것.
 - 배포: Vercel 프로젝트 `textbook-studio`
 - 민감정보: `.env.local`과 Vercel 환경 변수에만 저장하고 Git에는 포함하지 않는다.
 - (2026-08-19) 스포츠 문화 프로토타입(`/prototype.html`)의 전체 상태(`projectStore`)는 원래 브라우저 `localStorage`에만 있어서 컴퓨터를 바꾸면 이전 내용이 안 보였다. 이제 `prototype_state` 테이블(`GET`/`POST /api/prototype/state`)에도 동기화되어(`persist()` 호출마다 2초 디바운스로 서버 저장), 다른 컴퓨터에서 열어도 최신 내용을 불러온다. localStorage는 오프라인 대비용으로 계속 유지됨.
@@ -215,9 +217,7 @@
 필요한 환경 변수 이름:
 
 - `POSTGRES_URL`
-- `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY` 또는 `SUPABASE_ANON_KEY`
-- `STUDIO_OWNER_EMAIL`
+- `STUDIO_OWNER_EMAIL` (이 이메일로 `/login`에서 처음 로그인하면 관리자 계정이 부트스트랩됨)
 - `OPENAI_API_KEY`
 - 선택: `OPENAI_MODEL`
 

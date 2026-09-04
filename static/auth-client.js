@@ -10,10 +10,6 @@
     }
   }
 
-  function saveSession(session) {
-    localStorage.setItem(sessionKey, JSON.stringify(session));
-  }
-
   function loginUrl() {
     const returnTo = `${location.pathname}${location.search}`;
     return `/login?return=${encodeURIComponent(returnTo)}`;
@@ -23,29 +19,14 @@
     cache: "no-store",
   }).then((response) => response.json());
 
-  async function validSession(config) {
-    let session = readSession();
-    if (!session) return null;
+  function validSession() {
+    const session = readSession();
+    if (!session?.access_token) return null;
     const expiresAt = Number(session.expires_at || 0);
-    if (expiresAt * 1000 > Date.now() + 60_000) return session;
-    if (!session.refresh_token) return null;
-    const response = await nativeFetch(
-      `${config.supabase_url}/auth/v1/token?grant_type=refresh_token`,
-      {
-        method: "POST",
-        headers: {
-          apikey: config.publishable_key,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refresh_token: session.refresh_token }),
-      },
-    );
-    if (!response.ok) {
+    if (expiresAt * 1000 <= Date.now()) {
       localStorage.removeItem(sessionKey);
       return null;
     }
-    session = await response.json();
-    saveSession(session);
     return session;
   }
 
@@ -59,12 +40,13 @@
       url.origin === location.origin &&
       url.pathname.startsWith("/api/") &&
       url.pathname !== "/api/auth/config" &&
+      url.pathname !== "/api/auth/login" &&
       url.pathname !== "/api/health";
     if (!config.enabled || !isStudioApi) {
       return nativeFetch(input, init);
     }
-    const session = await validSession(config);
-    if (!session?.access_token) {
+    const session = validSession();
+    if (!session) {
       location.replace(loginUrl());
       throw new Error("로그인이 필요합니다.");
     }
@@ -79,6 +61,13 @@
   };
 
   window.textbookStudioSignOut = () => {
+    const session = readSession();
+    if (session?.access_token) {
+      nativeFetch("/api/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      }).catch(() => {});
+    }
     localStorage.removeItem(sessionKey);
     location.replace("/login");
   };

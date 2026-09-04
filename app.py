@@ -327,8 +327,16 @@ def initialize_database() -> None:
                 user_id TEXT NOT NULL DEFAULT '',
                 role TEXT NOT NULL DEFAULT 'editor',
                 active INTEGER NOT NULL DEFAULT 1,
+                password_hash TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS auth_sessions (
+                token TEXT PRIMARY KEY,
+                email TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
             );
             """
         )
@@ -396,18 +404,49 @@ def ensure_current_version(current_version: int, expected_version: int | None) -
         )
 
 
+SESSION_LIFETIME_SECONDS = 30 * 24 * 60 * 60  # 30 days
+PASSWORD_HASH_ITERATIONS = 260_000
+
+
 def auth_config() -> dict:
-    supabase_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
-    publishable_key = (
-        os.environ.get("SUPABASE_PUBLISHABLE_KEY")
-        or os.environ.get("SUPABASE_ANON_KEY")
-        or ""
+    owner_email = os.environ.get("STUDIO_OWNER_EMAIL", "").strip()
+    return {"enabled": bool(owner_email)}
+
+
+def ensure_auth_tables(db) -> None:
+    if "password_hash" not in db.table_columns("editor_accounts"):
+        db.execute(
+            "ALTER TABLE editor_accounts ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''"
+        )
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS auth_sessions (
+            token TEXT PRIMARY KEY,
+            email TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL
+        );
+        """
     )
-    return {
-        "enabled": bool(supabase_url and publishable_key),
-        "supabase_url": supabase_url,
-        "publishable_key": publishable_key,
-    }
+    db.commit()
+
+
+def hash_password(password: str) -> str:
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), PASSWORD_HASH_ITERATIONS
+    ).hex()
+    return f"{salt}${digest}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    if not stored or "$" not in stored:
+        return False
+    salt, digest = stored.split("$", 1)
+    candidate = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), PASSWORD_HASH_ITERATIONS
+    ).hex()
+    return secrets.compare_digest(candidate, digest)
 
 
 def authenticated_user(authorization_header: str) -> dict:
@@ -420,60 +459,106 @@ def authenticated_user(authorization_header: str) -> dict:
         }
     if not authorization_header.startswith("Bearer "):
         raise AuthenticationError("로그인이 필요합니다.")
-    access_token = authorization_header.removeprefix("Bearer ").strip()
-    if not access_token:
+    token = authorization_header.removeprefix("Bearer ").strip()
+    if not token:
         raise AuthenticationError("로그인이 필요합니다.")
-    request = Request(
-        f"{config['supabase_url']}/auth/v1/user",
-        headers={
-            "apikey": config["publishable_key"],
-            "Authorization": f"Bearer {access_token}",
-        },
-    )
-    try:
-        with urlopen(request, timeout=10) as response:
-            user = json.loads(response.read().decode("utf-8"))
-    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise AuthenticationError("로그인이 만료되었거나 유효하지 않습니다.") from exc
-    email = str(user.get("email", "")).strip().lower()
-    user_id = str(user.get("id", "")).strip()
-    if not email or not user_id:
-        raise AuthenticationError("사용자 정보를 확인할 수 없습니다.")
-
-    owner_email = os.environ.get("STUDIO_OWNER_EMAIL", "").strip().lower()
     with connect_db() as db:
+        ensure_auth_tables(db)
+        session = db.execute(
+            "SELECT email, expires_at FROM auth_sessions WHERE token = ?", (token,)
+        ).fetchone()
+        if session is None or session["expires_at"] < utc_now():
+            raise AuthenticationError("로그인이 만료되었거나 유효하지 않습니다.")
         account = db.execute(
-            """
-            SELECT email, user_id, role, active
-            FROM editor_accounts WHERE email = ?
-            """,
+            "SELECT email, role, active FROM editor_accounts WHERE email = ?",
+            (session["email"],),
+        ).fetchone()
+        if account is None or not bool(account["active"]):
+            raise AuthorizationError("이 프로젝트의 편집자로 등록되지 않았습니다.")
+        return {"id": account["email"], "email": account["email"], "role": account["role"]}
+
+
+def login_user(payload: dict) -> dict:
+    email = str(payload.get("email", "")).strip().lower()
+    password = str(payload.get("password", ""))
+    if not email or not password:
+        raise ValueError("이메일과 비밀번호를 입력하세요.")
+    owner_email = os.environ.get("STUDIO_OWNER_EMAIL", "").strip().lower()
+
+    with connect_db() as db:
+        ensure_auth_tables(db)
+        account = db.execute(
+            "SELECT email, role, active, password_hash FROM editor_accounts WHERE email = ?",
             (email,),
         ).fetchone()
-        if account is None and owner_email and email == owner_email:
-            now = utc_now()
+        now = utc_now()
+        if account is None:
+            if not owner_email or email != owner_email:
+                raise AuthenticationError("등록되지 않은 계정입니다. 관리자에게 문의하세요.")
             db.execute(
                 """
                 INSERT INTO editor_accounts (
-                    email, user_id, role, active, created_at, updated_at
-                ) VALUES (?, ?, 'owner', 1, ?, ?)
+                    email, user_id, role, active, password_hash, created_at, updated_at
+                ) VALUES (?, '', 'owner', 1, ?, ?, ?)
                 """,
-                (email, user_id, now, now),
+                (email, hash_password(password), now, now),
             )
             db.commit()
-            account = {"email": email, "user_id": user_id, "role": "owner", "active": 1}
-        elif account is not None and account["user_id"] != user_id:
-            db.execute(
-                """
-                UPDATE editor_accounts
-                SET user_id = ?, updated_at = ?
-                WHERE email = ?
-                """,
-                (user_id, utc_now(), email),
-            )
-            db.commit()
-        if account is None or not bool(account["active"]):
+            role = "owner"
+        elif not bool(account["active"]):
             raise AuthorizationError("이 프로젝트의 편집자로 등록되지 않았습니다.")
-        return {"id": user_id, "email": email, "role": account["role"]}
+        elif not account["password_hash"]:
+            # Invited but never logged in yet: this attempt sets the password.
+            db.execute(
+                "UPDATE editor_accounts SET password_hash = ?, updated_at = ? WHERE email = ?",
+                (hash_password(password), now, email),
+            )
+            db.commit()
+            role = account["role"]
+        else:
+            if not verify_password(password, account["password_hash"]):
+                raise AuthenticationError("이메일 또는 비밀번호가 올바르지 않습니다.")
+            role = account["role"]
+
+        token = secrets.token_hex(32)
+        expires_at_dt = datetime.now(timezone.utc).timestamp() + SESSION_LIFETIME_SECONDS
+        db.execute(
+            "INSERT INTO auth_sessions (token, email, created_at, expires_at) VALUES (?, ?, ?, ?)",
+            (token, email, now, datetime.fromtimestamp(expires_at_dt, tz=timezone.utc).isoformat()),
+        )
+        db.commit()
+        return {"access_token": token, "expires_at": int(expires_at_dt), "email": email, "role": role}
+
+
+def logout_user(authorization_header: str) -> None:
+    if not authorization_header.startswith("Bearer "):
+        return
+    token = authorization_header.removeprefix("Bearer ").strip()
+    if not token:
+        return
+    with connect_db() as db:
+        ensure_auth_tables(db)
+        db.execute("DELETE FROM auth_sessions WHERE token = ?", (token,))
+        db.commit()
+
+
+def change_password(user: dict, payload: dict) -> None:
+    current_password = str(payload.get("current_password", ""))
+    new_password = str(payload.get("new_password", ""))
+    if len(new_password) < 8:
+        raise ValueError("새 비밀번호는 8자 이상이어야 합니다.")
+    with connect_db() as db:
+        ensure_auth_tables(db)
+        account = db.execute(
+            "SELECT password_hash FROM editor_accounts WHERE email = ?", (user["email"],)
+        ).fetchone()
+        if account is None or not verify_password(current_password, account["password_hash"]):
+            raise AuthenticationError("현재 비밀번호가 올바르지 않습니다.")
+        db.execute(
+            "UPDATE editor_accounts SET password_hash = ?, updated_at = ? WHERE email = ?",
+            (hash_password(new_password), utc_now(), user["email"]),
+        )
+        db.commit()
 
 
 def require_owner(user: dict | None) -> None:
@@ -508,11 +593,12 @@ def add_editor(payload: dict) -> dict:
         raise ValueError("올바른 편집자 이메일을 입력하세요.")
     now = utc_now()
     with connect_db() as db:
+        ensure_auth_tables(db)
         db.execute(
             """
             INSERT INTO editor_accounts (
-                email, user_id, role, active, created_at, updated_at
-            ) VALUES (?, '', 'editor', 1, ?, ?)
+                email, user_id, role, active, password_hash, created_at, updated_at
+            ) VALUES (?, '', 'editor', 1, '', ?, ?)
             ON CONFLICT(email) DO UPDATE SET
                 active = 1,
                 updated_at = excluded.updated_at
@@ -521,6 +607,24 @@ def add_editor(payload: dict) -> dict:
         )
         db.commit()
     return next(row for row in editor_rows() if row["email"] == email)
+
+
+def reset_editor_password(email: str) -> dict:
+    normalized = email.strip().lower()
+    with connect_db() as db:
+        ensure_auth_tables(db)
+        account = db.execute(
+            "SELECT email FROM editor_accounts WHERE email = ?", (normalized,)
+        ).fetchone()
+        if account is None:
+            raise KeyError("편집자를 찾을 수 없습니다.")
+        db.execute(
+            "UPDATE editor_accounts SET password_hash = '', updated_at = ? WHERE email = ?",
+            (utc_now(), normalized),
+        )
+        db.execute("DELETE FROM auth_sessions WHERE email = ?", (normalized,))
+        db.commit()
+    return next(row for row in editor_rows() if row["email"] == normalized)
 
 
 def deactivate_editor(email: str) -> dict:
@@ -4988,6 +5092,49 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/auth/login":
+            try:
+                self.send_json(login_user(self.read_json()))
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:  # pragma: no cover - last-resort boundary
+                self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if parsed.path == "/api/auth/logout":
+            logout_user(self.headers.get("Authorization", ""))
+            self.send_json({"result": "ok"})
+            return
+        if parsed.path == "/api/auth/change-password":
+            try:
+                user = self.require_user()
+                change_password(user, self.read_json())
+                self.send_json({"result": "ok"})
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:  # pragma: no cover - last-resort boundary
+                self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if parsed.path.startswith("/api/editors/") and parsed.path.endswith("/reset-password"):
+            try:
+                self.require_user()
+                require_owner(self.current_user)
+                email = unquote(parsed.path[len("/api/editors/"):-len("/reset-password")])
+                self.send_json({"editor": reset_editor_password(email)})
+            except KeyError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.NOT_FOUND)
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            except Exception as exc:  # pragma: no cover - last-resort boundary
+                self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
         if parsed.path == "/api/prototype/review":
             try:
                 if auth_config()["enabled"]:
@@ -5160,7 +5307,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             "/manuscript": "workflow.html",
             "/review": "workflow.html",
             "/login": "login.html",
-            "/reset-password": "reset-password.html",
+            "/reset-password": "login.html",
             "/editors": "editors.html",
             "/export": "export.html",
         }

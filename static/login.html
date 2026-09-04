@@ -13,6 +13,7 @@
       <h1>편집자 로그인</h1>
       <p class="login-description">
         승인된 편집자 계정으로 로그인하면 동일한 교과서 프로젝트를 함께 편집할 수 있습니다.
+        관리자가 초대한 이메일이라면, 처음 로그인할 때 입력하는 비밀번호로 계정이 만들어집니다.
       </p>
       <form id="loginForm">
         <label for="email">이메일</label>
@@ -21,12 +22,9 @@
         <input id="password" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" minlength="8" required />
         <button class="primary-button" type="submit">로그인</button>
       </form>
-      <button class="text-button" id="signupButton" type="button">
-        최초 계정 만들기
-      </button>
-      <button class="text-button" id="resetButton" type="button">
-        비밀번호 재설정 메일 받기
-      </button>
+      <p class="login-description">
+        비밀번호를 잊었다면 관리자에게 초기화를 요청하세요(편집자 관리 화면에서 초기화하면 다음 로그인 시 새 비밀번호를 정할 수 있습니다).
+      </p>
       <p class="login-message" id="loginMessage" role="status"></p>
     </main>
     <script src="/login.js"></script>

@@ -23,8 +23,8 @@ class StudioDataTests(unittest.TestCase):
 
     def test_discovers_all_processed_documents(self):
         payload = self.app.bootstrap_payload()
-        self.assertEqual(payload["readiness"]["total"], 29)
-        self.assertEqual(payload["readiness"]["integrity_verified"], 29)
+        self.assertEqual(payload["readiness"]["total"], 98)
+        self.assertEqual(payload["readiness"]["integrity_verified"], 98)
 
     def test_uses_bundled_processed_data_by_default(self):
         self.assertEqual(

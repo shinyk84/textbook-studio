@@ -20,6 +20,9 @@ function render(editors) {
         <strong>${editor.email}</strong>
         <span>${editor.role === "owner" ? "관리자" : "편집자"} · ${editor.active ? "사용 가능" : "비활성"}</span>
       </div>
+      ${editor.active
+        ? `<button class="secondary-button" data-reset="${editor.email}" type="button">비밀번호 초기화</button>`
+        : ""}
       ${editor.role !== "owner" && editor.active
         ? `<button class="secondary-button" data-remove="${editor.email}" type="button">접근 해제</button>`
         : ""}
@@ -41,7 +44,7 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify({ email }),
     });
     form.reset();
-    message.textContent = `${email}의 접근을 허용했습니다.`;
+    message.textContent = `${email}의 접근을 허용했습니다. 해당 이메일로 /login에서 처음 로그인할 때 원하는 비밀번호를 정하면 됩니다.`;
     await loadEditors();
   } catch (error) {
     message.textContent = error.message;
@@ -49,15 +52,29 @@ form.addEventListener("submit", async (event) => {
 });
 
 list.addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-remove]");
-  if (!button) return;
-  const email = button.dataset.remove;
-  if (!confirm(`${email}의 접근을 해제할까요?`)) return;
-  try {
-    await request(`/api/editors/${encodeURIComponent(email)}`, { method: "DELETE" });
-    await loadEditors();
-  } catch (error) {
-    message.textContent = error.message;
+  const removeButton = event.target.closest("[data-remove]");
+  if (removeButton) {
+    const email = removeButton.dataset.remove;
+    if (!confirm(`${email}의 접근을 해제할까요?`)) return;
+    try {
+      await request(`/api/editors/${encodeURIComponent(email)}`, { method: "DELETE" });
+      await loadEditors();
+    } catch (error) {
+      message.textContent = error.message;
+    }
+    return;
+  }
+  const resetButton = event.target.closest("[data-reset]");
+  if (resetButton) {
+    const email = resetButton.dataset.reset;
+    if (!confirm(`${email}의 비밀번호를 초기화할까요? 다음 로그인 시 새 비밀번호를 정하게 됩니다.`)) return;
+    try {
+      await request(`/api/editors/${encodeURIComponent(email)}/reset-password`, { method: "POST" });
+      message.textContent = `${email}의 비밀번호를 초기화했습니다. 다음 로그인 시 새 비밀번호를 정할 수 있습니다.`;
+      await loadEditors();
+    } catch (error) {
+      message.textContent = error.message;
+    }
   }
 });
 
