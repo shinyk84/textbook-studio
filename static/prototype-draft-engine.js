@@ -779,7 +779,10 @@
 
   const EXTERNAL_AI_PROVIDER_ID = "external-ai-v1";
 
-  const REQUEST_TIMEOUT_MS = 55000;
+  // 서버 쪽 스포츠 문화 원고 생성은 응답이 스키마는 맞는데 내용이 깨졌으면(추론 모델의
+  // 드문 실패) 최대 2번까지 다시 시도한다(app.py의 call_openai_for_sports_culture_manuscript,
+  // 시도당 최대 110초) — 그 두 번을 다 기다릴 여유를 두고 클라이언트 타임아웃을 잡는다.
+  const REQUEST_TIMEOUT_MS = 230000;
 
   async function postJsonForManuscript(path, body) {
     const controller = new AbortController();

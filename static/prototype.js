@@ -607,6 +607,11 @@ let moveMenuOpenPath = null;
 let evidenceDetailsOpen = false;
 let selectedDraftBatches = new Set();
 let expandedDraftBatches = new Set();
+// 스포츠 문화 "전체 스타일·초고" 표는 회차 단위가 아니라 파일 단위(PPT/교과서/지도서/이미지)로
+// 선택한다. 키 형식: "{batchIndex}:{entryIndex}:{type}". 미리보기 펼침도 회차가 아니라
+// 회차:체제 단위로 따로 관리한다("{batchIndex}:{entryIndex}").
+let selectedDraftFiles = new Set();
+let expandedDraftFilePreviews = new Set();
 
 function projectId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -1434,6 +1439,28 @@ function pagePlanRows(pages) {
   return rows;
 }
 
+// smallUnitLabel은 "대단원 · 중단원 · 소단원" 형식으로 조립돼 있어 리스트 한 줄에 그대로
+// 쓰면 너무 길다. 마지막 " · " 구간(소단원, 실제로 각 회차를 구분하는 정보)만 굵은 제목으로
+// 분리하고 나머지(대단원·중단원 경로)는 위에 작은 보조 줄로 둔다.
+function splitSmallUnitLabel(label) {
+  const text = String(label || "");
+  const parts = text.split(" · ");
+  if (parts.length <= 1) return { breadcrumb: "", title: text };
+  const title = parts.pop();
+  return { breadcrumb: parts.join(" · "), title };
+}
+
+// 표의 "단원명 | 소단원명" 두 열용 — 대단원명만 단원명으로 쓰고 중단원명은 버린다.
+// 중단원명이 보통 대단원명을 그대로 앞에 붙인 문구("스포츠 경기 문화 · 2-3. 스포츠 경기
+// 문화의 융합과 확산")라서 그대로 두 열에 나누면 대단원명이 두 번 보인다. 소단원명 자체에
+// 이미 번호(2-3-3.)가 있어 어느 중단원 소속인지는 그걸로 알 수 있다.
+function splitSmallUnitLabelForTable(label) {
+  const text = String(label || "");
+  const parts = text.split(" · ");
+  if (parts.length <= 1) return { unitName: "", smallTitle: text };
+  return { unitName: parts[0], smallTitle: parts[parts.length - 1] };
+}
+
 function formatDraftBatchTimestamp(isoString) {
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) return "";
@@ -1468,7 +1495,12 @@ function pptxAddSectionBlock(slide, section, x, y, w, h) {
 function pptxAddVisualBlock(slide, visual, x, y, w, h) {
   if (visual.imageBase64) {
     const captionH = Math.min(0.3, h * 0.3);
-    slide.addImage({ data: `data:image/png;base64,${visual.imageBase64}`, x, y, w, h: Math.max(0.3, h - captionH) });
+    const imageH = Math.max(0.3, h - captionH);
+    slide.addImage({
+      data: `data:image/png;base64,${visual.imageBase64}`,
+      x, y, w, h: imageH,
+      sizing: { type: "contain", w, h: imageH },
+    });
     slide.addText(pptxTruncate(visual.description, 90), {
       x, y: y + h - captionH, w, h: captionH, fontSize: 8, italic: true, color: "5B6B60", valign: "top",
     });
@@ -1554,6 +1586,121 @@ function draftBatchesToPptx(rounds) {
     batch.entries.forEach((entry) => addEntrySlidesToPptx(pres, entry, `${roundNumber}회차 · `));
   });
   return pres;
+}
+
+function sanitizeZipEntryName(name) {
+  return String(name || "").replace(/[\\/:*?"<>|]/g, "_").trim() || "무제";
+}
+
+// entry.spreads[*].textbook_manuscript.visuals(외부 AI 제공자만 실제 이미지를 채움)에서
+// 삽화 원본 PNG만 모은다 — PPT/미리보기용 와이어프레임이 아니라 gpt-image-2가 그린 실제 파일.
+function entryVisualImages(entry) {
+  const images = [];
+  (entry.spreads || []).forEach((spread, spreadIndex) => {
+    const columns = manuscriptVisualColumns(spread.textbook_manuscript || {});
+    [["left", "좌"], ["right", "우"]].forEach(([side, sideLabel]) => {
+      (columns[side] || []).forEach((visual, visualIndex) => {
+        if (!visual.imageBase64) return;
+        images.push({
+          base64: visual.imageBase64,
+          filename: `${String(spreadIndex + 1).padStart(2, "0")}_${sideLabel}_${visualIndex + 1}.png`,
+        });
+      });
+    });
+  });
+  return images;
+}
+
+function triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function buildEntryImagesZip(entry) {
+  const images = entryVisualImages(entry);
+  if (!images.length) return null;
+  const zip = new JSZip();
+  images.forEach((image) => zip.file(image.filename, image.base64, { base64: true }));
+  return zip.generateAsync({ type: "blob" });
+}
+
+const DRAFT_FILE_TYPES = [
+  { id: "pptx", label: "PPT" },
+  { id: "textbook", label: "교과서 TXT" },
+  { id: "guide", label: "지도서 TXT" },
+  { id: "images", label: "이미지" },
+];
+
+function entryHasFileType(entry, type) {
+  if (type === "images") return entryVisualImages(entry).length > 0;
+  return true;
+}
+
+async function addEntryFileToZipFolder(folder, entry, type) {
+  const safeName = sanitizeZipEntryName(entry.frameworkName);
+  if (type === "pptx") {
+    const pres = spreadsToPptx(entry);
+    const blob = await pres.write({ outputType: "blob" });
+    folder.file(`${safeName}.pptx`, blob);
+  } else if (type === "textbook") {
+    folder.file(`${safeName}_교과서원고.txt`, textbookManuscriptText(entry));
+  } else if (type === "guide") {
+    folder.file(`${safeName}_지도서원고.txt`, teacherGuideManuscriptText(entry));
+  } else if (type === "images") {
+    const images = entryVisualImages(entry);
+    if (!images.length) return;
+    const imageFolder = folder.folder("이미지");
+    images.forEach((image) => imageFolder.file(image.filename, image.base64, { base64: true }));
+  }
+}
+
+// fileKeys: "{batchIndex}:{entryIndex}:{type}" 문자열 배열 — 리스트의 개별 체크박스 선택,
+// 또는 "유형별 전체 다운로드"에서 한 타입만 모아 전달한다. 회차별 폴더 아래 체제 폴더를
+// 두고(체제가 1개면 회차 폴더에 바로) 선택된 타입의 파일만 채운다.
+async function buildFilesZip(fileKeys) {
+  const zip = new JSZip();
+  for (const key of fileKeys) {
+    const [batchIndexText, entryIndexText, type] = key.split(":");
+    const batchIndex = Number(batchIndexText);
+    const entryIndex = Number(entryIndexText);
+    const batch = state.frameworkDraftLog[batchIndex];
+    const entry = batch?.entries?.[entryIndex];
+    if (!batch || !entry || !entryHasFileType(entry, type)) continue;
+    const batchFolder = zip.folder(`${batchIndex + 1}회차_${sanitizeZipEntryName(batch.smallUnitLabel)}`);
+    const entryFolder = batch.entries.length > 1 ? batchFolder.folder(sanitizeZipEntryName(entry.frameworkName)) : batchFolder;
+    await addEntryFileToZipFolder(entryFolder, entry, type);
+  }
+  return zip.generateAsync({ type: "blob" });
+}
+
+async function buildTypeOnlyZip(type) {
+  const keys = [];
+  (state.frameworkDraftLog || []).forEach((batch, batchIndex) => {
+    batch.entries.forEach((entry, entryIndex) => {
+      if (entryHasFileType(entry, type)) keys.push(`${batchIndex}:${entryIndex}:${type}`);
+    });
+  });
+  return buildFilesZip(keys);
+}
+
+// renderFrameworks()의 예전 회차 단위 목록(선택 다운로드)은 그대로 회차 인덱스만 받는다 —
+// 그 회차에 속한 모든 체제·모든 파일 타입을 buildFilesZip에 넘겨 동일한 zip 구조로 만든다.
+async function buildSelectedDraftsZip(batchIndices) {
+  const keys = [];
+  batchIndices.forEach((batchIndex) => {
+    const batch = state.frameworkDraftLog[batchIndex];
+    if (!batch) return;
+    batch.entries.forEach((entry, entryIndex) => {
+      DRAFT_FILE_TYPES.forEach((type) => {
+        if (entryHasFileType(entry, type.id)) keys.push(`${batchIndex}:${entryIndex}:${type.id}`);
+      });
+    });
+  });
+  return buildFilesZip(keys);
 }
 
 function showToast(message) {
@@ -1666,11 +1813,16 @@ function renderPagePreviewModal() {
 }
 
 function renderNavigation() {
+  // 05 모의심사는 01~04를 순서대로 마쳐야 여는 단계가 아니라, 그 시점의 결과물만 공식
+  // 기준으로 독립 평가하는 별도 도구다. 목록 안에서도 구분되도록 구분선과 표시를 둔다.
   document.querySelector("#stepNavigation").innerHTML = steps.map(([defaultLabel], index) => {
     const label = isSportsCultureProject() && index === 3 ? "전체 스타일·초고" : defaultLabel;
+    const isStandalone = index === steps.length - 1;
+    const divider = isStandalone ? `<div class="step-nav-divider"><span>독립 평가</span></div>` : "";
     return `
-    <button class="prototype-step ${index === state.currentStep ? "active" : ""} ${index < state.currentStep ? "completed" : ""}" data-step="${index}" type="button">
-      <span class="step-index">${String(index + 1).padStart(2, "0")}</span>
+    ${divider}
+    <button class="prototype-step ${isStandalone ? "standalone" : ""} ${index === state.currentStep ? "active" : ""} ${index < state.currentStep ? "completed" : ""}" data-step="${index}" type="button">
+      ${isStandalone ? "" : `<span class="step-index">${String(index + 1).padStart(2, "0")}</span>`}
       <b>${label}</b>
       <small>${index < state.currentStep ? "✓" : ""}</small>
     </button>
@@ -1694,6 +1846,10 @@ function renderHeader() {
   document.querySelector("#progressBar").style.width = `${((state.currentStep + 1) / steps.length) * 100}%`;
   document.querySelector("#previousButton").disabled = state.currentStep === 0;
   const nextButton = document.querySelector("#nextButton");
+  // 04단계(체제안 선택/전체 스타일·초고)에는 "다음" 버튼을 두지 않는다 — 05 모의심사는
+  // 01~04를 순서대로 끝내야 여는 단계가 아니라 좌측 메뉴에서 바로 여는 독립 평가라서,
+  // "다음"이 마치 04를 끝내야 05로 갈 수 있다는 것처럼 보이면 오해를 준다.
+  nextButton.style.display = state.currentStep === 3 ? "none" : "";
   nextButton.textContent = state.currentStep === steps.length - 1 ? "완료" : "다음";
 }
 
@@ -2541,10 +2697,13 @@ async function drawDraftSpreadCanvas(canvas, entry, spread) {
       canvasWrappedText(context, `생각 열기  |  ${manuscript.openingQuestion || spread.intro}`, contentX + 14, y + 18, contentWidth - 28, 17, 2);
       y += 66;
     } else {
+      context.save();
       context.fillStyle = accentDark;
-      context.font = "800 14px 'Malgun Gothic', sans-serif";
-      context.fillText(`${entry.primaryTypeLabel || "스포츠 문화"}  ·  ${spread.role}`, contentX, y);
-      y += 28;
+      context.globalAlpha = 0.6;
+      context.font = "700 10px 'Malgun Gothic', sans-serif";
+      context.textAlign = "right";
+      context.fillText(`${entry.primaryTypeLabel || "스포츠 문화"} · ${spread.role}`, page.x + 664, 34);
+      context.restore();
     }
     page.sections.forEach((section) => {
       context.fillStyle = accent;
@@ -2704,6 +2863,42 @@ function renderSpreadPageView(entry, spread) {
     </div>`;
 }
 
+// 렌더된 HTML에는 체크박스 checked만 넣었고 "부분 선택" 표시(indeterminate)는 DOM
+// 속성으로만 줄 수 있어 렌더 후 여기서 계산한다. 행의 유형 체크박스가 하나도 없으면
+// 그 행 자체가 없는 상태이므로 다루지 않는다.
+function syncDraftFileRowCheckboxes() {
+  document.querySelectorAll("[data-draft-file-row-checkbox]").forEach((rowCheckbox) => {
+    const row = rowCheckbox.closest("tr");
+    const typeBoxes = row ? [...row.querySelectorAll("[data-draft-file-checkbox]")] : [];
+    if (!typeBoxes.length) {
+      rowCheckbox.checked = false;
+      rowCheckbox.indeterminate = false;
+      return;
+    }
+    const checkedCount = typeBoxes.filter((box) => box.checked).length;
+    rowCheckbox.checked = checkedCount === typeBoxes.length;
+    rowCheckbox.indeterminate = checkedCount > 0 && checkedCount < typeBoxes.length;
+  });
+}
+
+// 열 헤더 체크박스(PPT/교과서/지도서/이미지 앞)도 같은 방식 — 그 유형의 파일이 전부
+// 선택돼 있으면 체크, 일부만 선택돼 있으면 부분 선택(대시) 표시.
+function syncDraftFileColumnCheckboxes() {
+  const allTypeCheckboxes = [...document.querySelectorAll("[data-draft-file-checkbox]")];
+  document.querySelectorAll("[data-draft-file-column-checkbox]").forEach((columnCheckbox) => {
+    const type = columnCheckbox.dataset.draftFileColumnCheckbox;
+    const boxes = allTypeCheckboxes.filter((box) => box.dataset.draftFileCheckbox.split(":")[2] === type);
+    if (!boxes.length) {
+      columnCheckbox.checked = false;
+      columnCheckbox.indeterminate = false;
+      return;
+    }
+    const checkedCount = boxes.filter((box) => box.checked).length;
+    columnCheckbox.checked = checkedCount === boxes.length;
+    columnCheckbox.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+  });
+}
+
 function renderDraftCanvases() {
   document.querySelectorAll("[data-draft-canvas]").forEach((canvas) => {
     const [batchIndex, entryIndex, spreadIndex] = canvas.dataset.draftCanvas.split(":").map(Number);
@@ -2851,35 +3046,100 @@ function sportsCultureSmallUnitRecord(key) {
   return state.units?.[unitIndex]?.subdomainGroups?.[groupIndex]?.middleUnits?.[middleIndex]?.smallUnits?.[smallIndex] || null;
 }
 
+function draftFileActionAttr(type, batchIndex, entryIndex) {
+  if (type === "pptx") return `data-download-pptx="${batchIndex}:${entryIndex}"`;
+  if (type === "textbook") return `data-download-textbook-text="${batchIndex}:${entryIndex}"`;
+  if (type === "guide") return `data-download-guide-text="${batchIndex}:${entryIndex}"`;
+  return `data-download-images-zip="${batchIndex}:${entryIndex}"`;
+}
+
+// 일반 폴더 창처럼 좌측 제목·끝 날짜로 열을 맞추고, PPT/교과서/지도서/이미지는 각각 자기
+// 열을 가진다(행이 아니라 열로 구분). 회차 하나 = 표의 한 행. 없는 파일 유형(이미지 미생성)은
+// 그 칸에 체크박스 없이 "—"만 남는다.
 function renderSportsCultureDraftHistory(draftLog) {
   if (!draftLog.length) return "";
+  const groups = [];
+  draftLog.forEach((batch, batchIndex) => {
+    batch.entries.forEach((entry, entryIndex) => {
+      groups.push({ batch, batchIndex, entry, entryIndex });
+    });
+  });
+  const totalFiles = groups.reduce(
+    (sum, group) => sum + DRAFT_FILE_TYPES.filter((type) => entryHasFileType(group.entry, type.id)).length,
+    0,
+  );
+
+  const rowsHtml = [...groups].reverse().map((group) => {
+    const { batch, batchIndex, entry, entryIndex } = group;
+    const { unitName, smallTitle } = splitSmallUnitLabelForTable(batch.smallUnitLabel);
+    const previewKey = `${batchIndex}:${entryIndex}`;
+    const isOpen = expandedDraftFilePreviews.has(previewKey);
+    const noCell = `<td class="col-no">${batchIndex + 1}</td>`;
+    const unitCell = `
+      <td class="col-unit">
+        <div class="draft-file-row-select">
+          <input type="checkbox" data-draft-file-row-checkbox="${previewKey}" />
+          <span class="draft-file-unit-name" data-draft-file-preview-toggle="${previewKey}">${escapeHtml(unitName)}</span>
+        </div>
+      </td>`;
+    const smallTitleCell = `
+      <td class="col-small-title">
+        <span class="draft-file-small-title" data-draft-file-preview-toggle="${previewKey}">${escapeHtml(smallTitle)}</span>
+        ${batch.entries.length > 1 ? `<span class="draft-file-framework">${escapeHtml(entry.frameworkName)}</span>` : ""}
+      </td>`;
+    const typeCells = DRAFT_FILE_TYPES.map((type) => {
+      if (!entryHasFileType(entry, type.id)) return `<td class="col-type-cell type-${type.id}"><span class="draft-file-cell-empty">—</span></td>`;
+      const fileKey = `${batchIndex}:${entryIndex}:${type.id}`;
+      return `
+        <td class="col-type-cell type-${type.id}">
+          <label class="draft-file-cell">
+            <input type="checkbox" data-draft-file-checkbox="${fileKey}" ${selectedDraftFiles.has(fileKey) ? "checked" : ""} />
+            <button type="button" class="tertiary-button" ${draftFileActionAttr(type.id, batchIndex, entryIndex)}>다운로드</button>
+          </label>
+        </td>`;
+    }).join("");
+    const dateCell = `<td class="col-date">${formatDraftBatchTimestamp(batch.generatedAt)}</td>`;
+    const mainRow = `<tr class="draft-file-row${isOpen ? " open" : ""}">${noCell}${unitCell}${smallTitleCell}${typeCells}${dateCell}</tr>`;
+    const previewRow = isOpen ? `
+      <tr class="draft-file-preview-row">
+        <td colspan="${4 + DRAFT_FILE_TYPES.length}">
+          ${renderSportsDraftImages(entry, batchIndex, entryIndex)}
+          <details class="sports-draft-text-details" open><summary>교과서·지도서 원고와 근거 확인</summary>${renderDraftTraceability(entry)}<pre class="manuscript-preview">${escapeHtml(textbookManuscriptText(entry))}</pre><div class="spread-drafts">${entry.spreads.map((spread, spreadIndex) => renderSpreadDraft(spread, spreadIndex, true)).join("")}</div></details>
+        </td>
+      </tr>` : "";
+    return mainRow + previewRow;
+  }).join("");
+
   return `
     <div class="draft-log-list">
       <div class="draft-log-toolbar">
-        <label class="draft-log-select-all"><input type="checkbox" id="draftLogSelectAll" ${selectedDraftBatches.size && selectedDraftBatches.size === draftLog.length ? "checked" : ""} /><span>전체 선택</span></label>
-        <span class="draft-log-count">${selectedDraftBatches.size}개 선택 · 총 ${draftLog.length}건</span>
-        <div class="section-actions"><button class="secondary-button" id="downloadSelectedDraftsButton" type="button" ${selectedDraftBatches.size ? "" : "disabled"}>선택 다운로드</button><button class="secondary-button" id="deleteSelectedDraftsButton" type="button" ${selectedDraftBatches.size ? "" : "disabled"}>선택 삭제</button></div>
+        <label class="draft-log-select-all"><input type="checkbox" id="draftFileSelectAll" ${selectedDraftFiles.size && selectedDraftFiles.size === totalFiles ? "checked" : ""} /><span>전체 선택</span></label>
+        <span class="draft-log-count">${selectedDraftFiles.size}개 선택 · 총 ${totalFiles}개 파일</span>
+        <div class="section-actions">
+          <button class="secondary-button" id="downloadSelectedDraftFilesButton" type="button" ${selectedDraftFiles.size ? "" : "disabled"}>선택 다운로드</button>
+          <button class="secondary-button" id="deleteSelectedDraftFilesButton" type="button" ${selectedDraftFiles.size ? "" : "disabled"}>선택 삭제</button>
+        </div>
       </div>
-      ${draftLog.map((batch, index) => index).reverse().map((index) => {
-        const batch = draftLog[index];
-        return `
-          <details class="draft-log-entry" data-draft-log-index="${index}" ${expandedDraftBatches.has(index) ? "open" : ""}>
-            <summary class="draft-log-summary"><input type="checkbox" data-draft-log-checkbox="${index}" ${selectedDraftBatches.has(index) ? "checked" : ""} /><span>${index + 1}번째 · ${formatDraftBatchTimestamp(batch.generatedAt)} · ${escapeHtml(batch.smallUnitLabel)} · 초고 ${batch.entries.length}개 · ${escapeHtml(batch.styleLabel || "균형형")}</span></summary>
-            <div class="draft-log-body">
-              <div class="framework-comparison-grid single-draft">
-                ${batch.entries.map((entry, entryIndex) => `
-                  <div class="framework-comparison-column">
-                    <div class="small-unit-heading">
-                      <span class="option-subtitle">${escapeHtml(entry.frameworkName)} · ${escapeHtml(entry.smallUnitLabel)}</span>
-                      <div class="section-actions"><button class="secondary-button" data-download-pptx="${index}:${entryIndex}" type="button">PPT 다운로드</button><button class="secondary-button" data-download-textbook-text="${index}:${entryIndex}" type="button">교과서 원고 TXT</button><button class="secondary-button" data-download-guide-text="${index}:${entryIndex}" type="button">지도서 원고 TXT</button></div>
-                    </div>
-                    ${renderSportsDraftImages(entry, index, entryIndex)}
-                    <details class="sports-draft-text-details"><summary>교과서·지도서 원고와 근거 확인</summary>${renderDraftTraceability(entry)}<pre class="manuscript-preview">${escapeHtml(textbookManuscriptText(entry))}</pre><div class="spread-drafts">${entry.spreads.map((spread, spreadIndex) => renderSpreadDraft(spread, spreadIndex, true)).join("")}</div></details>
-                  </div>`).join("")}
-              </div>
-            </div>
-          </details>`;
-      }).join("")}
+      <div class="draft-file-table-wrap">
+        <table class="draft-file-table draft-file-table-columns">
+          <thead>
+            <tr>
+              <th class="col-no">No.</th>
+              <th class="col-unit">단원명</th>
+              <th class="col-small-title">소단원명</th>
+              ${DRAFT_FILE_TYPES.map((type) => `
+                <th class="col-type-cell type-${type.id}">
+                  <label class="draft-file-column-header">
+                    <input type="checkbox" data-draft-file-column-checkbox="${type.id}" />
+                    <span>${type.label}</span>
+                  </label>
+                </th>`).join("")}
+              <th class="col-date">날짜</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
     </div>`;
 }
 
@@ -2921,6 +3181,7 @@ function renderSportsCultureDraftStudio() {
     </section>
     <section class="special-page-panel">
       <div class="draft-target-heading"><div><strong>단원 도입·마무리·특별페이지 초고</strong></div></div>
+      <div class="draft-target-toolbar"><button class="secondary-button" id="selectAllSpecialDraftTargets" type="button">도입·마무리·특별페이지 전체 선택</button><button class="secondary-button" id="clearSpecialDraftTargets" type="button">선택 해제</button></div>
       <div class="special-page-list">${specialTargets.map((item) => `<label class="special-page-row"><input type="checkbox" data-draft-target="${item.key}" ${selectedKeys.has(item.key) ? "checked" : ""} /><span><b>${escapeHtml(item.smallTitle)}</b><small>${escapeHtml(item.specialTypeLabel)} · ${item.pages}쪽${item.customId ? " · 3단계 배열표 반영" : ""}</small></span></label>`).join("")}</div>
     </section>
     <div class="curriculum-notice compact"><strong>분량</strong><span>이론 1,400~1,800자 · 실기 900~1,400자 · 도입 300~700자 · 마무리 700~1,200자 · 특별 600~1,400자</span></div>
@@ -2947,6 +3208,12 @@ function renderFrameworks() {
   if (state.frameworkDraftLog.some((batch) => !Array.isArray(batch?.entries))) state.frameworkDraftLog = [];
   selectedDraftBatches.forEach((index) => { if (index >= state.frameworkDraftLog.length) selectedDraftBatches.delete(index); });
   expandedDraftBatches.forEach((index) => { if (index >= state.frameworkDraftLog.length) expandedDraftBatches.delete(index); });
+  const draftFileKeyStillValid = (key) => {
+    const [batchIndex, entryIndex] = key.split(":").map(Number);
+    return Boolean(state.frameworkDraftLog[batchIndex]?.entries?.[entryIndex]);
+  };
+  selectedDraftFiles.forEach((key) => { if (!draftFileKeyStillValid(key.split(":").slice(0, 2).join(":"))) selectedDraftFiles.delete(key); });
+  expandedDraftFilePreviews.forEach((key) => { if (!draftFileKeyStillValid(key)) expandedDraftFilePreviews.delete(key); });
   if (!state.frameworkApproval) state.frameworkApproval = { status: "draft", frameworkId: null, approvedAt: null };
   const smallUnits = smallUnitOptions();
   const draftLog = state.frameworkDraftLog;
@@ -3051,11 +3318,17 @@ function renderFrameworks() {
           </div>
           ${draftLog.map((batch, index) => index).reverse().map((index) => {
             const batch = draftLog[index];
+            const { breadcrumb, title } = splitSmallUnitLabel(batch.smallUnitLabel);
             return `
               <details class="draft-log-entry" data-draft-log-index="${index}" ${expandedDraftBatches.has(index) ? "open" : ""}>
                 <summary class="draft-log-summary">
                   <input type="checkbox" data-draft-log-checkbox="${index}" ${selectedDraftBatches.has(index) ? "checked" : ""} />
-                  <span>${index + 1}회차 · ${formatDraftBatchTimestamp(batch.generatedAt)} · ${escapeHtml(batch.smallUnitLabel)} · 체제 ${batch.entries.length}개${batch.provider?.label ? ` · ${escapeHtml(batch.provider.label)}` : ""}</span>
+                  <span class="draft-log-title-block">
+                    <span class="draft-log-breadcrumb">${index + 1}회차${breadcrumb ? ` · ${escapeHtml(breadcrumb)}` : ""}</span>
+                    <span class="draft-log-title">${escapeHtml(title)}</span>
+                  </span>
+                  <span class="draft-log-tags"><span class="draft-log-tag">체제 ${batch.entries.length}개</span>${batch.provider?.label ? `<span class="draft-log-tag">${escapeHtml(batch.provider.label)}</span>` : ""}</span>
+                  <span class="draft-log-date">${formatDraftBatchTimestamp(batch.generatedAt)}</span>
                 </summary>
                 <div class="draft-log-body">
                   <div class="framework-comparison-grid">
@@ -3067,7 +3340,7 @@ function renderFrameworks() {
                             <span class="option-subtitle">${escapeHtml(entry.frameworkName)} · ${escapeHtml(entry.smallUnitLabel)}</span>
                             <div class="section-actions">
                               <button class="secondary-button" data-download-pptx="${index}:${entryIndex}" type="button">PPT 다운로드</button>
-                              ${sportsCulture ? `<button class="secondary-button" data-download-textbook-text="${index}:${entryIndex}" type="button">교과서 원고 TXT</button><button class="secondary-button" data-download-guide-text="${index}:${entryIndex}" type="button">지도서 원고 TXT</button>` : ""}
+                              ${sportsCulture ? `<button class="secondary-button" data-download-textbook-text="${index}:${entryIndex}" type="button">교과서 원고 TXT</button><button class="secondary-button" data-download-guide-text="${index}:${entryIndex}" type="button">지도서 원고 TXT</button><button class="secondary-button" data-download-images-zip="${index}:${entryIndex}" type="button">이미지 ZIP</button>` : ""}
                               ${isApproved
                                 ? `<span class="approved-badge">승인됨</span>`
                                 : `<button class="secondary-button" data-approve-framework="${entry.frameworkId}" type="button">이 체제로 승인</button>`}
@@ -3133,7 +3406,28 @@ const HIGH_RECOGNITION_CRITERIA = [
   ["Ⅳ. 학습 활동 및 평가 지원", 30, 20, "학습의 과정을 중시하고 학생의 참여와 성장을 지원하는 학습 활동 및 평가 과제를 제시하였는가?"],
 ];
 
+const MOCK_REVIEW_REVISIONS = [
+  { id: "2009", label: "2009 개정" },
+  { id: "2015", label: "2015 개정" },
+  { id: "2022", label: "2022 개정" },
+];
+
 function mockReviewStandard(targetState = state) {
+  const revision = targetState.mockReviewRevision || "2022";
+  if (revision !== "2022") {
+    const reason = revision === "2015"
+      ? "교육과정 원문조차 전처리되지 않았습니다"
+      : "편찬상의 유의점 및 검정·인정기준 문서가 전처리되지 않았습니다";
+    return {
+      id: `${revision}-unavailable`,
+      label: "심사기준",
+      count: 0,
+      criteria: [],
+      source: "공식자료 미연결",
+      sourceLocation: `${revision} 개정 심사기준은 아직 공식자료와 연결되지 않았습니다(${reason}).`,
+      available: false,
+    };
+  }
   if (targetState.project.schoolLevel === "고등학교") {
     return {
       id: "high-physical-education-recognition",
@@ -3186,6 +3480,15 @@ function renderMockReviewResult(review) {
   const resultCriteria = review.standard?.criteria?.map((item) => [item.area, item.weight, item.number, item.criterion]) || fallbackStandard.criteria;
   const standardLabel = review.standard?.label || fallbackStandard.label;
   const criteriaByNumber = Object.fromEntries(resultCriteria.map(([area, weight, number, criterion]) => [number, { area, weight, criterion }]));
+  const items = review.items || [];
+  const countByStatus = { pass: 0, partial: 0, fail: 0 };
+  items.forEach((item) => { if (countByStatus[item.status] != null) countByStatus[item.status] += 1; });
+  const needsWork = items.filter((item) => item.status !== "pass");
+
+  const standardsCoverage = review.standardsCoverage || [];
+  const editorialNotes = review.editorialNotes || [];
+  const dictionaryCheck = review.dictionaryCheck || [];
+
   return `
     <div class="mock-review-result">
       <div class="mock-review-summary">
@@ -3194,6 +3497,21 @@ function renderMockReviewResult(review) {
         <span class="mock-review-decision">${escapeHtml(review.decision)}</span>
       </div>
       ${review.truncated ? `<p class="source-page-warning">원문이 길어 앞부분만 채점에 사용했습니다.</p>` : ""}
+      <div class="mock-review-status-counts">
+        <span class="mock-review-status pass">충족 ${countByStatus.pass}</span>
+        <span class="mock-review-status partial">부분 충족 ${countByStatus.partial}</span>
+        <span class="mock-review-status fail">미흡 ${countByStatus.fail}</span>
+      </div>
+      ${needsWork.length ? `
+        <div class="mock-review-needs-work">
+          <b>수정·보완이 필요한 항목 ${needsWork.length}개</b>
+          <ul>
+            ${needsWork.map((item) => {
+              const meta = criteriaByNumber[item.number] || {};
+              return `<li><span class="mock-review-status ${item.status}">${MOCK_REVIEW_STATUS_LABELS[item.status] || item.status}</span> <b>${item.number}.</b> ${escapeHtml(meta.criterion || "")} — ${escapeHtml(item.evidence || "")}</li>`;
+            }).join("")}
+          </ul>
+        </div>` : ""}
       <div class="mock-review-area-grid">
         ${Object.entries(review.areaScores || {}).map(([area, score]) => `
           <article class="mock-review-area-card">
@@ -3201,14 +3519,15 @@ function renderMockReviewResult(review) {
             <span>${score}점</span>
           </article>`).join("")}
       </div>
+      <label class="mock-review-filter-toggle"><input type="checkbox" id="mockReviewFilterToggle" /><span>수정·보완 필요 항목만 보기</span></label>
       <div class="mock-review-table-wrap">
-        <table class="mock-review-table">
+        <table class="mock-review-table" id="mockReviewTable">
           <thead><tr><th>번호</th><th>${escapeHtml(standardLabel)}</th><th>판정</th><th>AI 근거</th></tr></thead>
           <tbody>
-            ${(review.items || []).map((item) => {
+            ${items.map((item) => {
               const meta = criteriaByNumber[item.number] || {};
               return `
-                <tr>
+                <tr data-status="${item.status}">
                   <td>${item.number}</td>
                   <td><small>${escapeHtml(meta.area || "")}</small><br />${escapeHtml(meta.criterion || "")}</td>
                   <td><span class="mock-review-status ${item.status}">${MOCK_REVIEW_STATUS_LABELS[item.status] || item.status}</span></td>
@@ -3219,14 +3538,52 @@ function renderMockReviewResult(review) {
         </table>
       </div>
       <label class="editor-field"><span>검토 메모</span><textarea readonly>${escapeHtml(review.reviewNote || "")}</textarea></label>
+      ${standardsCoverage.length ? `
+        <div class="mock-review-extra-section">
+          <b>교육과정 성취기준 커버리지</b>
+          <ul class="mock-review-coverage-list">
+            ${standardsCoverage.map((item) => `<li class="${item.covered ? "covered" : "missing"}"><b>${escapeHtml(item.code)}</b> ${item.covered ? "다룸" : "확인 안 됨"} — ${escapeHtml(item.evidence || "")}</li>`).join("")}
+          </ul>
+        </div>` : ""}
+      ${editorialNotes.length ? `
+        <div class="mock-review-extra-section">
+          <b>편수자료 기준 검토</b>
+          <ul>${editorialNotes.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul>
+        </div>` : ""}
+      <div class="mock-review-extra-section">
+        <b>용어 사용 확인 <small>(허용 우선순위: 교육과정 → 편수자료 → 국어대사전)</small></b>
+        ${review.dictionaryCheckAvailable === false
+          ? `<p class="source-page-warning">서버에 STDICT_API_KEY가 설정되지 않아, 교육과정·편수자료에도 없는 용어는 국어대사전 대조를 건너뛰었습니다.</p>`
+          : ""}
+        ${dictionaryCheck.length ? `
+          <ul class="mock-review-coverage-list">
+            ${dictionaryCheck.map((entry) => {
+              let statusClass = "";
+              let statusText = "";
+              if (entry.source === "curriculum") { statusClass = "covered"; statusText = "교육과정에서 확인됨 → 허용"; }
+              else if (entry.source === "editorial") { statusClass = "covered"; statusText = "편수자료에서 확인됨 → 허용"; }
+              else if (entry.found === true) { statusClass = "covered"; statusText = "국어대사전에 있음 → 허용"; }
+              else if (entry.found === false) { statusClass = "missing"; statusText = "교육과정·편수자료·국어대사전 어디에도 없음 → 검토 필요"; }
+              else { statusClass = ""; statusText = "국어대사전 대조 못함(키 없음 또는 통신 오류)"; }
+              return `<li class="${statusClass}"><b>${escapeHtml(entry.term)}</b> ${statusText}</li>`;
+            }).join("")}
+          </ul>` : `<p class="source-page-warning">AI가 별도로 대조가 필요하다고 표시한 용어가 없습니다.</p>`}
+      </div>
     </div>`;
 }
 
 function renderMockReview() {
   const standard = mockReviewStandard();
   const previousResultMatches = state.mockReview?.standard?.id === standard.id;
+  const activeRevision = state.mockReviewRevision || "2022";
   return `
     ${sectionHeading("MOCK CERTIFICATION", "모의심사", standard.available ? `${standard.count}개 항목` : "기준 미연결")}
+    <div class="editor-field">
+      <span>심사기준 교육과정</span>
+      <div class="book-style-options" role="radiogroup" aria-label="심사기준 교육과정">
+        ${MOCK_REVIEW_REVISIONS.map((rev) => `<button type="button" class="book-style-option${rev.id === activeRevision ? " active" : ""}" data-mock-review-revision="${rev.id}" role="radio" aria-checked="${rev.id === activeRevision}">${rev.label}</button>`).join("")}
+      </div>
+    </div>
     <div class="evidence-summary-card">
       <b>${escapeHtml(standard.label)} 근거</b>
       <span>${escapeHtml(standard.source)}</span>
@@ -3282,6 +3639,8 @@ function renderWorkspace() {
   document.querySelector("#workspace").innerHTML = renderers[state.currentStep]();
   bindWorkspace();
   renderDraftCanvases();
+  syncDraftFileRowCheckboxes();
+  syncDraftFileColumnCheckboxes();
   restoreScroll();
 }
 
@@ -3831,6 +4190,24 @@ function bindWorkspace() {
     refreshDraftSelectionControls();
   });
 
+  document.querySelector("#selectAllSpecialDraftTargets")?.addEventListener("click", () => {
+    const specialKeys = sportsCultureSpecialDraftTargets().map((item) => item.key);
+    const current = new Set(state.selectedDraftSmallUnitKeys || []);
+    specialKeys.forEach((key) => current.add(key));
+    state.selectedDraftSmallUnitKeys = [...current];
+    document.querySelectorAll("[data-draft-target]").forEach((input) => { input.checked = state.selectedDraftSmallUnitKeys.includes(input.dataset.draftTarget); });
+    persist("전체 도입·마무리·특별페이지를 생성 대상으로 선택됨");
+    refreshDraftSelectionControls();
+  });
+
+  document.querySelector("#clearSpecialDraftTargets")?.addEventListener("click", () => {
+    const specialKeys = new Set(sportsCultureSpecialDraftTargets().map((item) => item.key));
+    state.selectedDraftSmallUnitKeys = (state.selectedDraftSmallUnitKeys || []).filter((key) => !specialKeys.has(key));
+    document.querySelectorAll("[data-draft-target]").forEach((input) => { input.checked = state.selectedDraftSmallUnitKeys.includes(input.dataset.draftTarget); });
+    persist("도입·마무리·특별페이지 선택 해제됨");
+    refreshDraftSelectionControls();
+  });
+
   document.querySelector("#previewSmallUnitSelect")?.addEventListener("change", (event) => {
     state.previewSmallUnitKey = event.target.value;
     if (isSportsCultureProject()) {
@@ -3928,6 +4305,11 @@ function bindWorkspace() {
           });
         }
         expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
+        {
+          const lastBatchIndex = state.frameworkDraftLog.length - 1;
+          const lastBatch = state.frameworkDraftLog[lastBatchIndex];
+          expandedDraftFilePreviews = new Set((lastBatch?.entries || []).map((_, entryIndex) => `${lastBatchIndex}:${entryIndex}`));
+        }
         persistNow(`${targets.length}개 스포츠 문화 초고 생성됨`);
         renderWorkspace();
         showToast(`${targets.length}개 항목의 초고를 생성했습니다.`);
@@ -3993,6 +4375,11 @@ function bindWorkspace() {
         entries: generated,
       });
       expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
+      if (isSportsCultureProject()) {
+        const lastBatchIndex = state.frameworkDraftLog.length - 1;
+        const lastBatch = state.frameworkDraftLog[lastBatchIndex];
+        expandedDraftFilePreviews = new Set((lastBatch?.entries || []).map((_, entryIndex) => `${lastBatchIndex}:${entryIndex}`));
+      }
       persistNow(isSportsCultureProject() ? "내부 데이터 초안 생성됨" : "AI 초안 생성됨");
       renderWorkspace();
       showToast(isSportsCultureProject() ? "내부 데이터로 체제 3개의 초안을 생성했습니다." : "체제 3개의 초안을 생성했습니다.");
@@ -4041,6 +4428,29 @@ function bindWorkspace() {
       if (!entry) return;
       downloadTextFile(`${entry.frameworkName}_${entry.smallUnitLabel}_지도서원고.txt`, teacherGuideManuscriptText(entry));
       showToast("지도서 원고를 다운로드했습니다.");
+    });
+  });
+
+  document.querySelectorAll("[data-download-images-zip]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [roundIndex, entryIndex] = button.dataset.downloadImagesZip.split(":").map(Number);
+      const entry = state.frameworkDraftLog?.[roundIndex]?.entries?.[entryIndex];
+      if (!entry) return;
+      const originalLabel = button.textContent;
+      button.disabled = true;
+      button.textContent = "압축 중…";
+      try {
+        const blob = await buildEntryImagesZip(entry);
+        if (!blob) {
+          showToast("이 체제에는 저장된 삽화 이미지가 없습니다. (삽화 이미지 옵션을 켜고 생성해야 포함됩니다)");
+          return;
+        }
+        triggerBlobDownload(blob, `${entry.frameworkName}_${entry.smallUnitLabel}_이미지.zip`);
+        showToast("삽화 이미지를 zip으로 다운로드했습니다.");
+      } finally {
+        button.disabled = false;
+        button.textContent = originalLabel;
+      }
     });
   });
 
@@ -4097,14 +4507,24 @@ function bindWorkspace() {
     });
   });
 
-  document.querySelector("#downloadSelectedDraftsButton")?.addEventListener("click", async () => {
+  document.querySelector("#downloadSelectedDraftsButton")?.addEventListener("click", async (event) => {
     const indices = [...selectedDraftBatches].sort((a, b) => a - b);
     if (!indices.length) return;
-    for (const index of indices) {
-      const pres = draftBatchesToPptx([{ roundNumber: index + 1, batch: state.frameworkDraftLog[index] }]);
-      await pres.writeFile({ fileName: `${state.project.name || "초안"}_${index + 1}회차초안.pptx` });
+    const button = event.currentTarget;
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = "압축 중…";
+    try {
+      const blob = await buildSelectedDraftsZip(indices);
+      triggerBlobDownload(blob, `${state.project.name || "초안"}_선택${indices.length}건.zip`);
+      showToast(`${indices.length}개 회차(PPT·원고 TXT·삽화 이미지)를 zip 1개로 다운로드했습니다.`);
+    } catch (error) {
+      console.error(error);
+      showToast("다운로드 중 오류가 발생했습니다.");
+    } finally {
+      button.disabled = false;
+      button.textContent = originalLabel;
     }
-    showToast(`${indices.length}개 회차를 각각 PPT로 다운로드했습니다.`);
   });
 
   document.querySelector("#deleteSelectedDraftsButton")?.addEventListener("click", () => {
@@ -4116,6 +4536,139 @@ function bindWorkspace() {
     persist("생성 이력 삭제됨");
     renderWorkspace();
     showToast("선택한 회차를 삭제했습니다.");
+  });
+
+  // --- 스포츠 문화 "전체 스타일·초고" 표: 회차가 아니라 PPT/교과서/지도서/이미지 파일 단위로 선택한다 ---
+
+  function allDraftFileKeys() {
+    const keys = [];
+    (state.frameworkDraftLog || []).forEach((batch, batchIndex) => {
+      batch.entries.forEach((entry, entryIndex) => {
+        DRAFT_FILE_TYPES.forEach((type) => {
+          if (entryHasFileType(entry, type.id)) keys.push(`${batchIndex}:${entryIndex}:${type.id}`);
+        });
+      });
+    });
+    return keys;
+  }
+
+  document.querySelector("#draftFileSelectAll")?.addEventListener("change", (event) => {
+    if (event.target.checked) allDraftFileKeys().forEach((key) => selectedDraftFiles.add(key));
+    else selectedDraftFiles.clear();
+    renderWorkspace();
+  });
+
+  document.querySelectorAll("[data-draft-file-checkbox]").forEach((checkbox) => {
+    checkbox.addEventListener("change", (event) => {
+      const key = checkbox.dataset.draftFileCheckbox;
+      if (event.target.checked) selectedDraftFiles.add(key);
+      else selectedDraftFiles.delete(key);
+      renderWorkspace();
+    });
+  });
+
+  // 제목 앞 체크박스: 그 행에 실제로 있는 유형(이미지 없으면 3개, 있으면 4개) 체크박스를
+  // 한 번에 켜고 끈다. 유형별 체크박스는 이후에도 각자 따로 끄고 켤 수 있다.
+  document.querySelectorAll("[data-draft-file-row-checkbox]").forEach((checkbox) => {
+    checkbox.addEventListener("change", (event) => {
+      const row = checkbox.closest("tr");
+      const checked = event.target.checked;
+      row?.querySelectorAll("[data-draft-file-checkbox]").forEach((cell) => {
+        const key = cell.dataset.draftFileCheckbox;
+        if (checked) selectedDraftFiles.add(key);
+        else selectedDraftFiles.delete(key);
+      });
+      renderWorkspace();
+    });
+  });
+
+  // 열 헤더 체크박스: PPT/교과서/지도서/이미지 앞 체크박스 하나로 그 유형 전체(이미지가
+  // 없는 항목은 제외) 파일을 한 번에 선택/해제한다.
+  document.querySelectorAll("[data-draft-file-column-checkbox]").forEach((checkbox) => {
+    checkbox.addEventListener("change", (event) => {
+      const type = checkbox.dataset.draftFileColumnCheckbox;
+      const checked = event.target.checked;
+      document.querySelectorAll("[data-draft-file-checkbox]").forEach((cell) => {
+        const key = cell.dataset.draftFileCheckbox;
+        if (key.split(":")[2] !== type) return;
+        if (checked) selectedDraftFiles.add(key);
+        else selectedDraftFiles.delete(key);
+      });
+      renderWorkspace();
+    });
+  });
+
+  document.querySelectorAll("[data-draft-file-preview-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.dataset.draftFilePreviewToggle;
+      if (expandedDraftFilePreviews.has(key)) expandedDraftFilePreviews.delete(key);
+      else expandedDraftFilePreviews.add(key);
+      renderWorkspace();
+    });
+  });
+
+  document.querySelector("#downloadSelectedDraftFilesButton")?.addEventListener("click", async (event) => {
+    const keys = [...selectedDraftFiles];
+    if (!keys.length) return;
+    const button = event.currentTarget;
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = "압축 중…";
+    try {
+      const blob = await buildFilesZip(keys);
+      triggerBlobDownload(blob, `${state.project.name || "초안"}_선택${keys.length}개파일.zip`);
+      showToast(`${keys.length}개 파일을 zip 1개로 다운로드했습니다.`);
+    } catch (error) {
+      console.error(error);
+      showToast("다운로드 중 오류가 발생했습니다.");
+    } finally {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  });
+
+  document.querySelector("#deleteSelectedDraftFilesButton")?.addEventListener("click", () => {
+    const batchIndices = new Set([...selectedDraftFiles].map((key) => Number(key.split(":")[0])));
+    if (!batchIndices.size) return;
+    if (!confirm(`선택한 파일이 속한 ${batchIndices.size}개 회차 전체를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    state.frameworkDraftLog = state.frameworkDraftLog.filter((_, index) => !batchIndices.has(index));
+    selectedDraftFiles.clear();
+    persist("생성 이력 삭제됨");
+    renderWorkspace();
+    showToast("선택한 회차를 삭제했습니다.");
+  });
+
+  document.querySelectorAll("[data-download-type]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const type = button.dataset.downloadType;
+      const typeLabel = DRAFT_FILE_TYPES.find((item) => item.id === type)?.label || type;
+      const originalLabel = button.textContent;
+      button.disabled = true;
+      button.textContent = "압축 중…";
+      try {
+        const blob = await buildTypeOnlyZip(type);
+        triggerBlobDownload(blob, `${state.project.name || "초안"}_${typeLabel}_전체.zip`);
+        showToast(`${typeLabel} 전체를 zip으로 다운로드했습니다.`);
+      } catch (error) {
+        console.error(error);
+        showToast("다운로드 중 오류가 발생했습니다.");
+      } finally {
+        button.disabled = false;
+        button.textContent = originalLabel;
+      }
+    });
+  });
+
+  document.querySelector("#mockReviewFilterToggle")?.addEventListener("change", (event) => {
+    document.querySelector("#mockReviewTable")?.classList.toggle("hide-pass", event.target.checked);
+  });
+
+  document.querySelectorAll("[data-mock-review-revision]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.mockReviewRevision = button.dataset.mockReviewRevision;
+      persist("모의심사 기준 교육과정 변경됨");
+      renderWorkspace();
+    });
   });
 
   document.querySelector("#mockReviewStartButton")?.addEventListener("click", async () => {
@@ -4139,7 +4692,7 @@ function bindWorkspace() {
       const response = await fetch("/api/prototype/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdfBase64, fileName: file.name, catalogId: inferredCatalogId(activeProject()) || "" }),
+        body: JSON.stringify({ pdfBase64, fileName: file.name, catalogId: inferredCatalogId(activeProject()) || "", revision: state.mockReviewRevision || "2022" }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "채점 요청에 실패했습니다.");

@@ -178,7 +178,7 @@ class PrototypePdfReviewTests(unittest.TestCase):
             for _area, _weight, number, _criterion in app.TEXTBOOK_REVIEW_CRITERIA
         ]
         original = app.call_openai_for_pdf_review
-        app.call_openai_for_pdf_review = lambda pdf_text, criteria=None, standard_label="검정기준": {"items": fake_items, "review_note": "메모"}
+        app.call_openai_for_pdf_review = lambda pdf_text, criteria=None, standard_label="검정기준", standards=None, editorial_reference="": {"items": fake_items, "review_note": "메모"}
         try:
             result = app.call_prototype_pdf_review({"pdfBase64": pdf_base64, "fileName": "test.pdf", "catalogId": "elementary-3-4"})
         finally:
@@ -190,7 +190,7 @@ class PrototypePdfReviewTests(unittest.TestCase):
         self.assertIn(result["decision"], ("통과", "보완 후 통과", "미통과"))
         # 전부 pass였을 때 area_score가 그 영역 가중치와 같아지는지 확인 (교육과정의 준수 = 25점 만점)
         all_pass_items = [{"number": n, "status": "pass", "evidence": "e"} for _a, _w, n, _c in app.TEXTBOOK_REVIEW_CRITERIA]
-        app.call_openai_for_pdf_review = lambda pdf_text, criteria=None, standard_label="검정기준": {"items": all_pass_items, "review_note": ""}
+        app.call_openai_for_pdf_review = lambda pdf_text, criteria=None, standard_label="검정기준", standards=None, editorial_reference="": {"items": all_pass_items, "review_note": ""}
         try:
             perfect = app.call_prototype_pdf_review({"pdfBase64": pdf_base64, "fileName": "perfect.pdf", "catalogId": "elementary-3-4"})
         finally:
@@ -209,7 +209,7 @@ class PrototypePdfReviewTests(unittest.TestCase):
         captured = {}
         original = app.call_openai_for_pdf_review
 
-        def fake_review(pdf_text, criteria=None, standard_label="검정기준"):
+        def fake_review(pdf_text, criteria=None, standard_label="검정기준", standards=None, editorial_reference=""):
             captured["criteria"] = criteria
             captured["label"] = standard_label
             return {"items": all_pass_items, "review_note": ""}

@@ -2829,6 +2829,19 @@ def manuscript_ai_config() -> dict:
     }
 
 
+# 로컬 실행에는 함수 실행 시간 제한이 없지만, Vercel Hobby 배포(vercel.json의
+# maxDuration: 60)는 60초에서 함수 자체가 강제 종료된다. Vercel은 이 함수의 런타임에
+# VERCEL 환경변수를 자동으로 넣어 주므로 이를 기준으로 예산을 다르게 잡는다 — 배포본은
+# 콜드 스타트·요청 파싱·응답 전송 여유를 남기고 재시도 없이 한 번만 시도한다.
+def manuscript_request_budget() -> dict:
+    if os.environ.get("VERCEL"):
+        # 재시도 여유가 없으므로 reasoning effort도 낮춰 애초에 시간 안에 끝날
+        # 확률을 높인다 — 로컬에서 다듬는 medium 품질보다는 떨어지지만, 시간 초과로
+        # 아예 못 받는 것보다 낫다.
+        return {"timeout_seconds": 50, "max_attempts": 1, "reasoning_effort": "low"}
+    return {"timeout_seconds": 110, "max_attempts": 2, "reasoning_effort": "medium"}
+
+
 def manuscript_catalog_record() -> dict:
     manuscript = workflow_stage_record("manuscript")
     catalog = []
@@ -3250,6 +3263,35 @@ def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> d
     }
 
 
+def _collect_manuscript_strings(node):
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for value in node.values():
+            yield from _collect_manuscript_strings(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _collect_manuscript_strings(item)
+
+
+# 추론 모델이 strict json_schema 검증은 통과시키면서도, 답을 확신하지 못해 혼란스러운
+# 영어 메타 발언("Let's redo", "sports_culture_manuscript" 같은 스키마 이름 자체)을
+# 실제 본문 자리에 채워 넣는 드문 실패가 관찰됨(JSON 파싱은 성공하므로 json.JSONDecodeError로
+# 잡히지 않는다). 이런 응답의 특징 — 스키마 이름이 그대로 텍스트에 등장하거나, 원래
+# 한글이어야 할 본문의 알파벳 비율이 비정상적으로 높음 — 을 감지해 재시도한다.
+def manuscript_looks_corrupted(generated: dict) -> bool:
+    joined = " ".join(_collect_manuscript_strings(generated))
+    if not joined.strip():
+        return True
+    if "sports_culture_manuscript" in joined:
+        return True
+    letters = [ch for ch in joined if ch.isalpha()]
+    if not letters:
+        return False
+    ascii_ratio = sum(1 for ch in letters if ch.isascii()) / len(letters)
+    return ascii_ratio > 0.5
+
+
 def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
     api_key = secret_environment_value("OPENAI_API_KEY")
     if not api_key:
@@ -3285,8 +3327,54 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
             "'~점검해 보자', '~판단하여 고쳐 보자' 등)으로 쓰고, 다음 문장으로 자연스럽게 "
             "이어지는 분석적인 설명 문단을 쓰지 않는다."
         )
+    elif page_role == "special-safety":
+        page_role_note = (
+            "지금 쓰는 지면은 특별 페이지 중 '안전'이다. 분석적인 설명문이 아니라, "
+            "실제 활동 상황에서 바로 확인할 수 있는 안전 수칙·점검 항목·주의 문구 "
+            "중심으로 구성한다. 각 section은 상황별 위험 요인이나 점검 국면 하나를 "
+            "제목으로 삼고, paragraphs는 '~할 것', '~하지 말 것', '~인지 확인한다' "
+            "같은 짧은 지시문·점검문으로 쓴다. 여러 문장이 자연스럽게 이어지는 분석 "
+            "문단을 쓰지 않는다."
+        )
+    elif page_role == "special-project":
+        page_role_note = (
+            "지금 쓰는 지면은 특별 페이지 중 '프로젝트'다. 분석적인 설명문이 아니라, "
+            "학생이 직접 수행할 프로젝트의 단계별 활동 지시문으로 구성한다. 각 "
+            "section은 프로젝트의 한 단계(주제 정하기, 자료 조사, 결과물 제작, "
+            "발표·공유 등)를 맡고, paragraphs는 '~해 보자', '~를 정리해 제출한다' "
+            "같은 실행 지시문으로 쓴다. 배경을 길게 설명하는 문단을 쓰지 않는다."
+        )
+    elif page_role == "special-assessment":
+        page_role_note = (
+            "지금 쓰는 지면은 특별 페이지 중 '수행평가'다. 분석적인 설명문이 아니라, "
+            "평가 기준표(채점 기준·수준별 성취 수준)나 자기·동료 점검 체크리스트로 "
+            "구성한다. 각 section은 평가 요소 하나를 맡고, paragraphs는 평가 기준 "
+            "문장이나 점검 문항으로 짧게 쓴다. 자연스럽게 흐르는 설명 문단을 쓰지 "
+            "않는다."
+        )
+    elif page_role == "special-career":
+        page_role_note = (
+            "지금 쓰는 지면은 특별 페이지 중 '인물·진로'다. 이 단원 내용과 관련된 "
+            "진로·직업 경로를 소개한다. 실존 인물의 이름이나 구체적 경력을 새로 "
+            "지어내지 말고(원칙 3), 그 대신 관련 직업의 역할·필요 역량·준비 과정을 "
+            "중심으로 학생이 자신의 진로와 연결해 생각해 볼 수 있도록 쓴다. section은 "
+            "직업·진로 유형별로 나누고, 각 절은 설명 문단 1~2개로 짧게 쓴다."
+        )
+    elif page_role == "special-critique":
+        page_role_note = (
+            "지금 쓰는 지면은 특별 페이지 중 '문화 비평'이다. 하나의 관점만 제시하지 "
+            "말고 찬반이나 서로 다른 시각을 나란히 보여주는 비평적 설명문으로 쓴다. "
+            "근거를 바탕으로 쟁점을 제시하고 다양한 입장을 균형 있게 소개한 뒤, 학생이 "
+            "스스로 판단할 여지를 남긴다."
+        )
+    elif page_role == "special-reading":
+        page_role_note = (
+            "지금 쓰는 지면은 특별 페이지 중 '읽을거리'다. 실제 사례·일화·기사처럼 "
+            "흥미를 끄는 소재를 소개하는 매거진 기사체로 쓴다. 개념을 딱딱하게 "
+            "정의하기보다 구체적 장면이나 사례로 시작해 자연스럽게 내용을 풀어간다."
+        )
     else:
-        page_role_note = "지금 쓰는 지면은 대단원 안의 특별 페이지(읽을거리·인물과 진로·안전·문화 비평·프로젝트·수행평가 등)다. 본문 소단원과는 별도로, 확장된 사례나 활동을 다룬다."
+        page_role_note = "지금 쓰는 지면은 대단원 안의 특별 페이지다. 본문 소단원과는 별도로, 확장된 사례나 활동을 다룬다."
     instructions = (
         "당신은 2022 개정 교육과정 고등학교 인정교과서 '스포츠 문화' 집필자다. "
         f"{page_role_note} "
@@ -3308,10 +3396,12 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
         "문체, '균형형'은 그 중간으로 쓴다.\n"
         "6) 여러 펼침면이 주어지면 펼침면마다 다른 내용과 사례를 다루고, 같은 문장이나 "
         "표현을 반복하지 않는다.\n"
-        "7) 소단원 본문(page_role이 small-unit)이나 특별 페이지의 설명 중심 절은 2~4개 "
-        "문단으로 자연스럽게 흐르는 설명문으로 쓴다. 문단 개수나 '정의-사례-과제' 같은 "
-        "고정 틀에 얽매이지 말고, 내용에 맞는 자연스러운 전개를 선택한다. 단, 대단원 "
-        "도입·마무리(unit-intro/unit-closing)는 이 규칙 대신 아래 11)을 따른다.\n"
+        "7) 소단원 본문(small-unit)과 설명문 성격의 특별 페이지(special-reading, "
+        "special-critique, special-career)는 2~4개 문단으로 자연스럽게 흐르는 "
+        "설명문으로 쓴다. 문단 개수나 '정의-사례-과제' 같은 고정 틀에 얽매이지 말고, "
+        "내용에 맞는 자연스러운 전개를 선택한다. 단, 대단원 도입·마무리(unit-intro/ "
+        "unit-closing)와 활동·점검 성격의 특별 페이지(special-safety, "
+        "special-project, special-assessment)는 이 규칙 대신 아래 11)을 따른다.\n"
         "8) 고등학생이 읽기에 적절한 문장 길이와 어휘를 사용한다.\n"
         "9) left_visuals/right_visuals(각 페이지의 삽화 구성)는 펼침면마다 개수·크기를 "
         "고정하지 않는다. 실제 고등학교 교과서는 페이지마다 삽화 구성이 다르다 — 개념 "
@@ -3328,11 +3418,12 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
         "비교와 쟁점 구조를 따라가는 절 구성이 될 수 있다. 같은 page_role이라도 "
         "종목이나 소단원이 다르면 절 제목의 표현과 순서, 개수(3~5개 사이)가 달라져야 "
         "한다 — 매번 같은 뼈대를 반복하면 안 된다.\n"
-        "11) 대단원 도입(unit-intro)·마무리(unit-closing)는 위 page_role 설명에 따라 "
-        "목차 미리보기·학습 목표·자기평가 체크리스트·활동 프롬프트 같은 짧고 구체적인 "
-        "항목으로 구성한다. 이 두 역할에서는 paragraphs의 각 문자열을 한두 문장 이내의 "
-        "짧은 항목(목차 한 줄, 체크리스트 한 문항, 활동 지시문 한 개 등)으로 쓰고, 절 "
-        "하나에 여러 문장이 이어지는 긴 문단을 담지 않는다.\n"
+        "11) 대단원 도입(unit-intro)·마무리(unit-closing)와 특별 페이지 중 안전 "
+        "(special-safety)·프로젝트(special-project)·수행평가(special-assessment)는 "
+        "위 page_role 설명에 따라 목차 미리보기·학습 목표·점검 문항·활동 지시문 같은 "
+        "짧고 구체적인 항목으로 구성한다. 이 역할들에서는 paragraphs의 각 문자열을 "
+        "한두 문장 이내의 짧은 항목(목차 한 줄, 체크리스트 한 문항, 활동 지시문 한 개 "
+        "등)으로 쓰고, 절 하나에 여러 문장이 이어지는 긴 문단을 담지 않는다.\n"
         "12) primary_type이 practice(실기형)인 소단원은 theory(이론형)와 내용의 결이 "
         "뚜렷이 달라야 한다. 이론형은 개념·역사·사회적 의미를 중심으로 쓰지만, 실기형은 "
         "그 종목을 직접 수행·참여하는 관점에서 시설과 용구의 규격, 기본 동작의 순서, "
@@ -3345,9 +3436,10 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
         "말고, 그것이 경기 문화(안전, 공정성, 협력, 역할 수행, 참여 문화)와 어떻게 "
         "연결되는지도 함께 설명한다."
     )
+    budget = manuscript_request_budget()
     request_body = {
         "model": manuscript_ai_config()["model"],
-        "reasoning": {"effort": "medium"},
+        "reasoning": {"effort": budget["reasoning_effort"]},
         "instructions": instructions,
         "input": json.dumps(context, ensure_ascii=False),
         "max_output_tokens": 16000,
@@ -3360,59 +3452,80 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
             }
         },
     }
-    request = Request(
-        "https://api.openai.com/v1/responses",
-        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-    )
-    try:
-        with urlopen(request, timeout=50) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
+    max_attempts = budget["max_attempts"]
+    request_timeout_seconds = budget["timeout_seconds"]
+    for attempt in range(1, max_attempts + 1):
+        request = Request(
+            "https://api.openai.com/v1/responses",
+            data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+        )
         try:
-            message = json.loads(detail).get("error", {}).get("message", detail)
-        except json.JSONDecodeError:
-            message = detail
-        if exc.code == HTTPStatus.UNAUTHORIZED:
-            raise ValueError(
-                "OpenAI API 키가 유효하지 않습니다. 등록한 키를 다시 확인해 주세요."
-            ) from exc
-        if exc.code == HTTPStatus.TOO_MANY_REQUESTS:
-            if "quota" in message.lower() or "billing" in message.lower():
+            with urlopen(request, timeout=request_timeout_seconds) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            try:
+                message = json.loads(detail).get("error", {}).get("message", detail)
+            except json.JSONDecodeError:
+                message = detail
+            if exc.code == HTTPStatus.UNAUTHORIZED:
                 raise ValueError(
-                    "OpenAI API 사용 가능 금액이 없습니다. OpenAI API 결제 설정과 "
-                    "사용 한도를 확인한 뒤 다시 시도해 주세요."
+                    "OpenAI API 키가 유효하지 않습니다. 등록한 키를 다시 확인해 주세요."
                 ) from exc
+            if exc.code == HTTPStatus.TOO_MANY_REQUESTS:
+                if "quota" in message.lower() or "billing" in message.lower():
+                    raise ValueError(
+                        "OpenAI API 사용 가능 금액이 없습니다. OpenAI API 결제 설정과 "
+                        "사용 한도를 확인한 뒤 다시 시도해 주세요."
+                    ) from exc
+                raise ValueError(
+                    "OpenAI API 요청이 잠시 너무 많습니다. 잠시 후 다시 시도해 주세요."
+                ) from exc
+            raise ValueError(f"OpenAI API 오류: {message[:500]}") from exc
+        except TimeoutError as exc:
             raise ValueError(
-                "OpenAI API 요청이 잠시 너무 많습니다. 잠시 후 다시 시도해 주세요."
+                f"OpenAI 응답 제한 시간({request_timeout_seconds}초)을 초과했습니다. "
+                "잠시 후 다시 시도해 주세요."
             ) from exc
-        raise ValueError(f"OpenAI API 오류: {message[:500]}") from exc
-    except TimeoutError as exc:
+        except URLError as exc:
+            raise ValueError(
+                "로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인하고 "
+                "서버를 다시 실행해 주세요."
+            ) from exc
+        except (HttpClientError, ConnectionError) as exc:
+            raise ValueError(
+                "OpenAI 응답을 받는 중 연결이 끊어졌습니다. 잠시 후 다시 시도해 주세요."
+            ) from exc
+
+        # 여기서부터는 "정상 응답이지만 내용이 망가졌을 수 있는" 경우만 재시도한다.
+        # 인증/과금/타임아웃 같은 위 오류는 재시도해도 소용없으므로 즉시 올린다.
+        try:
+            generated = json.loads(openai_response_text(payload))
+            spread_count_ok = len(generated.get("spreads", [])) == len(spreads)
+            corrupted = manuscript_looks_corrupted(generated)
+        except json.JSONDecodeError:
+            generated = None
+            spread_count_ok = False
+            corrupted = True
+
+        if generated is not None and spread_count_ok and not corrupted:
+            return generated
+        if attempt < max_attempts:
+            continue
+        if generated is None:
+            raise ValueError("OpenAI 응답을 원고 형식으로 해석하지 못했습니다. 다시 생성해 주세요.")
+        if not spread_count_ok:
+            raise ValueError("AI가 요청한 펼침면 수와 다른 원고를 반환했습니다.")
+        retry_note = "같은 요청을 다시 시도했지만 반복됐습니다. " if max_attempts > 1 else ""
         raise ValueError(
-            "OpenAI 응답 제한 시간(50초)을 초과했습니다. 잠시 후 다시 시도해 주세요."
-        ) from exc
-    except URLError as exc:
-        raise ValueError(
-            "로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인하고 "
-            "서버를 다시 실행해 주세요."
-        ) from exc
-    except (HttpClientError, ConnectionError) as exc:
-        raise ValueError(
-            "OpenAI 응답을 받는 중 연결이 끊어졌습니다. 잠시 후 다시 시도해 주세요."
-        ) from exc
-    except json.JSONDecodeError as exc:
-        raise ValueError(
-            "OpenAI 응답을 원고 형식으로 해석하지 못했습니다. 다시 생성해 주세요."
-        ) from exc
-    generated = json.loads(openai_response_text(payload))
-    if len(generated.get("spreads", [])) != len(spreads):
-        raise ValueError("AI가 요청한 펼침면 수와 다른 원고를 반환했습니다.")
-    return generated
+            f"AI가 정상적인 한글 원고 대신 깨진 응답을 반환했습니다. {retry_note}"
+            "잠시 후 다시 생성해 주세요."
+        )
 
 
 def call_prototype_sports_culture_manuscript(payload: dict) -> dict:
@@ -3684,27 +3797,169 @@ def extract_pdf_text(pdf_bytes: bytes, max_chars: int = 40000) -> tuple[str, boo
     return full_text, False
 
 
-def pdf_review_json_schema() -> dict:
+# 편수자료 II(인문사회과학/체육/음악/미술 편) 원문에서 "체육" 장만 잘라 쓴다. 문서 전체가
+# 760KB(531쪽)라 통째로 프롬프트에 넣을 수 없고, "### 체육" 표제부터 max_chars만큼만
+# 취하면 뒤 장(음악 등)까지 넘어가지 않으면서도 1. 기본 방향 및 원칙(가장 판단에 유용한
+# 부분)이 항상 포함된다.
+def editorial_reference_excerpt(max_chars: int = 20000) -> str:
+    matches = sorted(PROCESSED_DIR.glob("*편수자료*"))
+    if not matches:
+        return ""
+    doc_path = matches[0] / "document.md"
+    if not doc_path.exists():
+        return ""
+    try:
+        text = doc_path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    start = text.find("### 체육\n")
+    if start == -1:
+        return ""
+    return text[start : start + max_chars].strip()
+
+
+# 성취기준 원문은 서버가 아니라 클라이언트 번들(static/prototype-curriculum-data.js,
+# `window.PROTOTYPE_CURRICULUM_DATA = {...}`)에만 있다. 같은 자료를 서버 쪽에 다시
+# 옮겨 적지 않고, 그 정적 파일을 그대로 읽어 JS 대입문 접두사만 벗겨 JSON으로 해석한다.
+def _load_prototype_curriculum_data() -> dict:
+    path = STATIC_DIR / "prototype-curriculum-data.js"
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    marker = "window.PROTOTYPE_CURRICULUM_DATA = "
+    start = text.find(marker)
+    if start == -1:
+        return {}
+    body = text[start + len(marker) :].strip()
+    if body.endswith(";"):
+        body = body[:-1]
+    try:
+        return json.loads(body)
+    except json.JSONDecodeError:
+        return {}
+
+
+def sports_culture_achievement_standards() -> list[dict]:
+    data = _load_prototype_curriculum_data()
+    standards = data.get("sports_culture_standards", [])
+    return [
+        {
+            "code": item["code"],
+            "statement": item["statement"],
+            "explanation": item.get("explanation", ""),
+        }
+        for item in standards
+    ]
+
+
+def stdict_api_key() -> str | None:
+    return secret_environment_value("STDICT_API_KEY")
+
+
+# 국립국어원 표준국어대사전 Open API(무료, https://stdict.korean.go.kr/openapi 에서 키
+# 발급). 단어가 표제어로 실제 등재돼 있는지만 확인한다 — 문장의 띄어쓰기·맞춤법 오류를
+# 잡아주는 문법 검사기가 아니라 사전 조회임에 유의.
+def call_stdict_lookup(word: str) -> bool | None:
+    key = stdict_api_key()
+    if not key or not word.strip():
+        return None
+    # num 파라미터를 주면(예: num=1) 이 API가 본문을 아예 비워서 반환하는 것으로
+    # 실측 확인됨 — 넣지 않는다(기본값 10건으로 응답).
+    url = f"https://stdict.korean.go.kr/api/search.do?key={quote(key)}&q={quote(word)}&req_type=json"
+    try:
+        with urlopen(url, timeout=8) as response:
+            raw = response.read()
+    except (HTTPError, URLError, TimeoutError):
+        return None
+    if not raw.strip():
+        # 검색 결과가 없을 때도 이 API는 본문을 완전히 비워서 반환한다(오류 아님,
+        # 실측 확인됨) — 즉 "사전에 없음"으로 해석한다.
+        return False
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except json.JSONDecodeError:
+        return None
+    try:
+        total = int(payload.get("channel", {}).get("total", 0))
+    except (TypeError, ValueError):
+        return None
+    return total > 0
+
+
+# 용어 허용 순서는 교육과정 > 편수자료 > 국어대사전이다 — 전문 용어는 일반 사전에 없는
+# 경우가 흔하므로, 사전 미등재를 바로 "틀렸다"로 보지 않고 더 권위 있는 두 자료에 먼저
+# 나오는지 확인한 뒤에만 사전을 최후 수단으로 대조한다.
+def resolve_term_check_priority(
+    terms: list, standards: list[dict], editorial_reference: str
+) -> list[dict]:
+    standards_text = " ".join(
+        f"{item.get('statement', '')} {item.get('explanation', '')}" for item in standards
+    )
+    results = []
+    for raw_term in terms:
+        term = str(raw_term).strip()
+        if not term:
+            continue
+        if term in standards_text:
+            results.append({"term": term, "source": "curriculum", "found": True})
+            continue
+        if editorial_reference and term in editorial_reference:
+            results.append({"term": term, "source": "editorial", "found": True})
+            continue
+        found = call_stdict_lookup(term)
+        results.append({"term": term, "source": "dictionary", "found": found})
+    return results
+
+
+def pdf_review_json_schema(include_standards: bool) -> dict:
+    properties = {
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["number", "status", "evidence"],
+                "properties": {
+                    "number": {"type": "integer"},
+                    "status": {"type": "string", "enum": ["pass", "partial", "fail"]},
+                    "evidence": {"type": "string"},
+                },
+            },
+        },
+        "review_note": {"type": "string"},
+        "editorial_notes": {
+            "type": "array",
+            "description": "편수자료 기준(표기·띄어쓰기·용어)에 어긋나거나 확인이 필요한 대목.",
+            "items": {"type": "string"},
+        },
+        "dictionary_check_terms": {
+            "type": "array",
+            "description": "표준국어대사전 등재 여부를 실제로 대조해 볼 만한 낯설거나 의심되는 용어(최대 10개).",
+            "maxItems": 10,
+            "items": {"type": "string"},
+        },
+    }
+    required = ["items", "review_note", "editorial_notes", "dictionary_check_terms"]
+    if include_standards:
+        properties["standards_coverage"] = {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["code", "covered", "evidence"],
+                "properties": {
+                    "code": {"type": "string"},
+                    "covered": {"type": "boolean"},
+                    "evidence": {"type": "string"},
+                },
+            },
+        }
+        required.append("standards_coverage")
     return {
         "type": "object",
         "additionalProperties": False,
-        "required": ["items", "review_note"],
-        "properties": {
-            "items": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["number", "status", "evidence"],
-                    "properties": {
-                        "number": {"type": "integer"},
-                        "status": {"type": "string", "enum": ["pass", "partial", "fail"]},
-                        "evidence": {"type": "string"},
-                    },
-                },
-            },
-            "review_note": {"type": "string"},
-        },
+        "required": required,
+        "properties": properties,
     }
 
 
@@ -3712,6 +3967,8 @@ def call_openai_for_pdf_review(
     pdf_text: str,
     criteria: list[tuple[str, int, int, str]] | None = None,
     standard_label: str = "검정기준",
+    standards: list[dict] | None = None,
+    editorial_reference: str = "",
 ) -> dict:
     api_key = secret_environment_value("OPENAI_API_KEY")
     if not api_key:
@@ -3725,19 +3982,41 @@ def call_openai_for_pdf_review(
         f"당신은 2022 개정 교육과정 체육 교과서를 {standard_label}에 따라 심사하는 심사위원이다. "
         f"주어진 교과서 원문(PDF에서 추출한 텍스트)을 아래 {criteria_count}개 {standard_label} 각각에 대해 pass(충족)/"
         "partial(부분 충족)/fail(미흡)로 판정하고, 각 판정의 근거를 원문 내용을 인용하거나 요약해 "
-        "구체적으로 적어라. 원문에서 확인할 수 없는 항목은 fail로 판정하고 이유를 명시하라."
+        "구체적으로 적어라. 원문에서 확인할 수 없는 항목은 fail로 판정하고 이유를 명시하라.\n"
+        "추가로 다음 두 가지도 함께 판단해 채운다.\n"
+        "- editorial_notes: 뒤에 [편수자료 발췌]가 주어지면, 그 표기·띄어쓰기·용어 원칙에 원문이 "
+        "어긋나거나 재확인이 필요한 대목을 구체적으로 적는다(원문 인용 포함). 발췌가 없거나 어긋난 "
+        "부분이 없으면 빈 배열로 둔다.\n"
+        "- dictionary_check_terms: 원문에 등장하는 표현 중 표준국어대사전 등재 여부를 실제로 대조해 "
+        "볼 만큼 낯설거나 신조어·비표준어로 의심되는 용어를 최대 10개까지 뽑는다(일반적인 스포츠 "
+        "종목명·평범한 단어는 제외)."
     )
+    if standards:
+        standards_lines = "\n".join(f"{item['code']} {item['statement']}" for item in standards)
+        instructions += (
+            "\n- standards_coverage: 뒤에 [교육과정 성취기준]으로 주어지는 각 코드에 대해, 원문이 "
+            "그 성취기준의 내용을 실제로 다루는지(covered: true/false)와 근거를 판단한다. 목록에 "
+            "있는 코드는 빠짐없이 하나씩 판단한다."
+        )
+    else:
+        standards_lines = ""
+    input_parts = [f"[{standard_label} {criteria_count}개]\n{criteria_lines}"]
+    if standards_lines:
+        input_parts.append(f"[교육과정 성취기준]\n{standards_lines}")
+    if editorial_reference:
+        input_parts.append(f"[편수자료 발췌]\n{editorial_reference}")
+    input_parts.append(f"[교과서 원문]\n{pdf_text}")
     request_body = {
         "model": manuscript_ai_config()["model"],
         "instructions": instructions,
-        "input": f"[{standard_label} {criteria_count}개]\n{criteria_lines}\n\n[교과서 원문]\n{pdf_text}",
+        "input": "\n\n".join(input_parts),
         "max_output_tokens": 8000,
         "text": {
             "format": {
                 "type": "json_schema",
                 "name": "pdf_review_result",
                 "strict": True,
-                "schema": pdf_review_json_schema(),
+                "schema": pdf_review_json_schema(include_standards=bool(standards)),
             }
         },
     }
@@ -3793,9 +4072,20 @@ def call_prototype_pdf_review(payload: dict) -> dict:
         raise ValueError("PDF 파일을 열지 못했습니다. 손상되었거나 PDF 형식이 아닐 수 있습니다.") from exc
     if not pdf_text.strip():
         raise ValueError("PDF에서 텍스트를 추출하지 못했습니다(스캔 이미지로만 되어 있을 수 있습니다).")
-    standard = prototype_review_standard(str(payload.get("catalogId", "")))
+    standard = prototype_review_standard(str(payload.get("catalogId", "")), str(payload.get("revision", "2022")))
     criteria = standard["criteria"]
-    result = call_openai_for_pdf_review(pdf_text, criteria, standard["label"])
+    result = call_openai_for_pdf_review(
+        pdf_text,
+        criteria,
+        standard["label"],
+        standards=standard.get("standards") or None,
+        editorial_reference=standard.get("editorial_reference", ""),
+    )
+    dictionary_check = resolve_term_check_priority(
+        (result.get("dictionary_check_terms") or [])[:10],
+        standard.get("standards") or [],
+        standard.get("editorial_reference", ""),
+    )
     criteria_by_number = {number: (area, weight) for area, weight, number, _criterion in criteria}
     status_value = {"pass": 1.0, "partial": 0.5, "fail": 0.0}
     area_totals: dict[str, list[float]] = {}
@@ -3825,9 +4115,14 @@ def call_prototype_pdf_review(payload: dict) -> dict:
         "decision": decision,
         "reviewNote": result.get("review_note", ""),
         "truncated": truncated,
+        "standardsCoverage": result.get("standards_coverage", []),
+        "editorialNotes": result.get("editorial_notes", []),
+        "dictionaryCheck": dictionary_check,
+        "dictionaryCheckAvailable": bool(stdict_api_key()),
         "standard": {
             "id": standard["id"],
             "label": standard["label"],
+            "revision": str(payload.get("revision", "2022")),
             "count": len(criteria),
             "source": standard["source"],
             "sourceLocation": standard["source_location"],
@@ -3926,7 +4221,16 @@ SPORTS_CULTURE_RECOGNITION_CRITERIA = [
 ]
 
 
-def prototype_review_standard(catalog_id: str) -> dict:
+def prototype_review_standard(catalog_id: str, revision: str = "2022") -> dict:
+    if revision not in ("2009", "2015", "2022"):
+        revision = "2022"
+    if revision != "2022":
+        reason = (
+            "교육과정 원문조차 전처리되지 않았습니다."
+            if revision == "2015"
+            else "편찬상의 유의점 및 검정·인정기준 문서가 전처리되지 않았습니다."
+        )
+        raise ValueError(f"{revision} 개정 심사기준은 아직 공식자료와 연결되지 않았습니다({reason}).")
     if catalog_id.startswith("high-"):
         return {
             "id": "high-physical-education-recognition",
@@ -3934,6 +4238,8 @@ def prototype_review_standard(catalog_id: str) -> dict:
             "source": "(서울교육연구정보원) 2022 개정 교육과정 교육부 장관 고시 인정도서 편찬상의 유의점 및 인정기준",
             "source_location": "고등학교 체육 · 스포츠 문화 <인정 기준> (HWP 원본 고등학교 체육 20~45쪽 범위에서 소제목 대조)",
             "criteria": SPORTS_CULTURE_RECOGNITION_CRITERIA,
+            "standards": sports_culture_achievement_standards(),
+            "editorial_reference": editorial_reference_excerpt(),
         }
     if catalog_id == "middle-pe":
         raise ValueError("중등 체육 모의심사 기준은 아직 공식자료와 연결되지 않았습니다.")
@@ -3943,6 +4249,8 @@ def prototype_review_standard(catalog_id: str) -> dict:
         "source": "2022 개정 교육과정에 따른 체육과 편찬상의 유의점 및 검정기준",
         "source_location": "PDF 원본 20~21쪽 · 22개 검정기준",
         "criteria": TEXTBOOK_REVIEW_CRITERIA,
+        "standards": [],
+        "editorial_reference": editorial_reference_excerpt(),
     }
 
 
