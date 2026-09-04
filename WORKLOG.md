@@ -27,6 +27,54 @@
 
 ## 진행 세션
 
+### 2026-09-04 14:36 · 05 모의심사(모의 검정·인정 심사) 기능 마무리
+
+- 상태: 완료
+- 시작 요청: 이번 세션 시작 전부터 로컬에 커밋되지 않은 채 남아있던 모의심사 관련 변경을 발견함(로그인 수정 커밋 때는 무관해서 제외했음). 사용자가 "일단 해줘"로 마무리·배포를 요청.
+- 작업 목적: 프로토타입의 05 모의심사 단계가 실제로 동작하도록 완성하고 배포한다.
+- 수행 방법·판단: 코드 자체(`call_openai_for_pdf_review`/`call_prototype_pdf_review`/`prototype_review_standard`, 05단계 UI)는 이미 거의 완성 상태였다. 관련 단위 테스트 2개가 깨져 있던 원인을 확인해보니 함수 로직이 아니라 테스트의 fake/monkeypatch 함수가 최종 시그니처(`standards`, `editorial_reference` 키워드 인자)를 반영하지 못한 것이었다 — 테스트만 그 시그니처에 맞게 갱신했다.
+- 수정 파일: `app.py`, `static/prototype.js`, `static/prototype-draft-engine.js`, `static/prototype.css`, `tests/test_prototype_pdf_review.py`
+- 검증: `node --check`로 두 JS 파일 구문 검사, 전체 단위 테스트 76개 통과(이전에 깨져 있던 2개 포함).
+- Git: `b1fdf4c` 커밋·푸시 완료.
+- 남은 문제: 실제 브라우저에서 PDF 업로드 → 모의심사 클릭까지 수동으로 확인하지 못했다(OpenAI 실호출까지 가는 end-to-end는 유닛 테스트에서만 검증됨).
+- 다음 시작점: 배포된 사이트에서 05 모의심사 단계를 실제 PDF로 한 번 실행해서 화면이 의도대로 나오는지 확인한다.
+
+### 2026-09-04 10:46 · 로그인·데이터 저장 인프라를 Supabase에서 자체 인증 + Neon Postgres로 교체
+
+- 상태: 완료 (예전 데이터 이전은 진행 중, 아래 남은 문제 참고)
+- 시작 요청: 배포된 온라인 프로토타입 로그인이 막힘. 확인해보니 로그인·데이터 저장에 쓰던 Supabase 프로젝트가 장기 미사용으로 pause되어 있었다(대시보드 Resume 시도는 Supabase 측 자체 장애로 실패). 여러 편집자가 온라인으로 같이 써야 해서 로컬 전용으로 되돌릴 수 없다는 제약이 있었다.
+- 작업 목적: 특정 외부 인증·DB 서비스가 장기 미사용으로 정지되면 전체가 잠기는 구조를 없애되, 온라인 협업(여러 편집자 로그인 + 공유 DB)은 유지한다.
+- 수행 방법·판단: 인증은 Supabase Auth 호출을 완전히 제거하고 `editor_accounts.password_hash`(PBKDF2-SHA256) + `auth_sessions` 테이블 기반 자체 로그인으로 교체했다. 이메일만 등록(초대)해두면 `password_hash`가 빈 값이라 그 사람이 처음 로그인할 때 입력한 비밀번호가 그대로 등록되는 부트스트랩 방식을 써서, 이메일 발송 없이 계정 생성 문제를 해결했다. 관리자는 `/editors`에서 "비밀번호 초기화"(해시 비우기 + 세션 삭제)로 같은 부트스트랩을 재사용해 비밀번호 재설정을 대신한다. 데이터 저장소는 Vercel Storage에서 새 Neon Postgres를 만들어 프로젝트에 연결했다(기존 죽은 Supabase storage 연동은 프로젝트에서 Disconnect 처리 — 이름이 겹쳤던 `POSTGRES_*` 변수들도 함께 정리됨). `initialize_database()`가 Vercel 진입점에서 호출되지 않는다는 기존 제약(HANDOFF.md에 이미 기록돼 있었음) 때문에 새 Neon DB에 테이블이 하나도 없어서 로그인 시 "relation editor_accounts does not exist" 오류가 났는데, Neon 연결 문자열로 `initialize_database()`를 로컬에서 1회 수동 실행해 17개 테이블을 생성해서 해결했다(연결 문자열은 기록하지 않았고 1회성 사용 후 폐기함).
+- 수정 파일: `app.py`(`auth_config`/`authenticated_user`/`login_user`/`logout_user`/`change_password`/`reset_editor_password` 신설, `editor_accounts.password_hash`·`auth_sessions` 스키마 추가), `static/login.html`, `static/login.js`, `static/auth-client.js`, `static/editors.js`, `static/reset-password.html`·`.js`(삭제 — Supabase 매직링크 기반이라 더 이상 불필요), `HANDOFF.md`(6절 갱신), `tests/test_app.py`(문서 총계 29→98로 갱신, 같은 세션에서 추가한 데이터 반영)
+- 검증: 로컬 서버로 "관리자 부트스트랩 로그인 → 편집자 추가 → 편집자 첫 로그인(비밀번호 설정) → 오답 비밀번호 차단 → 비밀번호 초기화 → 재부트스트랩 → 비밀번호 변경 → 로그아웃 후 토큰 무효화" 전체 흐름을 curl로 직접 검증했다. 전체 단위 테스트 76개 통과. 배포 후 실제 사이트에서 `shinyk84@gmail.com`(`STUDIO_OWNER_EMAIL`)으로 로그인 성공 확인, `shinyk@ybm.co.kr`을 편집자로 추가 완료(DB에 직접 반영, 본인 로그인은 아직 안 함).
+- Git: `dcc3ee0` 커밋·푸시 완료.
+- 남은 문제: (1) 예전 Supabase Postgres에 있던 초안 생성 이력(`prototype_state`, `curriculum_analysis` 등)이 새 Neon DB로 아직 이전되지 않았다 — Supabase가 "Project Lifecycle Actions" 장애 중이라 Resume이 계속 실패하고 있다(데이터 자체는 안전하며 Supabase가 2027-10-07까지 복구 가능하다고 명시함). (2) 새 Neon DB에 대한 정기 백업(예: `pg_dump` 스케줄)이 아직 없다 — 이번과 같은 사고 재발 방지를 위해 필요. (3) 예전 Supabase 프로젝트(`textbook-studio-db`)는 Vercel 프로젝트 연결만 끊었을 뿐 Supabase 쪽에는 그대로 남아 있다(정리 여부는 데이터 이전 후 결정).
+- 다음 시작점: status.supabase.com에서 "Project Lifecycle Actions" 장애가 풀렸는지 확인 → 풀리면 Resume → 예전 Postgres 연결 문자열로 옛 데이터를 새 Neon DB로 옮기는 스크립트를 작성·실행한다. 이전이 끝나면 백업 자동화(Vercel Cron + `pg_dump` 등)를 논의한다.
+
+### 2026-09-03 · 워터마크 전용 텍스트 감지 + OCR 폴백 (씨마스 고등 스포츠 문화)
+
+- 상태: 완료 (씨마스 1건에 한해 적용, 파이프라인 자동 통합은 미구현)
+- 시작 요청: 씨마스 고등 스포츠 문화 모의심사가 "확인 불가 → 전부 fail"로 나온 원인 확인. 심사용 모듈이니 어떤 PDF가 들어와도 확인 가능해야 한다는 요구.
+- 작업 목적: 일부 출판사 PDF가 실제 본문 대신 전자책 뷰어 워터마크(다운로드 시각·과목명·URL·쪽수)만 텍스트 레이어에 담고 있어 생기는 오탐(추출 실패를 내용 결함으로 오판)을 방지한다.
+- 수행 방법·판단: 페이지별 텍스트에서 숫자를 제거한 뒤 페이지 간 반복 비율로 워터마크 의심 문서를 자동 판별하는 감지기를 만들었다 — 전체 98개 문서 중 씨마스만 100% 반복으로 걸림. Tesseract(winget 설치, `kor.traineddata`는 Program Files 쓰기 권한 문제로 스크래치 폴더에 별도 배치)를 도입했고, 96dpi 기본 렌더링으로는 OCR 품질이 못 쓸 수준이었으나 300dpi로 재렌더링하면 실사용 가능한 수준임을 확인했다. 씨마스 196쪽 전체를 OCR로 재추출했고, 원본 워터마크 텍스트는 `native_text` 필드로 보존했다.
+- 수정 파일: `scripts/detect_degenerate_text.py`, `scripts/ocr_fallback_reprocess.py`(신규), `official-data/processed/22개정_ssimas_textbook/*` 갱신
+- 검증: 재실행한 감지기가 씨마스를 더 이상 의심 목록에 올리지 않음을 확인. `char_count`가 페이지마다 균일하던 ~160자에서 179~9500자(평균 1434자)로 정상 분포하는 것을 확인.
+- Git: 스크립트는 `dcc3ee0`에 포함해 커밋·푸시함. 씨마스 처리 결과 데이터(`official-data/processed/22개정_ssimas_textbook/`)는 아직 커밋하지 않음.
+- 남은 문제: 이 감지·OCR 폴백은 아직 전처리 파이프라인(`preprocess_*.py`)에 자동 통합되지 않았고 씨마스 1건에만 수동 적용했다. 모의심사 로직 쪽에서 "확인 불가(추출 실패)"와 "실제 fail"을 구분해서 표시하는 부분도 아직 반영하지 않았다(대화에서 방향만 합의함).
+- 다음 시작점: 새 문서를 전처리할 때 자동으로 감지 → 필요하면 OCR 폴백을 타도록 `preprocess_*.py`에 통합할지 결정한다. 모의심사 결과에 "텍스트 추출 신뢰도(네이티브/OCR)" 표시를 추가할지 결정한다.
+
+### 2026-09-02 · 22개정 초등 3~6학년 체육 교과서·지도서 전처리 (금성·동아·미래엔·비상·아이스크림·지학사·천재)
+
+- 상태: 완료 (천재 5학년 교과서 1건 제외, 미래엔 5·6학년은 원본 미입수)
+- 시작 요청: 사용자가 PC 용량 문제로 원본을 일부만 나눠 넣으며(금성 → 동아 → 미래엔 → 비상/아이스크림/지학사/천재 → 씨마스 순으로 여러 차례) 전처리를 요청. 기존에 처리된 것과 겹치는 파일은 건너뛰도록 지시.
+- 작업 목적: 초등체육5(YBM/동아/천재)만 있던 처리 결과를 3~6학년 전체, 7개 출판사로 확장한다.
+- 수행 방법·판단: 기존 `scripts/preprocess_textbook_guides.py` 템플릿을 재사용해 신규 스크립트 2개를 작성했다(금성/동아/미래엔용, 비상/아이스크림/지학사/천재용 — 씨마스는 고등 자료라 별도 스크립트). 문서 id 명명 규칙, 학년/학년군 필드, 볼륨 분리(금성 5·6학년 각 3권, 아이스크림 3~6학년 각 3권)를 정하고, 이미 처리된 문서와 SHA256이 같은 원본은 자동으로 건너뛰게 했다. 디스크 여유 공간이 낮아 "처리 → 해시 검증 → 원본 삭제"를 문서 단위로 자동화했다(`verify_and_delete_source`). 처리 중 손상 PDF(천재 5학년 교과서 — xref 다수 손상, `qpdf`로도 페이지 트리 복구 불가)를 만나 개별 문서가 실패해도 나머지는 계속 처리하도록 예외 처리를 보강했다.
+- 수정 파일: `scripts/preprocess_elementary_pe_2022_g3to6.py`, `scripts/preprocess_elementary_pe_2022_more_publishers.py`, `scripts/preprocess_ssimas_hs.py`(신규). `official-data/processed/` 아래 신규 문서 다수 생성(금성 16 + 동아 6 + 미래엔 4 + 비상 4 + 아이스크림 24 + 지학사 8 + 천재-고문수 6 + 씨마스 1 = 69건, 천재 5학년 교과서 1건은 실패).
+- 검증: 각 배치 처리 후 `manifest.json`의 `source_sha256`과 원본 파일 해시를 재검증했고, 출력물(`manifest.json`/`pages.jsonl`/`spreads.jsonl`/`chunks.jsonl` 등)이 전부 존재하는지 확인했다.
+- Git: 스크립트만 `dcc3ee0`에 포함해 커밋·푸시함. `official-data/processed/` 신규 데이터(용량이 커서 커밋 여부 별도 판단 필요)는 아직 커밋하지 않음.
+- 남은 문제: 천재 초등체육5(고문수) 교과서 PDF(`official-data/textbook/22개정 초등교과서, 지도서/천재/5학년/초_체육5(고문수)_교과서.pdf`)가 손상되어(페이지 트리 없음) 처리하지 못했다 — 재다운로드를 2번 시도했으나 매번 동일한 파일이었다. 퍼블리셔 쪽에 재요청이 필요하다. 미래엔 5·6학년 자료는 아직 받지 못했다.
+- 다음 시작점: 천재 5학년 교과서 정상 파일을 확보하면 `python scripts/preprocess_elementary_pe_2022_more_publishers.py --only 22개정_chunjae_gomunsu_pe5_textbook`로 재처리한다. `official-data/processed/` 신규 데이터를 Git에 커밋할지(용량 고려) 결정이 필요하다.
+
 ### 2026-08-13 · 스포츠 문화 유형별 펼침면 이미지 초안
 
 - 상태: 완료
