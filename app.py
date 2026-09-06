@@ -3187,7 +3187,7 @@ def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> d
     section_schema = {
         "type": "object",
         "additionalProperties": False,
-        "required": ["title", "paragraphs"],
+        "required": ["title", "paragraphs", "box_type"],
         "properties": {
             "title": {"type": "string"},
             "paragraphs": {
@@ -3195,6 +3195,13 @@ def sports_culture_manuscript_schema(spread_count: int, section_count: int) -> d
                 "minItems": 2,
                 "maxItems": 4,
                 "items": {"type": "string"},
+            },
+            "box_type": {
+                "type": ["string", "null"],
+                "description": (
+                    "이 절이 입력의 concept_types 중 하나에 해당하는 박스형 코너면 그 이름을 "
+                    "그대로 넣고, 일반 설명 절이면 null."
+                ),
             },
         },
     }
@@ -3436,6 +3443,36 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
         "말고, 그것이 경기 문화(안전, 공정성, 협력, 역할 수행, 참여 문화)와 어떻게 "
         "연결되는지도 함께 설명한다."
     )
+    if page_role == "small-unit" and not context.get("precise_evidence_match", True):
+        instructions += (
+            "\n13) 편집자가 목차를 자유롭게 재구성하면서 이 소단원을 새로 만들었거나 제목을 "
+            "바꿔서, 이 소단원에 정확히 일치하는 출판사 원문 발췌가 없다. 입력으로 주어지는 "
+            "근거 발췌문은 같은 대단원의 다른 소단원에서 가져온 참고용 배경 자료일 뿐이니, "
+            "이 소단원 얘기인 것처럼 그대로 인용하거나 억지로 짜맞추지 않는다. 대신 "
+            "standard_context(성취기준 맥락)와 교육과정의 취지, 그리고 스포츠 문화에 대한 "
+            "일반적인 지식을 바탕으로 지금 소단원 제목이 실제로 요구하는 내용을 새로 구성한다. "
+            "정확히 일치하는 근거가 없는 만큼 소단원 제목을 더 적극적으로 해석하고 새로운 "
+            "사례·설명·아이디어를 자유롭게 덧붙여도 된다 — 단, 위 3)의 '검증이 필요한 구체적 "
+            "통계·역사적 사실·규칙을 지어내지 않는다'는 원칙은 그대로 지킨다."
+        )
+    concept_types = context.get("concept_types") or []
+    if page_role == "small-unit" and concept_types:
+        concept_list = "、".join(concept_types)
+        instructions += (
+            f"\n14) 편집자가 이 소단원에 다음 구성요소(코너) 중 반영을 요청했다: {concept_list}. "
+            "여러 절 중 이 소단원 내용과 자연스럽게 어울리는 것이 있으면 그 절 하나를 그 "
+            "구성요소 성격에 맞는 내용으로 쓰고, 그 절의 box_type 필드에 위 목록의 이름을 "
+            "정확히 그대로 넣는다(예: '디지털활용 활동', '안전 팁'). 모든 구성요소를 억지로 "
+            "다 넣지 않아도 되고, 이 소단원에 안 맞으면 0개를 골라도 된다 — 자연스러움이 "
+            "우선이다. 해당하지 않는 나머지 절은 box_type을 null로 둔다. 구성요소 절도 "
+            "위 각 page_role 규칙(문단 길이·문체 등)은 그대로 따르되, 그 코너 성격(예: 안전 "
+            "팁이면 점검 문구, 디지털활용 활동이면 디지털 기기·앱 활용법)에 맞는 표현으로 쓴다."
+        )
+    else:
+        instructions += (
+            "\n14) 이번 요청에는 편집자가 지정한 별도 구성요소(코너)가 없다. 모든 절의 "
+            "box_type은 null로 둔다."
+        )
     budget = manuscript_request_budget()
     request_body = {
         "model": manuscript_ai_config()["model"],
@@ -3549,6 +3586,8 @@ def call_prototype_sports_culture_manuscript(payload: dict) -> dict:
         "thesis": payload.get("thesis", ""),
         "standard_context": payload.get("standardContext", {}),
         "sport_reference": payload.get("sportReference"),
+        "precise_evidence_match": payload.get("preciseEvidenceMatch", True),
+        "concept_types": payload.get("conceptTypes") or [],
         "spreads": spreads,
     }
     return call_openai_for_sports_culture_manuscript(context)
@@ -5189,6 +5228,125 @@ def export_manuscript_small_unit_hwpx(
     return content, filename
 
 
+def _lesson_stage_minutes(count: int) -> list[int]:
+    # 실제 차시별 배정 시간 데이터가 없어 50분 수업 기준의 통상적인 도입·전개·정리 배분을
+    # 기본값으로 제공한다 — 편집자가 실제 수업 상황에 맞게 표에서 바로 고쳐 쓰는 것을 전제한다.
+    total = 50
+    if count <= 0:
+        return []
+    if count == 1:
+        return [total]
+    if count == 2:
+        return [10, total - 10]
+    first, last = 5, 8
+    remaining = total - first - last
+    middle_count = count - 2
+    base = remaining // middle_count
+    extra = remaining - base * middle_count
+    middles = [base + (1 if i < extra else 0) for i in range(middle_count)]
+    return [first, *middles, last]
+
+
+def build_lesson_plan_hwpx(payload: dict) -> tuple[bytes, str]:
+    spreads = payload.get("spreads")
+    if not isinstance(spreads, list) or not spreads:
+        raise ValueError("교수학습과정안을 만들 차시 정보가 없습니다.")
+    unit_label = str(payload.get("unitLabel") or "")
+    framework_name = str(payload.get("frameworkName") or "")
+    carrier_sport = str(payload.get("carrierSport") or "").strip() or "특정 종목 없음"
+    standard_codes = ", ".join(payload.get("standardCodes") or [])
+    title = f"{unit_label} · 교수학습과정안" if unit_label else "교수학습과정안"
+
+    blocks: list[tuple[str, object, int]] = []
+    for spread_index, spread in enumerate(spreads):
+        spread_label = str(spread.get("spreadLabel") or f"{spread_index + 1}차시")
+        blocks.append(("heading", f"{spread_label} 교수학습과정안", 1))
+        blocks.append((
+            "table",
+            {
+                "rows": [
+                    ["교과(군)", "체육 · 스포츠 문화"],
+                    ["단원", unit_label],
+                    ["체제안", framework_name],
+                    ["차시", spread_label],
+                    ["종목", carrier_sport],
+                    ["성취기준", standard_codes],
+                ],
+                "column_weights": [1, 3],
+            },
+            2,
+        ))
+
+        lesson_goals = [str(item) for item in (spread.get("lessonGoals") or []) if str(item).strip()]
+        if lesson_goals:
+            blocks.append(("heading", "학습 목표", 2))
+            for goal in lesson_goals:
+                blocks.append(("bullet", goal, 3))
+
+        lesson_flow = [item for item in (spread.get("lessonFlow") or []) if isinstance(item, dict)]
+        if lesson_flow:
+            blocks.append(("heading", "교수·학습 과정", 2))
+            minutes = _lesson_stage_minutes(len(lesson_flow))
+            rows = [["단계", "교수·학습 활동", "시간(분)"]]
+            for item, minute in zip(lesson_flow, minutes):
+                stage = str(item.get("stage") or "")
+                guidance = str(item.get("guidance") or "")
+                rows.append([stage, guidance, str(minute)])
+            blocks.append(("table", {"rows": rows, "column_weights": [1, 5, 0.8]}, 3))
+            blocks.append(("paragraph", "※ 시간(분)은 50분 수업 기준 기본 배분값입니다. 실제 수업 상황에 맞게 수정해 사용하세요.", 3))
+
+        questions = [str(item) for item in (spread.get("questions") or [])]
+        expected_responses = [str(item) for item in (spread.get("expectedResponses") or [])]
+        if questions or expected_responses:
+            blocks.append(("heading", "핵심 발문과 예상 답변", 2))
+            rows = [["발문", "예상 답변"]]
+            for index in range(max(len(questions), len(expected_responses))):
+                rows.append([
+                    questions[index] if index < len(questions) else "",
+                    expected_responses[index] if index < len(expected_responses) else "",
+                ])
+            blocks.append(("table", {"rows": rows, "column_weights": [1, 1]}, 3))
+
+        preparation = [str(item) for item in (spread.get("preparation") or [])]
+        teaching_notes = [str(item) for item in (spread.get("teachingNotes") or [])]
+        differentiation = [str(item) for item in (spread.get("differentiation") or [])]
+        safety = str(spread.get("safety") or "")
+        blocks.append(("heading", "준비물 및 유의점", 2))
+        blocks.append((
+            "table",
+            {
+                "rows": [
+                    ["준비물", " · ".join(preparation)],
+                    ["지도상의 유의점", "\n".join(teaching_notes)],
+                    ["개별화·대체 참여", "\n".join(differentiation)],
+                    ["안전·포용", safety],
+                ],
+                "column_weights": [1, 3],
+            },
+            3,
+        ))
+
+        assessment = [str(item) for item in (spread.get("assessment") or [])]
+        if assessment:
+            blocks.append(("heading", "평가 계획", 2))
+            rows = [["번호", "평가 내용"]]
+            for index, item in enumerate(assessment):
+                rows.append([str(index + 1), item])
+            blocks.append(("table", {"rows": rows, "column_weights": [0.5, 6]}, 3))
+
+    content = build_hwpx(
+        title,
+        blocks,
+        title_size=13,
+        heading_sizes={1: 13, 2: 12, 3: 11},
+        cell_margin_mm=3,
+    )
+    date_stamp = datetime.now().strftime("%Y%m%d")
+    safe_title = (unit_label or "교수학습과정안").replace("/", "_").replace("·", "_").strip() or "교수학습과정안"
+    filename = f"{safe_title}_교수학습과정안_{date_stamp}.hwpx"
+    return content, filename
+
+
 class StudioHandler(BaseHTTPRequestHandler):
     current_user: dict | None = None
 
@@ -5464,6 +5622,21 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self.send_json(
                     {"result": call_prototype_sports_culture_manuscript(self.read_json())}
                 )
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:  # pragma: no cover - last-resort boundary
+                self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if parsed.path == "/api/prototype/lesson-plan-hwpx":
+            try:
+                if auth_config()["enabled"]:
+                    self.require_user()
+                content, filename = build_lesson_plan_hwpx(self.read_json())
+                self.send_download(content, filename, "application/hwp+zip")
             except AuthenticationError as exc:
                 self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
             except AuthorizationError as exc:

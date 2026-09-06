@@ -496,6 +496,25 @@
 .domain-badge.부록 { color: #55605a; background: #eceeec; }
 .domain-badge.프로젝트 { color: var(--green); background: #e0f2e7; }
 
+.domain-name-input {
+  width: auto;
+  min-width: 90px;
+  max-width: 220px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-family: inherit;
+}
+
+.domain-name-input:focus {
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .curriculum-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2509,10 +2528,16 @@
 .draft-file-table-columns .type-pptx { background: #fdf4f3; }
 .draft-file-table-columns .type-textbook { background: #f2f6fc; }
 .draft-file-table-columns .type-guide { background: #f2f7f4; }
+.draft-file-table-columns .type-textbook_pdf { background: #fdf6ea; }
+.draft-file-table-columns .type-guide_pdf { background: #fdf1e6; }
+.draft-file-table-columns .type-lesson_plan_hwpx { background: #eef5fb; }
 .draft-file-table-columns .type-images { background: #faf6fd; }
 .draft-file-row:hover td.type-pptx,
 .draft-file-row:hover td.type-textbook,
 .draft-file-row:hover td.type-guide,
+.draft-file-row:hover td.type-textbook_pdf,
+.draft-file-row:hover td.type-guide_pdf,
+.draft-file-row:hover td.type-lesson_plan_hwpx,
 .draft-file-row:hover td.type-images {
   filter: brightness(0.98);
 }
@@ -2820,6 +2845,24 @@
   font-size: clamp(8px, 1.1vw, 13px);
   font-weight: 800;
   color: #24272c;
+}
+
+.spread-section-boxed {
+  padding: clamp(3px, 0.6vw, 8px);
+  border: 1px solid #d7a34a;
+  border-radius: 6px;
+  background: #fdf6ea;
+}
+
+.spread-section-boxtype {
+  margin-left: auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #b5651d;
+  color: #fff;
+  font-size: clamp(5px, 0.6vw, 8px);
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .spread-section p {

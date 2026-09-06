@@ -127,7 +127,7 @@
     if (/역할/.test(text)) return ["[12스문02-01]"];
     if (/기획|운영/.test(text)) return ["[12스문02-02]"];
     if (/융합|접목/.test(text)) return ["[12스문02-03]"];
-    return smallUnit.domain === "스포츠 경기 문화" ? ["[12스문02-01]"] : ["[12스문01-01]"];
+    return String(smallUnit.domain || "").includes("경기") ? ["[12스문02-01]"] : ["[12스문01-01]"];
   }
 
   function traceabilityFor(smallUnit) {
@@ -514,6 +514,31 @@
     ];
   }
 
+  const CONCEPT_BOX_TEMPLATES = {
+    "디지털활용 활동": (t, sport) => `앱이나 영상 분석, 기록 측정 도구 등 디지털 기기를 활용해 ${sport || "이 소단원"} 관련 활동을 기록하고 그 결과를 점검한다.`,
+    "안전 팁": (t, sport) => `${sport || "이 활동"}에 참여하기 전에 반드시 확인해야 할 안전 수칙과 위험 요인을 점검하고, 사고를 예방할 수 있는 준비 사항을 정리한다.`,
+    "진로·직업 정보": (t) => `${t.knowledge?.[0] || "이 분야"}와 관련된 직업의 역할과 준비 과정을 소개하고, 자신의 진로와 어떻게 연결할 수 있을지 생각해 본다.`,
+    "응용·전략 활동": (t, sport) => `배운 개념을 실제 ${sport || "경기"} 상황에 적용해 전략을 세우고, 수행 결과를 바탕으로 전략을 수정하며 경기 수행 능력을 높인다.`,
+    "협동·팀워크 활동": () => `모둠을 구성해 역할을 나누고, 서로의 의견을 조율하며 협력하는 과정에서 팀워크를 기른다.`,
+    "자기 점검": (t) => `${t.knowledge?.[0] || "이번 소단원"}에서 배운 내용을 스스로 점검하고, 더 알아보고 싶은 부분이나 부족한 부분을 확인한다.`,
+    "심화 읽기자료": (t) => `${t.knowledge?.[0] || "이 주제"}와 관련된 심화 자료를 더 찾아 읽고, 본문에서 다루지 않은 관점이나 사례를 보충한다.`,
+    "인성·매너 팁": () => `경기와 활동에 참여할 때 상대와 동료를 존중하며 지켜야 할 예의와 태도를 안내한다.`,
+    "과학·타교과 융합 팁": (t) => `${t.knowledge?.[0] || "이 내용"}을 과학 등 다른 교과의 개념과 연결해 설명을 확장한다.`,
+  };
+
+  // 편집자가 소단원에 지정한 '구성요소'(디지털활용 활동, 안전 팁 등)를 내부 규칙 조합기가
+  // 다룰 수 있도록, 기존 절 뒤에 구성요소별 절 하나씩을 추가로 만든다(boxType으로 표시).
+  // 목록에 없는 사용자 정의 구성요소는 일반적인 안내 문장으로 대체한다 — 내부 조합기는
+  // 실제 AI가 아니라서 처음 보는 이름의 내용을 새로 '쓸' 수는 없기 때문이다.
+  function conceptBoxSections(concepts, startNumber, traceability, sport) {
+    return (Array.isArray(concepts) ? concepts : []).map((concept, index) => ({
+      number: startNumber + index,
+      title: concept,
+      paragraphs: [(CONCEPT_BOX_TEMPLATES[concept] || (() => `${concept}과 관련된 내용을 이 소단원에 맞게 정리한다.`))(traceability, sport)],
+      boxType: concept,
+    }));
+  }
+
   function textbookManuscriptFor(phase, request, traceability, index) {
     const reference = sportReferenceFor(request.carrierSport, request.sportMode);
     const knowledge = traceability.knowledge.join("·");
@@ -545,13 +570,15 @@
       const richParagraphs = manuscriptParagraphs(type, blueprintIndex, sectionIndex, request, traceability, reference, context, angle, first, guide);
       return { number: sectionIndex + 1, title, paragraphs: [sourceLine, ...richParagraphs] };
     });
+    // 구성요소(디지털활용 활동 등)는 소단원당 한 번만 다루면 충분하므로 첫 펼침면에만 붙인다.
+    const conceptSections = index === 0 ? conceptBoxSections(request.smallUnit.concepts, sections.length + 1, traceability, reference.sport) : [];
     return {
       headline: `${request.smallUnit.smallTitle} — ${angle}`,
       learningGoal: `${knowledge}을 이해하고 ${traceability.process.join("·")}을 수행하여 ${context.product}을 완성할 수 있다.`,
       openingQuestion: Number(request.styleValue ?? 50) < 34 ? "" : `‘${angle}’을 스포츠 문화라고 판단할 수 있는 구체적인 근거는 무엇인가?`,
       layout: type,
       deck: `${index + 1}번째 펼침면은 ‘${angle}’에 관한 교과서 자료와 지도서 수업 관점을 연결한다. 다음 펼침면과 중복되지 않는 근거 묶음으로 개념 설명, 사례 해석, 학습 활동을 구성한다.`,
-      sections,
+      sections: [...sections, ...conceptSections],
       visualBriefs: [
         `${angle}의 변화 또는 관계를 보여 주는 정보 그래픽`,
         `${request.sportMode === "none" ? evidenceRecord.title : reference.sport}의 실제 사례를 보여 주는 출처 확인 사진 또는 도해`,
@@ -863,30 +890,41 @@
     let manuscripts;
     if (pageRole === "small-unit") {
       const evidenceRecord = evidenceRecordFor(request.smallUnit);
-      if (!evidenceRecord || !evidenceRecord.evidence?.length) {
-        throw new Error(`‘${request.smallUnit.smallTitle}’에 연결된 전처리 근거가 없습니다. 소단원 제목 또는 성취기준 연결을 먼저 확인해 주세요.`);
-      }
-      const angles = UNIT_CONTENT_PLANS[evidenceRecord.title];
-      if (!angles) throw new Error(`‘${evidenceRecord.title}’의 집필 브리프가 아직 구성되지 않았습니다.`);
-      const thesis = UNIT_THESES[evidenceRecord.title];
-      const textbookEvidence = evidenceRecord.evidence.filter((item) => item.documentType === "교과서");
-      const guideEvidence = evidenceRecord.evidence.filter((item) => item.documentType === "지도서");
-      const pool = [...textbookEvidence, ...guideEvidence];
+      const angles = evidenceRecord ? UNIT_CONTENT_PLANS[evidenceRecord.title] : null;
+      const preciseMatch = Boolean(evidenceRecord?.evidence?.length && angles);
+      const thesis = preciseMatch ? UNIT_THESES[evidenceRecord.title] : `${request.smallUnit.domain || "스포츠 문화"} 대단원의 ‘${request.smallUnit.smallTitle}’`;
       const standardCode = traceability.standardCodes[0];
       const context = STANDARD_CONTEXT[standardCode] || STANDARD_CONTEXT["[12스문01-01]"];
       const blueprintRows = MANUSCRIPT_BLUEPRINTS[primaryType] || MANUSCRIPT_BLUEPRINTS.theory;
+      let pool;
+      let guideEvidence;
+      if (preciseMatch) {
+        // 전처리 근거 인덱스(원래 18개 소단원)와 이름이 정확히(또는 유사하게) 일치할 때만
+        // 그 소단원 전용 근거·집필 브리프를 쓴다. 목차를 자유롭게 재구성해 이름이
+        // 완전히 달라진 소단원은 preciseMatch가 false가 되어 아래 대단원 수준 일반
+        // 근거 + 성취기준 맥락 기반의 자유 구성 경로로 넘어간다(생성을 막지 않는다).
+        const textbookEvidence = evidenceRecord.evidence.filter((item) => item.documentType === "교과서");
+        guideEvidence = evidenceRecord.evidence.filter((item) => item.documentType === "지도서");
+        pool = [...textbookEvidence, ...guideEvidence];
+      } else {
+        const unitTitles = Object.keys(UNIT_CONTENT_PLANS);
+        const domainUnits = String(request.smallUnit.domain || "").includes("경기") ? unitTitles.slice(9) : unitTitles.slice(0, 9);
+        pool = domainUnits.flatMap((title) => global.SPORTS_CULTURE_EVIDENCE?.units?.[title]?.evidence || []);
+        guideEvidence = [];
+      }
       const spreadInputs = Array.from({ length: spreadCount }, (_, index) => {
-        const angle = angles[index % angles.length];
+        const angle = preciseMatch ? angles[index % angles.length] : `‘${request.smallUnit.smallTitle}’ 제목에 맞는 내용 새로 구성`;
         const blueprint = blueprintRows[index % blueprintRows.length];
         const windowSize = Math.min(5, pool.length);
         const windowStart = pool.length ? (index * 5) % pool.length : 0;
-        const evidenceWindow = Array.from({ length: windowSize }, (_, offset) => pool[(windowStart + offset) % pool.length]);
+        const evidenceWindow = pool.length ? Array.from({ length: windowSize }, (_, offset) => pool[(windowStart + offset) % pool.length]) : [];
         const guideWindow = guideEvidence.length ? [guideEvidence[index % guideEvidence.length]] : [];
         return {
           index,
           angle,
           sectionTitles: blueprint.titles,
           evidence: [...evidenceWindow, ...guideWindow].map((item) => ({ documentType: item.documentType, excerpt: item.text })),
+          preciseMatch,
         };
       });
       const responses = await Promise.all(spreadInputs.map((spreadInput) => postJsonForManuscript("/api/prototype/sports-culture-manuscript", {
@@ -899,6 +937,8 @@
         thesis,
         standardContext: context,
         sportReference: sportMode === "none" ? null : reference,
+        preciseEvidenceMatch: preciseMatch,
+        conceptTypes: Array.isArray(request.smallUnit.concepts) ? request.smallUnit.concepts : [],
         spreads: [spreadInput],
       })));
       manuscripts = responses.map((response, index) => {
@@ -913,6 +953,7 @@
             number: sectionIndex + 1,
             title: section.title,
             paragraphs: section.paragraphs,
+            boxType: section.box_type || null,
           })),
           visuals: { left: aiSpread.left_visuals || [], right: aiSpread.right_visuals || [] },
         };
