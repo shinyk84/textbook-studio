@@ -47,11 +47,13 @@ class PrototypeDraftEngineTests(unittest.TestCase):
     def test_toc_export_places_non_lesson_page_counts_in_pages_column(self):
         source = (ROOT / "static" / "prototype.js").read_text(encoding="utf-8")
         toc_block = source[source.index("function unitsTocRows()") : source.index("function pagePlanRows")]
-        self.assertIn('["앞부속", "", item.title, "", "", "", item.pages]', toc_block)
-        self.assertIn('["도입", largeTitle, `${largeTitle} 도입`, "", "", "", unit.introPages]', toc_block)
-        self.assertIn('["마무리", largeTitle, `${largeTitle} 마무리`, "", "", "", unit.wrapUpPages]', toc_block)
-        self.assertIn('["뒷부속", "", item.title, "", "", "", item.pages]', toc_block)
-        self.assertIn('["부록", "", item.title, "", "", "", item.pages]', toc_block)
+        self.assertIn('["앞부속", "", item.title, "", "", "", "", item.pages]', toc_block)
+        self.assertIn('["도입", largeTitle, `${largeTitle} 도입`, "", "", "", "", unit.introPages]', toc_block)
+        self.assertIn('["마무리", largeTitle, `${largeTitle} 마무리`, "", "", "", "", unit.wrapUpPages]', toc_block)
+        self.assertIn('["뒷부속", "", item.title, "", "", "", "", item.pages]', toc_block)
+        self.assertIn('["부록", "", item.title, "", "", "", "", item.pages]', toc_block)
+        self.assertIn('["구분", "대단원", "이름", "종목 사용 방식", "종목", "구성요소", "차시", "쪽수"]', toc_block)
+        self.assertIn("Array.isArray(small.concepts) ? small.concepts.join(\", \") : \"\"", toc_block)
 
     def test_initial_sports_culture_toc_recommends_three_distinct_sport_modes(self):
         result = self.run_node(

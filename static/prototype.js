@@ -1417,35 +1417,35 @@ function curriculumDownloadRows() {
 }
 
 function unitsTocRows() {
-  const rows = [["구분", "대단원", "이름", "종목 사용 방식", "종목", "차시", "쪽수"]];
-  parseLineItems(state.frontMatterText).forEach((item) => rows.push(["앞부속", "", item.title, "", "", "", item.pages]));
+  const rows = [["구분", "대단원", "이름", "종목 사용 방식", "종목", "구성요소", "차시", "쪽수"]];
+  parseLineItems(state.frontMatterText).forEach((item) => rows.push(["앞부속", "", item.title, "", "", "", "", item.pages]));
   const placedSpecialIds = new Set();
   state.units.forEach((unit, unitIndex) => {
     const largeNumber = unitNumberLabel(unitIndex);
     const largeTitle = `${largeNumber}. ${unit.domain}`;
-    if (Number(unit.introPages)) rows.push(["도입", largeTitle, `${largeTitle} 도입`, "", "", "", unit.introPages]);
+    if (Number(unit.introPages)) rows.push(["도입", largeTitle, `${largeTitle} 도입`, "", "", "", "", unit.introPages]);
     unit.subdomainGroups.forEach((group, groupIndex) => {
       group.middleUnits.forEach((middle, middleIndex) => {
         const middlePosition = middleUnitPosition(unit, groupIndex, middleIndex);
         const middleNumber = unitNumberLabel(unitIndex, middlePosition);
-        rows.push(["중단원", largeTitle, `${middleNumber}. ${group.subtitle ? `${group.subtitle} · ` : ""}${middle.title}`, "", "", "", ""]);
+        rows.push(["중단원", largeTitle, `${middleNumber}. ${group.subtitle ? `${group.subtitle} · ` : ""}${middle.title}`, "", "", "", "", ""]);
         middle.smallUnits.forEach((small, smallIndex) => {
           const smallNumber = unitNumberLabel(unitIndex, middlePosition, smallIndex + 1);
-          rows.push(["소단원", largeTitle, `${smallNumber}. ${small.title}`, sportsCultureSportModeLabel(small.sportMode), Array.isArray(small.sports) ? small.sports.join(", ") : "", small.hours, small.pages]);
+          rows.push(["소단원", largeTitle, `${smallNumber}. ${small.title}`, sportsCultureSportModeLabel(small.sportMode), Array.isArray(small.sports) ? small.sports.join(", ") : "", Array.isArray(small.concepts) ? small.concepts.join(", ") : "", small.hours, small.pages]);
         });
       });
     });
     (state.specialPages || []).filter((page) => page.domain === unit.domain).forEach((page) => {
-      rows.push(["특별페이지", largeTitle, `${largeNumber}. ${page.title}`, sportsCultureSpecialPageTypeLabel(page.type), "", "", page.pages]);
+      rows.push(["특별페이지", largeTitle, `${largeNumber}. ${page.title}`, sportsCultureSpecialPageTypeLabel(page.type), "", "", "", page.pages]);
       placedSpecialIds.add(page.id);
     });
-    if (Number(unit.wrapUpPages)) rows.push(["마무리", largeTitle, `${largeTitle} 마무리`, "", "", "", unit.wrapUpPages]);
+    if (Number(unit.wrapUpPages)) rows.push(["마무리", largeTitle, `${largeTitle} 마무리`, "", "", "", "", unit.wrapUpPages]);
   });
   (state.specialPages || []).filter((page) => !placedSpecialIds.has(page.id)).forEach((page) => {
-    rows.push(["특별페이지", page.domain || "", page.title, sportsCultureSpecialPageTypeLabel(page.type), "", "", page.pages]);
+    rows.push(["특별페이지", page.domain || "", page.title, sportsCultureSpecialPageTypeLabel(page.type), "", "", "", page.pages]);
   });
-  parseLineItems(state.backMatterText).forEach((item) => rows.push(["뒷부속", "", item.title, "", "", "", item.pages]));
-  parseLineItems(state.appendixText).forEach((item) => rows.push(["부록", "", item.title, "", "", "", item.pages]));
+  parseLineItems(state.backMatterText).forEach((item) => rows.push(["뒷부속", "", item.title, "", "", "", "", item.pages]));
+  parseLineItems(state.appendixText).forEach((item) => rows.push(["부록", "", item.title, "", "", "", "", item.pages]));
   return rows;
 }
 

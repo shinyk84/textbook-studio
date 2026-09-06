@@ -127,7 +127,14 @@
     if (/역할/.test(text)) return ["[12스문02-01]"];
     if (/기획|운영/.test(text)) return ["[12스문02-02]"];
     if (/융합|접목/.test(text)) return ["[12스문02-03]"];
-    return String(smallUnit.domain || "").includes("경기") ? ["[12스문02-01]"] : ["[12스문01-01]"];
+    // 대단원명(도메인)이 "경기"/"인문" 키워드를 포함하지 않는 경우(예: 지학사식으로
+    // 재구성한 "진로" 대단원)도 있으므로, 도메인명뿐 아니라 중단원·소단원 제목까지
+    // 함께 봐서 더 넓게 판단한다. 그래도 신호가 전혀 없는 완전히 새 소단원만 마지막에
+    // 인문 쪽 기본값으로 떨어진다(근거 없는 상태에서의 불가피한 기본값).
+    const combined = `${smallUnit.domain || ""} ${text}`;
+    if (/경기/.test(combined)) return ["[12스문02-01]"];
+    if (/인문/.test(combined)) return ["[12스문01-01]"];
+    return ["[12스문01-01]"];
   }
 
   function traceabilityFor(smallUnit) {
