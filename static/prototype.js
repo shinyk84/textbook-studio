@@ -4717,6 +4717,7 @@ function bindWorkspace() {
       const button = event.currentTarget;
       const originalLabel = button.textContent;
       button.disabled = true;
+      let completedCount = 0;
       try {
         const style = sportsCultureStyleProfile(state.bookStyleValue);
         const framework = { id: style.id, name: `전체 스타일 · ${style.label}`, summary: style.summary };
@@ -4761,6 +4762,7 @@ function bindWorkspace() {
             provider: result.provider,
             entries: result.entries,
           });
+          completedCount = index + 1;
         }
         expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
         {
@@ -4774,7 +4776,19 @@ function bindWorkspace() {
       } catch (error) {
         button.disabled = false;
         button.textContent = originalLabel;
-        showToast(error?.message || "초고 생성에 실패했습니다.");
+        // 여러 항목을 순서대로 생성하다가 중간에 실패해도, 이미 성공한 항목까지는
+        // 화면에서 사라지지 않고 그대로 저장·표시되게 한다(예전엔 실패 시 catch에서
+        // persist/render를 안 불러서, 앞서 성공한 항목까지 화면에 반영도 저장도 안 된
+        // 채 사라진 것처럼 보이는 문제가 있었다).
+        if (completedCount > 0) {
+          const lastBatchIndex = state.frameworkDraftLog.length - 1;
+          const lastBatch = state.frameworkDraftLog[lastBatchIndex];
+          expandedDraftBatches = new Set([lastBatchIndex]);
+          expandedDraftFilePreviews = new Set((lastBatch?.entries || []).map((_, entryIndex) => `${lastBatchIndex}:${entryIndex}`));
+          persistNow(`${completedCount}개 스포츠 문화 초고 생성됨(이후 실패)`);
+          renderWorkspace();
+        }
+        showToast(`${completedCount}/${targets.length}개까지 생성 후 실패: ${error?.message || "초고 생성에 실패했습니다."}`);
       }
       return;
     }
