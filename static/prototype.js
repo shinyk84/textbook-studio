@@ -3846,10 +3846,13 @@ const MOCK_REVIEW_STATUS_LABELS = { pass: "충족", partial: "부분 충족", fa
 // 미리 뽑아 보내면 보통 수백 KB 이하라 이 문제가 없다.
 async function extractPdfTextInBrowser(file) {
   if (!window.pdfjsLib) throw new Error("PDF 읽기 라이브러리를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.");
+  // pdf.js는 (disableWorker 옵션 없이) 항상 실제 워커 스크립트를 요구한다 —
+  // GlobalWorkerOptions.workerSrc가 없으면 파싱 자체가 바로 실패한다.
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs?v=1";
+  }
   const arrayBuffer = await file.arrayBuffer();
-  // 별도 워커 스크립트를 안 쓰고 메인 스레드에서 직접 처리한다 — 한 번 업로드하고 끝나는
-  // 작업이라 성능보다 워커 로딩 실패(경로·MIME 등) 가능성을 없애는 쪽이 더 안전하다.
-  const doc = await pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: true }).promise;
+  const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const parts = [];
   for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
     const page = await doc.getPage(pageNumber);
