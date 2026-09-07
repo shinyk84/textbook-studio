@@ -661,8 +661,8 @@ function initializedSportsCultureState(projectName) {
   };
   initial.units = unitsForSportsCulture();
   initial.sportsCultureUnitStructureVersion = 2;
-  initial.frontMatterText = "";
-  initial.backMatterText = "";
+  initial.frontMatterText = "속표지, 1\n이 책의 구성과 특징, 2\n목차, 2";
+  initial.backMatterText = "참고문헌, 1\n집필자 소개, 1\n판권, 1";
   initial.appendixText = "자료 출처와 찾아보기, 4";
   initial.frameworkMetrics = defaultFrameworkMetrics(SPORTS_CULTURE_FRAMEWORKS);
   initial.generationProviderId = globalThis.TEXTBOOK_DRAFT_ENGINE?.internalProviderId || "internal-rules-v1";
@@ -687,8 +687,8 @@ function initializedSecondaryState(item, projectName) {
     targetHours: meta.default_hours,
   };
   initial.units = unitsForSecondaryCourse(meta);
-  initial.frontMatterText = "";
-  initial.backMatterText = "";
+  initial.frontMatterText = "속표지, 1\n이 책의 구성과 특징, 2\n목차, 2";
+  initial.backMatterText = "참고문헌, 1\n집필자 소개, 1\n판권, 1";
   initial.appendixText = "자료 출처와 찾아보기, 4";
   initial.pages = buildPagePlan(initial);
   return initial;
@@ -1895,21 +1895,17 @@ function renderPagePreviewModal() {
             <button class="secondary-button" id="closePagePreview" type="button" aria-label="배열표 미리보기 닫기, Esc 키 사용 가능">닫기 · Esc</button>
           </div>
         </header>
-        <p class="bulk-edit-note">3단계에 입력한 쪽수 배정으로 만든 확인용 미리보기입니다.</p>
-        <div class="page-plan-sections">
+        <p class="bulk-edit-note">3단계에 입력한 쪽수 배정으로 만든 확인용 미리보기입니다. 인쇄 시 8쪽 단위(전지)로 지면을 세므로, 한 줄에 8쪽씩 앞부속부터 부록까지 이어서 배치했습니다.</p>
+        <div class="page-grid">
           ${sections.map((section) => `
-            <section class="page-plan-section">
-              <header class="page-plan-section-header" data-area="${escapeHtml(section.pages[0].area)}">
-                <b>${escapeHtml(section.group)}</b>
-                <span>${section.pages[0].number}~${section.pages[section.pages.length - 1].number}쪽 · ${section.pages.length}쪽</span>
-              </header>
-              <div class="page-grid">
-                ${section.pages.map((page) => `
-                  <div class="page-cell" data-area="${escapeHtml(page.area)}" title="${escapeHtml(page.unit)} · ${page.type}">
-                    <b>${page.number}쪽</b><span>${escapeHtml(page.type)}</span>
-                  </div>`).join("")}
-              </div>
-            </section>`).join("")}
+            <div class="page-plan-section-header" data-area="${escapeHtml(section.pages[0].area)}">
+              <b>${escapeHtml(section.group)}</b>
+              <span>${section.pages[0].number}~${section.pages[section.pages.length - 1].number}쪽 · ${section.pages.length}쪽</span>
+            </div>
+            ${section.pages.map((page) => `
+              <div class="page-cell" data-area="${escapeHtml(page.area)}" title="${escapeHtml(page.unit)} · ${page.type}">
+                <b>${page.number}쪽</b><span>${escapeHtml(page.type)}</span>
+              </div>`).join("")}`).join("")}
         </div>
       </div>
     </div>`;
@@ -2221,7 +2217,7 @@ function renderSecondaryCurriculum() {
   const pageRange = sourcePages.length ? `${Math.min(...sourcePages)}~${Math.max(...sourcePages)}쪽` : "확인 필요";
   const printedPageRange = sourcePages.length ? `${Math.min(...sourcePages) - 6}~${Math.max(...sourcePages) - 6}쪽` : "확인 필요";
   return `
-    ${sectionHeading("CURRICULUM", `${subject} 교육과정 확인`, "", '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>')}
+    ${sectionHeading("CURRICULUM", `${subject} 교육과정 확인`, "", `<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>${SECONDARY_CURRICULUM_DEVELOPMENT_NOTES[subject] ? '<button class="secondary-button" id="downloadCurriculumNoteButton" type="button">분석 내용 PDF로 저장</button>' : ""}`)}
     <div class="curriculum-summary">
       <article><span>과목 분류</span><strong>${meta.category}</strong><small>고등학교 체육</small></article>
       <article><span>기본 학점</span><strong>${meta.credits}학점</strong><small>${meta.minimum_credits}~${meta.maximum_credits}학점</small></article>
@@ -2413,7 +2409,7 @@ function renderCurriculum() {
   const pageRange = sourcePages.length ? `${Math.min(...sourcePages)}~${Math.max(...sourcePages)}쪽` : "확인 필요";
   const printedPageRange = sourcePages.length ? `${Math.min(...sourcePages) - 6}~${Math.max(...sourcePages) - 6}쪽` : "확인 필요";
   return `
-    ${sectionHeading("CURRICULUM", "교육과정 원문 확인", "", '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>')}
+    ${sectionHeading("CURRICULUM", "교육과정 원문 확인", "", `<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>${CURRICULUM_DEVELOPMENT_NOTES[gradeBand] ? '<button class="secondary-button" id="downloadCurriculumNoteButton" type="button">분석 내용 PDF로 저장</button>' : ""}`)}
     <div class="curriculum-summary">
       <article><span>선택 학년</span><strong>${grade}학년</strong><small>${gradeBand}</small></article>
       <article><span>공식 기준 시수</span><strong>204시간</strong><small>학년군 2년 합계</small></article>
@@ -3076,6 +3072,38 @@ function createPrintDocument() {
 
 function downloadCanvasPagesAsPdf(filename, canvases) {
   triggerBlobDownload(canvasPagesToPdfBlob(canvases), filename);
+}
+
+// 02단계 "이전 개정 대비 달라진 점 / 집필 시 강조할 점" 카드를 화면과 같은 내용으로
+// PDF로 내보낸다 — 초등은 학년군, 고등은 과목명으로 해당하는 분석 자료를 찾는다.
+function currentCurriculumDevelopmentNotes() {
+  if (isHighSchoolProject()) return SECONDARY_CURRICULUM_DEVELOPMENT_NOTES[state.project.subject] || null;
+  if (state.project.schoolLevel === "중학교") return null;
+  const grade = Number.parseInt(state.project.grade, 10) || 3;
+  const gradeBand = grade <= 4 ? "3~4학년군" : "5~6학년군";
+  return CURRICULUM_DEVELOPMENT_NOTES[gradeBand] || null;
+}
+
+function buildCurriculumDevelopmentNotePdfPages() {
+  const notesByDomain = currentCurriculumDevelopmentNotes();
+  if (!notesByDomain) return null;
+  const doc = createPrintDocument();
+  const keywordWidth = 210;
+  const detailWidth = doc.contentWidth - keywordWidth;
+  const noteRow = (item) => doc.tableRow([
+    { text: item.keyword, width: keywordWidth, bold: true, color: PRINT_DOC_PALETTE.accent },
+    { text: item.detail, width: detailWidth },
+  ]);
+  doc.title(`교육과정 분석 및 집필 방향 · ${state.project.name || "프로젝트"}`);
+  Object.entries(notesByDomain).forEach(([domain, note]) => {
+    doc.sectionBar(`${domain} · 이전 개정 대비 달라진 점`);
+    note.changes.forEach(noteRow);
+    doc.gap(10);
+    doc.sectionBar(`${domain} · 집필 시 강조할 점`);
+    note.emphasis.forEach(noteRow);
+    doc.gap(18);
+  });
+  return doc.canvases;
 }
 
 function buildTextbookManuscriptPdfPages(entry) {
@@ -4342,6 +4370,16 @@ function bindWorkspace() {
   document.querySelector("#downloadCurriculumButton")?.addEventListener("click", () => {
     downloadCsvFile(`${state.project.name || "교육과정"}_성취기준.csv`, curriculumDownloadRows());
     showToast("성취기준·고려사항을 다운로드했습니다.");
+  });
+
+  document.querySelector("#downloadCurriculumNoteButton")?.addEventListener("click", () => {
+    const canvases = buildCurriculumDevelopmentNotePdfPages();
+    if (!canvases) {
+      showToast("아직 이 과목의 분석 자료가 준비되지 않았습니다.");
+      return;
+    }
+    downloadCanvasPagesAsPdf(`${state.project.name || "교육과정"}_분석및집필방향.pdf`, canvases);
+    showToast("분석 내용을 PDF로 저장했습니다.");
   });
 
   document.querySelector("#downloadTocButton")?.addEventListener("click", () => {

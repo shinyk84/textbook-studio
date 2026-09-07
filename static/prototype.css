@@ -1477,15 +1477,17 @@
   gap: 18px;
 }
 
+/* 인쇄용 전지는 8쪽 단위로 접히므로, 앞부속부터 부록까지 전체를 하나의 8열 그리드로
+   이어 붙여야 8배수가 맞는지 한눈에 셀 수 있다(대단원별로 격자를 따로 끊으면 줄이
+   흐트러져 8배수 확인이 안 된다). 구간 제목은 8열을 모두 차지하는 구분줄로만 넣는다. */
 .page-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 8px;
   align-content: start;
 }
 
 .page-cell {
-  flex: 0 0 78px;
   min-height: 66px;
   padding: 8px;
   border: 2px solid transparent;
@@ -1532,20 +1534,20 @@
 .page-cell[data-area="뒷부속"] { background: #e6e1da; }
 .page-cell[data-area="부록"] { background: #f3e6c8; }
 
-.page-plan-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .page-plan-section-header {
   display: flex;
+  grid-column: 1 / -1;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  margin-top: 8px;
   padding: 6px 10px;
   border-radius: 6px;
   background: #eef1ef;
+}
+
+.page-plan-section-header:first-child {
+  margin-top: 0;
 }
 
 .page-plan-section-header b {
