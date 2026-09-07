@@ -4090,18 +4090,30 @@ def call_openai_for_pdf_review(
 
 
 def call_prototype_pdf_review(payload: dict) -> dict:
-    pdf_base64 = str(payload.get("pdfBase64", ""))
     file_name = str(payload.get("fileName", "업로드한 파일"))
-    if not pdf_base64:
-        raise ValueError("PDF 파일이 없습니다.")
-    try:
-        pdf_bytes = base64.b64decode(pdf_base64)
-    except (ValueError, TypeError) as exc:
-        raise ValueError("PDF 파일을 읽지 못했습니다.") from exc
-    try:
-        pdf_text, truncated = extract_pdf_text(pdf_bytes)
-    except Exception as exc:
-        raise ValueError("PDF 파일을 열지 못했습니다. 손상되었거나 PDF 형식이 아닐 수 있습니다.") from exc
+    max_chars = 40000
+    # 브라우저(pdf.js)에서 이미 추출한 텍스트를 우선 사용한다 — 실제 교과서 PDF는 이미지 때문에
+    # 수십~수백 MB에 달해, 파일 전체를 base64로 감싸 보내면 Vercel 서버리스 함수의 요청 본문
+    # 크기 제한(수 MB대)을 넘겨 요청 자체가 거부된다(103MB 파일에서 재현됨). 텍스트만 보내면
+    # 보통 수백 KB 이하라 이 문제가 없다. pdf_text가 없는 예전 방식(pdfBase64) 호출도 당분간
+    # 그대로 지원한다.
+    pdf_text = str(payload.get("pdfText", ""))
+    if pdf_text:
+        truncated = len(pdf_text) > max_chars
+        if truncated:
+            pdf_text = pdf_text[:max_chars]
+    else:
+        pdf_base64 = str(payload.get("pdfBase64", ""))
+        if not pdf_base64:
+            raise ValueError("PDF 파일이 없습니다.")
+        try:
+            pdf_bytes = base64.b64decode(pdf_base64)
+        except (ValueError, TypeError) as exc:
+            raise ValueError("PDF 파일을 읽지 못했습니다.") from exc
+        try:
+            pdf_text, truncated = extract_pdf_text(pdf_bytes, max_chars=max_chars)
+        except Exception as exc:
+            raise ValueError("PDF 파일을 열지 못했습니다. 손상되었거나 PDF 형식이 아닐 수 있습니다.") from exc
     if not pdf_text.strip():
         raise ValueError("PDF에서 텍스트를 추출하지 못했습니다(스캔 이미지로만 되어 있을 수 있습니다).")
     standard = prototype_review_standard(str(payload.get("catalogId", "")), str(payload.get("revision", "2022")))

@@ -198,6 +198,53 @@ class PrototypePdfReviewTests(unittest.TestCase):
         self.assertEqual(perfect["overallScore"], 100)
         self.assertEqual(perfect["decision"], "통과")
 
+    def test_call_prototype_pdf_review_accepts_client_extracted_text(self):
+        # 브라우저(pdf.js)에서 미리 추출한 pdfText가 오면 base64/PyMuPDF 경로를 아예 타지 않아야
+        # 한다 — 실제 교과서 PDF는 수십~수백 MB라 base64로 감싸면 Vercel 요청 본문 크기 제한을
+        # 넘겨 거부되므로(103MB 파일에서 재현), pdfText만으로도 채점이 끝까지 돌아야 한다.
+        app = self.app
+        captured_pdf_text = {}
+        fake_items = [
+            {"number": number, "status": "pass", "evidence": "e"}
+            for _area, _weight, number, _criterion in app.TEXTBOOK_REVIEW_CRITERIA
+        ]
+
+        def fake_call(pdf_text, criteria=None, standard_label="검정기준", standards=None, editorial_reference=""):
+            captured_pdf_text["value"] = pdf_text
+            return {"items": fake_items, "review_note": "메모"}
+
+        original = app.call_openai_for_pdf_review
+        app.call_openai_for_pdf_review = fake_call
+        try:
+            result = app.call_prototype_pdf_review({
+                "pdfText": "[1쪽]\n브라우저에서 추출한 원문입니다.",
+                "fileName": "client-extracted.pdf",
+                "catalogId": "elementary-3-4",
+            })
+        finally:
+            app.call_openai_for_pdf_review = original
+        self.assertEqual(captured_pdf_text["value"], "[1쪽]\n브라우저에서 추출한 원문입니다.")
+        self.assertEqual(result["fileName"], "client-extracted.pdf")
+        self.assertFalse(result["truncated"])
+
+    def test_call_prototype_pdf_review_truncates_long_client_text(self):
+        app = self.app
+        fake_items = [
+            {"number": number, "status": "pass", "evidence": "e"}
+            for _area, _weight, number, _criterion in app.TEXTBOOK_REVIEW_CRITERIA
+        ]
+        original = app.call_openai_for_pdf_review
+        app.call_openai_for_pdf_review = lambda pdf_text, criteria=None, standard_label="검정기준", standards=None, editorial_reference="": {"items": fake_items, "review_note": ""}
+        try:
+            result = app.call_prototype_pdf_review({
+                "pdfText": "가" * 50000,
+                "fileName": "long.pdf",
+                "catalogId": "elementary-3-4",
+            })
+        finally:
+            app.call_openai_for_pdf_review = original
+        self.assertTrue(result["truncated"])
+
     def test_sports_culture_uses_twenty_recognition_criteria(self):
         app = self.app
         pdf_bytes = make_test_pdf_bytes(["Sports culture textbook draft"])

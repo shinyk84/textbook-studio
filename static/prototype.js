@@ -3841,16 +3841,25 @@ function mockReviewStandard(targetState = state) {
 
 const MOCK_REVIEW_STATUS_LABELS = { pass: "충족", partial: "부분 충족", fail: "미흡" };
 
-function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      resolve(typeof result === "string" ? result.split(",").pop() : "");
-    };
-    reader.onerror = () => reject(new Error("파일을 읽지 못했습니다."));
-    reader.readAsDataURL(file);
-  });
+// 실제 교과서 PDF는 이미지 때문에 수십~수백 MB에 달해, 파일 전체를 서버로 올리면 Vercel
+// 요청 본문 크기 제한을 넘겨 거부된다(103MB 파일에서 재현됨). 브라우저(pdf.js)에서 텍스트만
+// 미리 뽑아 보내면 보통 수백 KB 이하라 이 문제가 없다.
+async function extractPdfTextInBrowser(file) {
+  if (!window.pdfjsLib) throw new Error("PDF 읽기 라이브러리를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.");
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs?v=1";
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const parts = [];
+  for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
+    const page = await doc.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const text = content.items.map((item) => item.str).join(" ").trim();
+    if (text) parts.push(`[${pageNumber}쪽]\n${text}`);
+  }
+  await doc.destroy();
+  return parts.join("\n\n");
 }
 
 function renderMockReviewResult(review) {
@@ -5201,11 +5210,14 @@ function bindWorkspace() {
       errorBox.textContent = "";
     }
     try {
-      const pdfBase64 = await readFileAsBase64(file);
+      button.textContent = "PDF 읽는 중...";
+      const pdfText = await extractPdfTextInBrowser(file);
+      if (!pdfText.trim()) throw new Error("PDF에서 텍스트를 추출하지 못했습니다(스캔 이미지로만 되어 있을 수 있습니다).");
+      button.textContent = "채점 중...";
       const response = await fetch("/api/prototype/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdfBase64, fileName: file.name, catalogId: inferredCatalogId(activeProject()) || "", revision: state.mockReviewRevision || "2022" }),
+        body: JSON.stringify({ pdfText, fileName: file.name, catalogId: inferredCatalogId(activeProject()) || "", revision: state.mockReviewRevision || "2022" }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "채점 요청에 실패했습니다.");
