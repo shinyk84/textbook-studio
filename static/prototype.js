@@ -621,6 +621,7 @@ let editingSourceId = null;
 let pagePreviewOpen = false;
 let moveMenuOpenPath = null;
 let evidenceDetailsOpen = false;
+let mockReviewSelectedFileName = null;
 let selectedDraftBatches = new Set();
 let expandedDraftBatches = new Set();
 // 스포츠 문화 "전체 스타일·초고" 표는 회차 단위가 아니라 파일 단위(PPT/교과서/지도서/이미지)로
@@ -3991,6 +3992,7 @@ function renderMockReview() {
       </label>
       <button class="primary-button" id="mockReviewStartButton" type="button" ${standard.available ? "" : "disabled"}>채점 시작</button>
     </div>
+    <small id="mockReviewSelectedFileLabel" ${mockReviewSelectedFileName ? "" : "hidden"}>선택한 파일: ${escapeHtml(mockReviewSelectedFileName || "")}</small>
     <p class="source-page-warning" id="mockReviewError" hidden></p>
     ${state.mockReview && !previousResultMatches ? `<p class="source-page-warning">심사기준이 변경되어 이전 채점 결과를 표시하지 않습니다. PDF를 다시 채점해 주세요.</p>` : ""}
     ${state.mockReview && previousResultMatches ? renderMockReviewResult(state.mockReview) : ""}`;
@@ -5191,6 +5193,19 @@ function bindWorkspace() {
 
   document.querySelector("#mockReviewFilterToggle")?.addEventListener("change", (event) => {
     document.querySelector("#mockReviewTable")?.classList.toggle("hide-pass", event.target.checked);
+  });
+
+  // 채점 도중/완료 후 화면이 다시 그려지면 <input type="file">는 항상 선택 안 된 상태로
+  // 초기화된다 — 파일이 사라진 것처럼 보이지 않도록 파일명을 별도 상태로 기억해 두고,
+  // 여기서는 전체 재렌더 없이 라벨만 직접 갱신한다(재렌더하면 방금 고른 파일 선택 자체가
+  // 새 input 엘리먼트로 교체되며 사라져 버린다).
+  document.querySelector("#mockReviewFileInput")?.addEventListener("change", (event) => {
+    mockReviewSelectedFileName = event.target.files?.[0]?.name || null;
+    const label = document.querySelector("#mockReviewSelectedFileLabel");
+    if (label) {
+      label.textContent = mockReviewSelectedFileName ? `선택한 파일: ${mockReviewSelectedFileName}` : "";
+      label.hidden = !mockReviewSelectedFileName;
+    }
   });
 
   document.querySelectorAll("[data-mock-review-revision]").forEach((button) => {
