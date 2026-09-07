@@ -673,24 +673,36 @@
   background: #fdf6e8;
 }
 
-.curriculum-development-note b {
+.curriculum-development-note > div > b {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   color: #7a5410;
   font-size: 13px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
 }
 
 .curriculum-development-note ul {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   margin: 0;
   padding-left: 18px;
 }
 
 .curriculum-development-note li {
-  color: #5b4a2f;
-  font-size: 13.5px;
   line-height: 1.5;
+}
+
+.curriculum-development-note li b {
+  display: block;
+  color: #7a5410;
+  font-size: 15px;
+}
+
+.curriculum-development-note li span {
+  display: block;
+  color: #5b4a2f;
+  font-size: 14px;
 }
 
 .curriculum-standard-list {
