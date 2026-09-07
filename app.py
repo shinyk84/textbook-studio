@@ -4035,11 +4035,13 @@ def call_openai_for_pdf_review(
     if editorial_reference:
         input_parts.append(f"[편수자료 발췌]\n{editorial_reference}")
     input_parts.append(f"[교과서 원문]\n{pdf_text}")
+    budget = manuscript_request_budget()
     request_body = {
         "model": manuscript_ai_config()["model"],
         "instructions": instructions,
         "input": "\n\n".join(input_parts),
         "max_output_tokens": 8000,
+        "reasoning": {"effort": budget["reasoning_effort"]},
         "text": {
             "format": {
                 "type": "json_schema",
@@ -4058,11 +4060,14 @@ def call_openai_for_pdf_review(
             "Content-Type": "application/json",
         },
     )
+    # PDF 텍스트 추출이 브라우저(pdf.js)로 넘어가면서, 이 서버 함수는 이제 OpenAI 호출
+    # 시간만 신경 쓰면 된다 — manuscript_request_budget()과 같은 예산(Vercel 배포에서는
+    # timeout 50초·reasoning effort "low")을 그대로 재사용해 응답 속도를 높이고, Vercel이
+    # 먼저 강제 종료(응답 없이 실패)하기 전에 이 코드가 먼저 알아채고 정확한 이유가 담긴
+    # JSON 오류를 돌려주게 한다.
+    timeout_seconds = budget["timeout_seconds"]
     try:
-        # Vercel 무료 요금제의 함수 실행 제한(60초)보다 충분히 짧게 잡아, 실제로 오래 걸릴 때
-        # Vercel이 먼저 강제 종료(응답 없이 실패)하기 전에 이 코드가 먼저 알아채고 정확한
-        # 이유가 담긴 JSON 오류를 돌려주게 한다.
-        with urlopen(request, timeout=45) as response:
+        with urlopen(request, timeout=timeout_seconds) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
@@ -4078,7 +4083,7 @@ def call_openai_for_pdf_review(
             raise ValueError("OpenAI API 요청이 잠시 너무 많습니다. 잠시 후 다시 시도해 주세요.") from exc
         raise ValueError(f"OpenAI API 오류({exc.code}): {message[:500]}") from exc
     except TimeoutError as exc:
-        raise ValueError("OpenAI 응답 제한 시간(45초)을 초과했습니다. 원문이 길면 시간이 더 걸릴 수 있습니다. 잠시 후 다시 시도해 주세요.") from exc
+        raise ValueError(f"OpenAI 응답 제한 시간({timeout_seconds}초)을 초과했습니다. 원문이 길면 시간이 더 걸릴 수 있습니다. 잠시 후 다시 시도해 주세요.") from exc
     except URLError as exc:
         raise ValueError("로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.") from exc
     except json.JSONDecodeError as exc:
@@ -4132,7 +4137,10 @@ def call_prototype_pdf_review(payload: dict) -> dict:
         standards=None if is_large_document else (standard.get("standards") or None),
         editorial_reference="" if is_large_document else standard.get("editorial_reference", ""),
     )
-    dictionary_check = resolve_term_check_priority(
+    # 표준국어대사전 대조는 용어 하나당 최대 8초씩 순차 호출이라(최대 10개 = 최대 80초),
+    # 이미 AI 채점 자체가 시간을 많이 쓰는 원문이 큰 문서에서는 대조까지 하면 남은 예산을
+    # 넘기기 쉽다. 원문이 큰 경우 이 단계는 생략한다.
+    dictionary_check = [] if is_large_document else resolve_term_check_priority(
         (result.get("dictionary_check_terms") or [])[:10],
         standard.get("standards") or [],
         standard.get("editorial_reference", ""),
