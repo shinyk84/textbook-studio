@@ -2179,6 +2179,34 @@ function sportsCultureStandards() {
     : SPORTS_CULTURE_STANDARDS;
 }
 
+// 스포츠 문화는 2022 개정에서 신설된 과목이라 "이전 교육과정 대비 변화"가 초등처럼 단순
+// 명칭 변경이 아닐 수 있다 — 실제 2009 개정 원문 대조로 확인한 내용만 담는다(과목 키로
+// 조회, 없으면 카드 자체를 표시하지 않는다).
+const SECONDARY_CURRICULUM_DEVELOPMENT_NOTES = {
+  "스포츠 문화": {
+    "스포츠 인문 문화": {
+      changes: [
+        "2009 개정에도 동일 과목명 '스포츠 문화'가 있었고 그중 '스포츠 정신 문화' 영역(2009 개정 p.63~64)이 유사하나, 예술성 탐구가 '몸짓 자체의 미적 특성'에 국한됐던 반면 2022는 시·소설·영화 등 스포츠를 소재로 한 문학·예술 작품의 비교·창작으로 범위를 넓힘([12스문01-03], p.88).",
+        "2009는 4단위·34주 편성 예시(2009 개정 p.73 <표8>)의 정규 선택 과목이었으나, 2022는 1~2학점(최대 32시간)의 진로 선택 과목으로 축소되어, 훨씬 압축된 분량 안에 역사·철학·문학예술·진로설계를 모두 다뤄야 함.",
+      ],
+      emphasis: [
+        "[12스문01-03](p.88)은 문학과 예술을 '비교·분석'하고 진로를 '설계'하라고 명시하는데, 진로 정보 수집을 가벼운 카드 활동으로 끝내지 말고 실제 비교·비평 결과물과 구체적 진로 계획 산출물을 요구해야 함.",
+        "[12스문01-02](p.88)의 '비판적 분석'은 역사 연대기 나열이 아닌 가치 판단을 요구하는데, 구체적 논쟁 사례(예: 고의 지연 플레이) 중심으로 다뤄야 추상화를 피할 수 있음.",
+      ],
+    },
+    "스포츠 경기 문화": {
+      changes: [
+        "2009 개정에는 '스포츠 경기 문화'(2009 개정 p.63~65, 용어·규칙·역할·전략·운영)와 별도로 '스포츠 축제 문화'(2009 개정 p.65~66, 행사·미디어·팬덤)가 있었으나, 2022는 두 영역을 '스포츠 경기 문화' 하나로 통합·압축함([12스문02], p.90).",
+        "2009는 경기 규칙·전술의 '이해'에 머물렀으나, 2022는 대회를 직접 '기획·운영'하고 그 경험을 진로 설계로 연결하는 실행형 성취기준을 신설함([12스문02-02], p.90).",
+      ],
+      emphasis: [
+        "[12스문02-02](p.90)는 물질·제도·관념문화 3요소를 반영한 대회 '기획과 운영'을 요구하므로, 대진표·규칙·역할분담이 포함된 실제 운영 가능한 기획서 산출물로 다뤄야 개념 설명에 그치지 않음.",
+        "[12스문02-01](p.90)의 '다양한 역할 참여'는 2009의 선수·감독·심판·운영자 역할에서 더 나아가, AI 판정·중계·미디어 콘텐츠 제작 등 기술·미디어 역할까지 포함해야 최신 스포츠 경기 문화를 반영함.",
+      ],
+    },
+  },
+};
+
 function renderSecondaryCurriculum() {
   const meta = courseMetaFor();
   const standards = meta?.standards?.length ? meta.standards : sportsCultureStandards();
@@ -2215,9 +2243,22 @@ function renderSecondaryCurriculum() {
       }).join("")}
     </div>
     <div class="curriculum-domain-list">
-      ${visibleDomains.map((domain) => `
+      ${visibleDomains.map((domain) => {
+        const developmentNote = SECONDARY_CURRICULUM_DEVELOPMENT_NOTES[subject]?.[domain];
+        return `
         <section class="curriculum-domain-section">
           <header><span class="domain-badge ${domain}">${domain}</span><b>성취기준 ${standards.filter((item) => item.domain === domain).length}개</b></header>
+          ${developmentNote ? `
+            <div class="curriculum-development-note">
+              <div>
+                <b>이전 개정 대비</b>
+                <ul>${developmentNote.changes.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+              </div>
+              <div>
+                <b>집필 시 강조할 점</b>
+                <ul>${developmentNote.emphasis.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+              </div>
+            </div>` : ""}
           <div class="curriculum-standard-list">
             ${standards.filter((item) => item.domain === domain).map((standard) => `
               <details class="curriculum-standard">
@@ -2226,7 +2267,8 @@ function renderSecondaryCurriculum() {
                 ${standard.explanation ? renderEditableSource(`standard-${standard.code}-explanation`, `성취기준 해설 · PDF ${standard.explanation_source_page || "확인"}쪽 · 인쇄면 ${standard.explanation_source_printed_page || (standard.explanation_source_page ? standard.explanation_source_page - 6 : "확인")}쪽`, standard.explanation) : ""}
               </details>`).join("")}
           </div>
-        </section>`).join("")}
+        </section>`;
+      }).join("")}
     </div>`;
 }
 
