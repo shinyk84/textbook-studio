@@ -4059,7 +4059,10 @@ def call_openai_for_pdf_review(
         },
     )
     try:
-        with urlopen(request, timeout=55) as response:
+        # Vercel 무료 요금제의 함수 실행 제한(60초)보다 충분히 짧게 잡아, 실제로 오래 걸릴 때
+        # Vercel이 먼저 강제 종료(응답 없이 실패)하기 전에 이 코드가 먼저 알아채고 정확한
+        # 이유가 담긴 JSON 오류를 돌려주게 한다.
+        with urlopen(request, timeout=45) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
@@ -4075,7 +4078,7 @@ def call_openai_for_pdf_review(
             raise ValueError("OpenAI API 요청이 잠시 너무 많습니다. 잠시 후 다시 시도해 주세요.") from exc
         raise ValueError(f"OpenAI API 오류({exc.code}): {message[:500]}") from exc
     except TimeoutError as exc:
-        raise ValueError("OpenAI 응답 제한 시간(55초)을 초과했습니다. 잠시 후 다시 시도해 주세요.") from exc
+        raise ValueError("OpenAI 응답 제한 시간(45초)을 초과했습니다. 원문이 길면 시간이 더 걸릴 수 있습니다. 잠시 후 다시 시도해 주세요.") from exc
     except URLError as exc:
         raise ValueError("로컬 서버가 OpenAI API에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.") from exc
     except json.JSONDecodeError as exc:
@@ -4103,12 +4106,19 @@ def call_prototype_pdf_review(payload: dict) -> dict:
         raise ValueError("PDF에서 텍스트를 추출하지 못했습니다(스캔 이미지로만 되어 있을 수 있습니다).")
     standard = prototype_review_standard(str(payload.get("catalogId", "")), str(payload.get("revision", "2022")))
     criteria = standard["criteria"]
+    # Vercel 무료 요금제는 함수 실행 시간이 60초로 고정돼 있어 늘릴 수 없다. 편수자료 대조·
+    # 사전 확인·성취기준 커버리지까지 전부 요청하면 원문이 큰 실제 교과서(수백 쪽)에서는
+    # AI 응답 생성이 오래 걸려 시간 제한에 걸리거나 max_output_tokens를 넘겨 응답이 잘릴 수
+    # 있었다(실제로 196쪽 PDF에서 재현됨). 원문이 큰 경우 핵심인 22개 기준 채점만 요청하고
+    # 부가 분석은 생략해 시간·출력 분량을 줄인다.
+    LARGE_DOCUMENT_CHAR_THRESHOLD = 15000
+    is_large_document = len(pdf_text) > LARGE_DOCUMENT_CHAR_THRESHOLD
     result = call_openai_for_pdf_review(
         pdf_text,
         criteria,
         standard["label"],
-        standards=standard.get("standards") or None,
-        editorial_reference=standard.get("editorial_reference", ""),
+        standards=None if is_large_document else (standard.get("standards") or None),
+        editorial_reference="" if is_large_document else standard.get("editorial_reference", ""),
     )
     dictionary_check = resolve_term_check_priority(
         (result.get("dictionary_check_terms") or [])[:10],
@@ -4144,6 +4154,7 @@ def call_prototype_pdf_review(payload: dict) -> dict:
         "decision": decision,
         "reviewNote": result.get("review_note", ""),
         "truncated": truncated,
+        "extrasSkipped": is_large_document,
         "standardsCoverage": result.get("standards_coverage", []),
         "editorialNotes": result.get("editorial_notes", []),
         "dictionaryCheck": dictionary_check,
