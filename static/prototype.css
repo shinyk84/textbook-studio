@@ -1485,8 +1485,45 @@
 .page-cell[data-area="스포츠 인문 문화"] { background: #e2f0f4; }
 .page-cell[data-area="스포츠 경기 문화"] { background: #f8ead7; }
 .page-cell[data-area="프로젝트"] { background: #e0f2e7; }
-.page-cell[data-area="부속자료"],
-.page-cell[data-area="부록"] { background: #ecefee; }
+.page-cell[data-area="앞부속"] { background: #dde3ea; }
+.page-cell[data-area="뒷부속"] { background: #e6e1da; }
+.page-cell[data-area="부록"] { background: #f3e6c8; }
+
+.page-plan-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page-plan-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #eef1ef;
+}
+
+.page-plan-section-header b {
+  font-size: 14px;
+}
+
+.page-plan-section-header span {
+  font-size: 12px;
+  color: #5c6a63;
+  white-space: nowrap;
+}
+
+.page-plan-section-header[data-area="운동"] { background: #dfeff9; }
+.page-plan-section-header[data-area="스포츠"] { background: #ffe9ce; }
+.page-plan-section-header[data-area="표현"] { background: #eee3f6; }
+.page-plan-section-header[data-area="스포츠 인문 문화"] { background: #e2f0f4; }
+.page-plan-section-header[data-area="스포츠 경기 문화"] { background: #f8ead7; }
+.page-plan-section-header[data-area="프로젝트"] { background: #e0f2e7; }
+.page-plan-section-header[data-area="앞부속"] { background: #dde3ea; }
+.page-plan-section-header[data-area="뒷부속"] { background: #e6e1da; }
+.page-plan-section-header[data-area="부록"] { background: #f3e6c8; }
 
 .official-summary {
   display: grid;

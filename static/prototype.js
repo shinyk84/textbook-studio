@@ -1451,8 +1451,8 @@ function unitsTocRows() {
 }
 
 function pagePlanRows(pages) {
-  const rows = [["쪽", "영역", "단원", "유형", "상태"]];
-  pages.forEach((page) => rows.push([page.number, page.area, page.unit, page.type, page.status]));
+  const rows = [["쪽", "구성", "영역", "단원", "유형", "상태"]];
+  pages.forEach((page) => rows.push([page.number, page.group, page.area, page.unit, page.type, page.status]));
   return rows;
 }
 
@@ -1801,53 +1801,54 @@ function allocateCounts(total, weights) {
 function buildPagePlan(targetState = state) {
   const pages = [];
   const placedSpecialIds = new Set();
-  const addPage = (area, unit, type, status = "배정") => {
-    pages.push({ number: pages.length + 1, area, unit, type, status });
+  const addPage = (area, unit, type, group, status = "배정") => {
+    pages.push({ number: pages.length + 1, area, unit, type, group, status });
   };
 
   parseLineItems(targetState.frontMatterText).forEach((item) => {
-    for (let index = 0; index < item.pages; index += 1) addPage("부속자료", item.title, "부속자료");
+    for (let index = 0; index < item.pages; index += 1) addPage("앞부속", item.title, "앞부속", "앞부속");
   });
 
   targetState.units.forEach((unit, unitIndex) => {
     const largeNumber = unitNumberLabel(unitIndex);
+    const group = `대단원 ${largeNumber} · ${unit.domain}`;
     for (let index = 0; index < Number(unit.introPages || 0); index += 1) {
-      addPage(unit.domain, `${largeNumber}. ${unit.domain} 도입`, "단원 도입");
+      addPage(unit.domain, `${largeNumber}. ${unit.domain} 도입`, "단원 도입", group);
     }
-    unit.subdomainGroups.forEach((group, groupIndex) => {
-      group.middleUnits.forEach((middle, middleIndex) => {
+    unit.subdomainGroups.forEach((subGroup, groupIndex) => {
+      subGroup.middleUnits.forEach((middle, middleIndex) => {
         const middlePosition = middleUnitPosition(unit, groupIndex, middleIndex);
         middle.smallUnits.forEach((small, smallIndex) => {
           const smallNumber = unitNumberLabel(unitIndex, middlePosition, smallIndex + 1);
           for (let index = 0; index < Number(small.pages || 0); index += 1) {
-            addPage(unit.domain, `${smallNumber}. ${small.title}`, "본문");
+            addPage(unit.domain, `${smallNumber}. ${small.title}`, "본문", group);
           }
         });
       });
     });
     (targetState.specialPages || []).filter((page) => page.domain === unit.domain).forEach((page) => {
       for (let index = 0; index < Math.max(0, Number(page.pages) || 0); index += 1) {
-        addPage(unit.domain, page.title, sportsCultureSpecialPageTypeLabel(page.type));
+        addPage(unit.domain, page.title, sportsCultureSpecialPageTypeLabel(page.type), group);
       }
       placedSpecialIds.add(page.id);
     });
     for (let index = 0; index < Number(unit.wrapUpPages || 0); index += 1) {
-      addPage(unit.domain, `${largeNumber}. ${unit.domain} 마무리`, "마무리");
+      addPage(unit.domain, `${largeNumber}. ${unit.domain} 마무리`, "마무리", group);
     }
   });
 
   (targetState.specialPages || []).filter((page) => !placedSpecialIds.has(page.id)).forEach((page) => {
     for (let index = 0; index < Math.max(0, Number(page.pages) || 0); index += 1) {
-      addPage(page.domain || "특별 페이지", page.title, sportsCultureSpecialPageTypeLabel(page.type));
+      addPage(page.domain || "특별 페이지", page.title, sportsCultureSpecialPageTypeLabel(page.type), "특별 페이지");
     }
   });
 
   parseLineItems(targetState.backMatterText).forEach((item) => {
-    for (let index = 0; index < item.pages; index += 1) addPage("부속자료", item.title, "부속자료");
+    for (let index = 0; index < item.pages; index += 1) addPage("뒷부속", item.title, "뒷부속", "뒷부속");
   });
 
   parseLineItems(targetState.appendixText).forEach((item) => {
-    for (let index = 0; index < item.pages; index += 1) addPage("부록", item.title, "부록");
+    for (let index = 0; index < item.pages; index += 1) addPage("부록", item.title, "부록", "부록");
   });
 
   return pages;
@@ -1862,9 +1863,25 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+// 대단원·앞뒤부속을 배경색만으로 구분하면 한눈에 안 들어온다는 피드백이 있어, 연속된
+// 같은 구성(group)끼리 묶어 구간 제목(쪽수 범위 포함)을 먼저 보여주고 그 아래에 셀을 둔다.
+function groupPagePlanForPreview(preview) {
+  const sections = [];
+  preview.forEach((page) => {
+    const last = sections[sections.length - 1];
+    if (last && last.group === page.group) {
+      last.pages.push(page);
+    } else {
+      sections.push({ group: page.group, pages: [page] });
+    }
+  });
+  return sections;
+}
+
 function renderPagePreviewModal() {
   if (!pagePreviewOpen) return "";
   const preview = buildPagePlan(state);
+  const sections = groupPagePlanForPreview(preview);
   return `
     <div class="modal-overlay" id="pagePreviewOverlay">
       <div class="modal-box">
@@ -1876,11 +1893,20 @@ function renderPagePreviewModal() {
           </div>
         </header>
         <p class="bulk-edit-note">3단계에 입력한 쪽수 배정으로 만든 확인용 미리보기입니다.</p>
-        <div class="page-grid">
-          ${preview.map((page) => `
-            <div class="page-cell" data-area="${page.area}" title="${escapeHtml(page.unit)} · ${page.type}">
-              <b>${page.number}쪽</b><span>${escapeHtml(page.area)}</span>
-            </div>`).join("")}
+        <div class="page-plan-sections">
+          ${sections.map((section) => `
+            <section class="page-plan-section">
+              <header class="page-plan-section-header" data-area="${escapeHtml(section.pages[0].area)}">
+                <b>${escapeHtml(section.group)}</b>
+                <span>${section.pages[0].number}~${section.pages[section.pages.length - 1].number}쪽 · ${section.pages.length}쪽</span>
+              </header>
+              <div class="page-grid">
+                ${section.pages.map((page) => `
+                  <div class="page-cell" data-area="${escapeHtml(page.area)}" title="${escapeHtml(page.unit)} · ${page.type}">
+                    <b>${page.number}쪽</b><span>${escapeHtml(page.type)}</span>
+                  </div>`).join("")}
+              </div>
+            </section>`).join("")}
         </div>
       </div>
     </div>`;
