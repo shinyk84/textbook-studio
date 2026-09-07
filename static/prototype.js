@@ -3846,11 +3846,10 @@ const MOCK_REVIEW_STATUS_LABELS = { pass: "충족", partial: "부분 충족", fa
 // 미리 뽑아 보내면 보통 수백 KB 이하라 이 문제가 없다.
 async function extractPdfTextInBrowser(file) {
   if (!window.pdfjsLib) throw new Error("PDF 읽기 라이브러리를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.");
-  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs?v=1";
-  }
   const arrayBuffer = await file.arrayBuffer();
-  const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  // 별도 워커 스크립트를 안 쓰고 메인 스레드에서 직접 처리한다 — 한 번 업로드하고 끝나는
+  // 작업이라 성능보다 워커 로딩 실패(경로·MIME 등) 가능성을 없애는 쪽이 더 안전하다.
+  const doc = await pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: true }).promise;
   const parts = [];
   for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
     const page = await doc.getPage(pageNumber);
@@ -3858,7 +3857,13 @@ async function extractPdfTextInBrowser(file) {
     const text = content.items.map((item) => item.str).join(" ").trim();
     if (text) parts.push(`[${pageNumber}쪽]\n${text}`);
   }
-  await doc.destroy();
+  // destroy()는 워커·메모리 정리용일 뿐이라 실패해도 이미 뽑은 텍스트는 그대로 반환해야 한다
+  // (일부 환경에서 워커 로딩 문제로 destroy가 없는 객체가 돌아오는 경우가 있었음).
+  try {
+    if (typeof doc.destroy === "function") await doc.destroy();
+  } catch {
+    // 정리 실패는 무시 — 텍스트 추출 결과에는 영향 없음.
+  }
   return parts.join("\n\n");
 }
 
