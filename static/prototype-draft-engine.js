@@ -946,6 +946,7 @@
         sportReference: sportMode === "none" ? null : reference,
         preciseEvidenceMatch: preciseMatch,
         conceptTypes: Array.isArray(request.smallUnit.concepts) ? request.smallUnit.concepts : [],
+        additionalConcept: request.additionalConcept || "",
         spreads: [spreadInput],
       })));
       manuscripts = responses.map((response, index) => {
@@ -995,6 +996,7 @@
         standardContext: context,
         sportReference: sportMode === "none" ? null : reference,
         pageRole,
+        additionalConcept: request.additionalConcept || "",
         spreads: [spreadInput],
       })));
       manuscripts = responses.map((response, index) => {

@@ -3463,6 +3463,13 @@ def call_openai_for_sports_culture_manuscript(context: dict) -> dict:
             f"box_type에 이름을 정확히 넣는다: {concept_list}. 안 어울리면 0개도 되고, 나머지 "
             "절은 box_type을 null로 둔다."
         )
+    additional_concept = str(context.get("additional_concept", "")).strip()
+    if additional_concept:
+        instructions += (
+            f"\n15) 집필자가 이번 생성 요청에 추가로 남긴 지침: {additional_concept}\n"
+            "위 1)~14)의 원칙과 상충하지 않는 범위에서 이 지침을 이번 지면 내용에 최대한 "
+            "구체적으로 반영한다."
+        )
     budget = manuscript_request_budget()
     request_body = {
         "model": manuscript_ai_config()["model"],
@@ -3578,6 +3585,7 @@ def call_prototype_sports_culture_manuscript(payload: dict) -> dict:
         "sport_reference": payload.get("sportReference"),
         "precise_evidence_match": payload.get("preciseEvidenceMatch", True),
         "concept_types": payload.get("conceptTypes") or [],
+        "additional_concept": str(payload.get("additionalConcept", "")).strip(),
         "spreads": spreads,
     }
     return call_openai_for_sports_culture_manuscript(context)

@@ -622,6 +622,9 @@ let pagePreviewOpen = false;
 let moveMenuOpenPath = null;
 let evidenceDetailsOpen = false;
 let mockReviewSelectedFileName = null;
+// 체크박스를 하나만 눌러도 화면 전체가 다시 그려지므로, state가 아닌 일반 변수에 담아
+// 재렌더가 일어나도 지금까지 입력한 내용이 지워지지 않게 한다(모의심사 파일명 처리와 같은 이유).
+let sportsCultureAdditionalConcept = "";
 let selectedDraftBatches = new Set();
 let expandedDraftBatches = new Set();
 // 스포츠 문화 "전체 스타일·초고" 표는 회차 단위가 아니라 파일 단위(PPT/교과서/지도서/이미지)로
@@ -3695,6 +3698,10 @@ function renderSportsCultureDraftStudio() {
       <div class="book-style-options" role="radiogroup" aria-label="전체 스타일">
         ${SPORTS_CULTURE_STYLE_CHOICES.map((choice) => `<button type="button" class="book-style-option${choice.value === style.value ? " active" : ""}" data-book-style-value="${choice.value}" role="radio" aria-checked="${choice.value === style.value}">${escapeHtml(choice.label)}</button>`).join("")}
       </div>
+      <label class="editor-field">
+        <span>추가 컨셉(선택)</span>
+        <textarea id="draftAdditionalConceptInput" placeholder="이번에 생성할 소단원·특별페이지에 반영할 내용을 자유롭게 적어 주세요(예: 최근 e스포츠 사례를 강조해줘).">${escapeHtml(sportsCultureAdditionalConcept)}</textarea>
+      </label>
     </section>
     <div class="generation-settings-grid compact-grid">
       <label class="editor-field"><span>생성 제공자</span><select id="draftProviderSelect">${providerOptions.map((provider) => `<option value="${escapeHtml(provider.id)}" ${provider.id === activeProvider?.id ? "selected" : ""}>${escapeHtml(provider.label)} · ${escapeHtml(provider.mode)}</option>`).join("")}</select></label>
@@ -4778,6 +4785,10 @@ function bindWorkspace() {
     });
   });
 
+  document.querySelector("#draftAdditionalConceptInput")?.addEventListener("input", (event) => {
+    sportsCultureAdditionalConcept = event.target.value;
+  });
+
   document.querySelectorAll("[data-draft-target]").forEach((input) => {
     input.addEventListener("change", () => {
       const selected = new Set(state.selectedDraftSmallUnitKeys || []);
@@ -4898,6 +4909,7 @@ function bindWorkspace() {
         const style = sportsCultureStyleProfile(state.bookStyleValue);
         const framework = { id: style.id, name: `전체 스타일 · ${style.label}`, summary: style.summary };
         const metrics = sportsCultureStyleMetrics(state.bookStyleValue);
+        const additionalConcept = sportsCultureAdditionalConcept.trim();
         for (let index = 0; index < targets.length; index += 1) {
           const target = targets[index];
           button.textContent = `${index + 1}/${targets.length} 초고 구성 중…`;
@@ -4917,6 +4929,7 @@ function bindWorkspace() {
             supportMode,
             pageRole: target.pageRole,
             styleValue: state.bookStyleValue,
+            additionalConcept,
             includeImages: Boolean(state.includeImages),
             onImageProgress: (done, total) => {
               button.textContent = `${index + 1}/${targets.length} 초고 구성 중… (이미지 ${done}/${total})`;
