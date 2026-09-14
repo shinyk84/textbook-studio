@@ -962,19 +962,32 @@ function migratePairedCatalogProjects(projects) {
   return next;
 }
 
+// 프로젝트 하나(예: 스포츠 문화)를 다듬다가 오류가 나도 다른 프로젝트(예: 초등 3~4학년군)
+// 초안까지 통째로 사라지면 안 된다 — 예전에는 이 map 콜백 전체가 바깥 try/catch 하나로만
+// 싸여 있어서, 프로젝트 하나만 잘못돼도 saved.projects 전체가 버려지고 loadProjectStore()가
+// 빈 기본 프로젝트로 대체해 버렸다(그 뒤 사용자가 뭔가 저장하면 서버의 실제 데이터까지
+// 그 빈 기본값으로 덮어써질 위험이 있었다). 프로젝트마다 따로 감싸서, 하나가 실패해도
+// 그 프로젝트는 다듬기 전 원본 그대로 남기고 나머지는 정상 처리한다.
+function hydrateSingleCatalogProject(project) {
+  try {
+    project.catalogId ||= inferredCatalogId(project);
+    project.setupApproval ||= { status: "draft", version: 0, approvedAt: null, approvedSnapshot: null };
+    Object.values(project.books || {}).forEach((book) => {
+      if (!isPlaceholderProject(project) && book.project.schoolLevel !== "중학교") {
+        book.project.targetHours ||= courseMetaFor(book)?.default_hours || pagePolicies.elementary_pe.default_book_hours;
+      }
+    });
+    return hydrateCatalogProject(project);
+  } catch (error) {
+    console.error("프로젝트 하나를 다듬는 중 오류가 나서 원본 그대로 남깁니다:", project?.id, error);
+    return project;
+  }
+}
+
 function hydrateProjectStorePayload(saved) {
   try {
     if (saved?.version === PROJECTS_STORAGE_VERSION && Array.isArray(saved.projects) && saved.projects.length) {
-      saved.projects = migratePairedCatalogProjects(saved.projects).map((project) => {
-        project.catalogId ||= inferredCatalogId(project);
-        project.setupApproval ||= { status: "draft", version: 0, approvedAt: null, approvedSnapshot: null };
-        Object.values(project.books || {}).forEach((book) => {
-          if (!isPlaceholderProject(project) && book.project.schoolLevel !== "중학교") {
-            book.project.targetHours ||= courseMetaFor(book)?.default_hours || pagePolicies.elementary_pe.default_book_hours;
-          }
-        });
-        return hydrateCatalogProject(project);
-      });
+      saved.projects = migratePairedCatalogProjects(saved.projects).map(hydrateSingleCatalogProject);
       const activeExists = saved.projects.some((project) => project.id === saved.activeProjectId);
       if (!activeExists) saved.activeProjectId = saved.projects[0].id;
       return saved;
@@ -5589,6 +5602,12 @@ document.querySelector("#saveButton").addEventListener("click", () => {
   } else {
     showToast("분량 기준을 벗어나 저장하지 않았습니다.");
   }
+});
+document.querySelector("#backupAllProjectsButton").addEventListener("click", () => {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const blob = new Blob([JSON.stringify(projectStore, null, 2)], { type: "application/json" });
+  triggerBlobDownload(blob, `textbook-studio-backup_${stamp}.json`);
+  showToast("모든 프로젝트를 JSON 파일로 내려받았습니다.");
 });
 document.querySelector("#resetButton").addEventListener("click", () => {
   const project = activeProject();
