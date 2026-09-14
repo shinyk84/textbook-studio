@@ -421,6 +421,37 @@ class StudioDataTests(unittest.TestCase):
         self.assertEqual(result["imageBase64"], "QQ==")
         self.assertEqual(self.app.fetch_prototype_image(result["imageId"]), "QQ==")
 
+    def test_state_save_archives_previous_version_before_overwrite(self):
+        marker = f"history-marker-{id(self)}"
+        first = self.app.store_prototype_state({"projects": [f"{marker}-v1"]}, None)
+        self.app.store_prototype_state({"projects": [f"{marker}-v2"]}, first["version"])
+        with self.app.connect_db() as db:
+            archived = db.execute(
+                "SELECT payload FROM prototype_state_history WHERE version = ?", (first["version"],)
+            ).fetchone()
+            not_yet_archived = db.execute(
+                "SELECT payload FROM prototype_state_history WHERE payload LIKE ?", (f"%{marker}-v2%",)
+            ).fetchone()
+        self.assertIsNotNone(archived, "이전 버전(v1)은 저장 전에 이력에 남아 있어야 한다")
+        self.assertIn(f"{marker}-v1", archived["payload"])
+        self.assertIsNone(not_yet_archived, "방금 저장한 v2는 다음 저장 전까지 이력에 들어가면 안 된다")
+
+    def test_restore_prototype_state_history_brings_back_old_payload_as_new_version(self):
+        marker = f"restore-marker-{id(self)}"
+        good = self.app.store_prototype_state({"projects": [f"{marker}-good"]}, None)
+        bad = self.app.store_prototype_state({"projects": [f"{marker}-bad-emptied"]}, good["version"])
+        with self.app.connect_db() as db:
+            row = db.execute(
+                "SELECT id FROM prototype_state_history WHERE payload LIKE ?", (f"%{marker}-good%",)
+            ).fetchone()
+        restored = self.app.restore_prototype_state_history(row["id"])
+        self.assertEqual(restored["payload"], {"projects": [f"{marker}-good"]})
+        self.assertGreater(restored["version"], bad["version"])
+
+    def test_restore_prototype_state_history_rejects_unknown_id(self):
+        with self.assertRaises(ValueError):
+            self.app.restore_prototype_state_history(999_999_999)
+
 
 if __name__ == "__main__":
     unittest.main()

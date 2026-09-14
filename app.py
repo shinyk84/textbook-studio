@@ -3748,6 +3748,27 @@ def ensure_prototype_state_table(db) -> None:
     db.commit()
 
 
+# prototype_state는 모든 편집자가 공유하는 단 하나의 행(id = 1)이다 — 사용자별로 나뉘어
+# 있지 않다. 그래서 클라이언트 쪽 버그(예: 프로젝트를 잘못 다듬어 빈 상태로 만든 뒤 그걸
+# 그대로 저장)가 한 번만 발생해도 전체 사용자의 데이터가 통째로 덮어써질 수 있다. 덮어쓰기
+# 전 이전 내용을 여기에 남겨 두면, 어떤 이유로든 잘못된 내용이 저장되어도 이전 시점으로
+# 되돌릴 수 있다(서버가 스스로 갖는 안전망 — 개별 사용자가 수동으로 내려받아 두는 것과
+# 별개로, 모든 저장 시점마다 자동으로 쌓인다).
+def ensure_prototype_state_history_table(db) -> None:
+    db.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS prototype_state_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            version INTEGER NOT NULL,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            archived_at TEXT NOT NULL
+        );
+        """
+    )
+    db.commit()
+
+
 def prototype_state_record() -> dict | None:
     with connect_db() as db:
         ensure_prototype_state_table(db)
@@ -3768,8 +3789,9 @@ def store_prototype_state(payload: dict, expected_version: int | None) -> dict:
     encoded = json.dumps(payload, ensure_ascii=False)
     with connect_db() as db:
         ensure_prototype_state_table(db)
+        ensure_prototype_state_history_table(db)
         current = db.execute(
-            "SELECT version FROM prototype_state WHERE id = 1"
+            "SELECT payload, version, updated_at FROM prototype_state WHERE id = 1"
         ).fetchone()
         if current is None:
             db.execute(
@@ -3779,6 +3801,13 @@ def store_prototype_state(payload: dict, expected_version: int | None) -> dict:
         else:
             current_version = int(current["version"])
             ensure_current_version(current_version, expected_version)
+            db.execute(
+                """
+                INSERT INTO prototype_state_history (version, payload, updated_at, archived_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (current_version, current["payload"], current["updated_at"], now),
+            )
             next_version = current_version + 1
             updated = db.execute(
                 """
@@ -3791,6 +3820,65 @@ def store_prototype_state(payload: dict, expected_version: int | None) -> dict:
                 raise VersionConflictError(
                     "다른 컴퓨터에서 먼저 저장했습니다. 최신 내용을 다시 불러온 뒤 저장해 주세요."
                 )
+        db.commit()
+    return prototype_state_record()
+
+
+def prototype_state_history_versions(limit: int = 50) -> list[dict]:
+    with connect_db() as db:
+        ensure_prototype_state_history_table(db)
+        rows = db.execute(
+            """
+            SELECT id, version, updated_at, archived_at
+            FROM prototype_state_history
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [
+        {
+            "historyId": row["id"],
+            "version": row["version"],
+            "updatedAt": row["updated_at"],
+            "archivedAt": row["archived_at"],
+        }
+        for row in rows
+    ]
+
+
+def restore_prototype_state_history(history_id: int) -> dict:
+    with connect_db() as db:
+        ensure_prototype_state_table(db)
+        ensure_prototype_state_history_table(db)
+        history_row = db.execute(
+            "SELECT payload FROM prototype_state_history WHERE id = ?", (history_id,)
+        ).fetchone()
+        if history_row is None:
+            raise ValueError("해당 이력을 찾을 수 없습니다.")
+        current = db.execute(
+            "SELECT payload, version, updated_at FROM prototype_state WHERE id = 1"
+        ).fetchone()
+        now = utc_now()
+        if current is not None:
+            current_version = int(current["version"])
+            db.execute(
+                """
+                INSERT INTO prototype_state_history (version, payload, updated_at, archived_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (current_version, current["payload"], current["updated_at"], now),
+            )
+            next_version = current_version + 1
+            db.execute(
+                "UPDATE prototype_state SET payload = ?, version = ?, updated_at = ? WHERE id = 1",
+                (history_row["payload"], next_version, now),
+            )
+        else:
+            db.execute(
+                "INSERT INTO prototype_state (id, payload, version, updated_at) VALUES (1, ?, 1, ?)",
+                (history_row["payload"], now),
+            )
         db.commit()
     return prototype_state_record()
 
@@ -5451,6 +5539,13 @@ class StudioHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/prototype/state":
             self.send_json({"result": call_prototype_state_get()})
             return
+        if parsed.path == "/api/prototype/state/history":
+            try:
+                require_owner(self.current_user)
+                self.send_json({"result": prototype_state_history_versions()})
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+            return
         prototype_image_prefix = "/api/prototype/image/"
         if parsed.path.startswith(prototype_image_prefix):
             try:
@@ -5702,6 +5797,24 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
             except VersionConflictError as exc:
                 self.send_json({"error": str(exc)}, HTTPStatus.CONFLICT)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            except Exception as exc:  # pragma: no cover - last-resort boundary
+                self.send_json({"error": f"서버 오류: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if parsed.path == "/api/prototype/state/restore":
+            try:
+                self.require_user()
+                require_owner(self.current_user)
+                body = self.read_json()
+                history_id = body.get("historyId")
+                if not isinstance(history_id, int) or isinstance(history_id, bool):
+                    raise ValueError("복원할 이력 id가 올바르지 않습니다.")
+                self.send_json({"result": restore_prototype_state_history(history_id)})
+            except AuthenticationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except AuthorizationError as exc:
+                self.send_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             except Exception as exc:  # pragma: no cover - last-resort boundary
