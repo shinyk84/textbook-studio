@@ -5609,6 +5609,43 @@ document.querySelector("#backupAllProjectsButton").addEventListener("click", () 
   triggerBlobDownload(blob, `textbook-studio-backup_${stamp}.json`);
   showToast("모든 프로젝트를 JSON 파일로 내려받았습니다.");
 });
+document.querySelector("#restoreAllProjectsButton").addEventListener("click", () => {
+  document.querySelector("#restoreAllProjectsInput").click();
+});
+document.querySelector("#restoreAllProjectsInput").addEventListener("change", (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try {
+      parsed = JSON.parse(reader.result);
+    } catch {
+      showToast("올바른 JSON 파일이 아닙니다.");
+      return;
+    }
+    // hydrateProjectStorePayload는 프로젝트별로 오류를 따로 감싸므로(위 hydrateSingleCatalogProject
+    // 참고), 백업 파일 일부가 낡았거나 이상해도 나머지 프로젝트는 그대로 복구된다.
+    const hydrated = hydrateProjectStorePayload(parsed);
+    if (!hydrated) {
+      showToast("이 파일은 백업 형식(전체 백업 다운로드로 받은 JSON)이 아닙니다.");
+      return;
+    }
+    if (!confirm(`이 백업 파일 안의 프로젝트 ${hydrated.projects.length}개로 지금 화면의 모든 프로젝트를 완전히 바꿀까요? 현재 화면에만 있고 백업에는 없는 내용은 사라집니다.`)) return;
+    projectStore = hydrated;
+    useActiveBookState();
+    try {
+      localStorage.setItem(PROJECTS_STORAGE_KEY, serializeProjectStoreForStorage(projectStore));
+    } catch {
+      // 저장 용량 초과 등으로 로컬 저장에 실패해도 화면 반영과 서버 동기화는 계속 진행한다.
+    }
+    render();
+    pushProjectStoreToServer();
+    showToast("백업 파일을 불러왔습니다.");
+  };
+  reader.readAsText(file);
+});
 document.querySelector("#resetButton").addEventListener("click", () => {
   const project = activeProject();
   if (!confirm(`'${project.name}' 프로젝트의 모든 학년책 입력과 페이지 편집을 초기화할까요? 다른 프로젝트는 유지됩니다.`)) return;
