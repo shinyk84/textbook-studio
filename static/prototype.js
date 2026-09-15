@@ -211,16 +211,18 @@ function defaultFrameworkMetrics(options = frameworks) {
 const DOMAIN_ORDER = ["운동", "스포츠", "표현"];
 const SPORTS_CULTURE_DOMAIN_ORDER = ["스포츠 인문 문화", "스포츠 경기 문화"];
 
+// subjectArea는 개별 과목명(subject)보다 한 단계 위의 큰 교과 분류다 — 지금은 전부 "체육"뿐이지만,
+// 나중에 영어·수학·음악 등 타교과가 추가될 때 좌측 "교과" 드롭다운이 이 값으로 목록을 나눈다.
 const PROJECT_CATALOG = [
-  { id: "elementary-3-4", group: "초등학교", label: "초등 체육 3~4학년군", schoolLevel: "초등학교", subject: "체육", band: "3~4학년군", connected: true },
-  { id: "elementary-5-6", group: "초등학교", label: "초등 체육 5~6학년군", schoolLevel: "초등학교", subject: "체육", band: "5~6학년군", connected: true },
-  { id: "middle-pe", group: "중학교", label: "중등체육", schoolLevel: "중학교", subject: "중등체육", connected: false, partial: secondaryCourses["중등 체육"]?.status === "partial" },
-  { id: "high-pe", group: "고등학교", label: "고등 체육", schoolLevel: "고등학교", subject: "체육1·체육2", connected: secondaryCourses["체육1"]?.status === "connected" && secondaryCourses["체육2"]?.status === "connected" },
-  { id: "high-exercise-health", group: "고등학교", label: "고등 운동과 건강", schoolLevel: "고등학교", subject: "운동과 건강", connected: secondaryCourses["운동과 건강"]?.status === "connected" },
-  { id: "high-sports-culture", group: "고등학교", label: "고등 스포츠 문화", schoolLevel: "고등학교", subject: "스포츠 문화", connected: true },
-  { id: "high-sports-science", group: "고등학교", label: "고등 스포츠 과학", schoolLevel: "고등학교", subject: "스포츠 과학", connected: secondaryCourses["스포츠 과학"]?.status === "connected" },
-  { id: "high-sports-life-1", group: "고등학교", label: "고등 스포츠 생활1", schoolLevel: "고등학교", subject: "스포츠 생활1", connected: secondaryCourses["스포츠 생활1"]?.status === "connected" },
-  { id: "high-sports-life-2", group: "고등학교", label: "고등 스포츠 생활2", schoolLevel: "고등학교", subject: "스포츠 생활2", connected: secondaryCourses["스포츠 생활2"]?.status === "connected" },
+  { id: "elementary-3-4", group: "초등학교", label: "초등 체육 3~4학년군", schoolLevel: "초등학교", subjectArea: "체육", subject: "체육", band: "3~4학년군", connected: true },
+  { id: "elementary-5-6", group: "초등학교", label: "초등 체육 5~6학년군", schoolLevel: "초등학교", subjectArea: "체육", subject: "체육", band: "5~6학년군", connected: true },
+  { id: "middle-pe", group: "중학교", label: "중등체육", schoolLevel: "중학교", subjectArea: "체육", subject: "중등체육", connected: false, partial: secondaryCourses["중등 체육"]?.status === "partial" },
+  { id: "high-pe", group: "고등학교", label: "고등 체육", schoolLevel: "고등학교", subjectArea: "체육", subject: "체육1·체육2", connected: secondaryCourses["체육1"]?.status === "connected" && secondaryCourses["체육2"]?.status === "connected" },
+  { id: "high-exercise-health", group: "고등학교", label: "고등 운동과 건강", schoolLevel: "고등학교", subjectArea: "체육", subject: "운동과 건강", connected: secondaryCourses["운동과 건강"]?.status === "connected" },
+  { id: "high-sports-culture", group: "고등학교", label: "고등 스포츠 문화", schoolLevel: "고등학교", subjectArea: "체육", subject: "스포츠 문화", connected: true },
+  { id: "high-sports-science", group: "고등학교", label: "고등 스포츠 과학", schoolLevel: "고등학교", subjectArea: "체육", subject: "스포츠 과학", connected: secondaryCourses["스포츠 과학"]?.status === "connected" },
+  { id: "high-sports-life-1", group: "고등학교", label: "고등 스포츠 생활1", schoolLevel: "고등학교", subjectArea: "체육", subject: "스포츠 생활1", connected: secondaryCourses["스포츠 생활1"]?.status === "connected" },
+  { id: "high-sports-life-2", group: "고등학교", label: "고등 스포츠 생활2", schoolLevel: "고등학교", subjectArea: "체육", subject: "스포츠 생활2", connected: secondaryCourses["스포츠 생활2"]?.status === "connected" },
 ];
 
 const DEFAULT_INTRO_PAGES = 2;
@@ -625,6 +627,10 @@ let mockReviewSelectedFileName = null;
 // 체크박스를 하나만 눌러도 화면 전체가 다시 그려지므로, state가 아닌 일반 변수에 담아
 // 재렌더가 일어나도 지금까지 입력한 내용이 지워지지 않게 한다(모의심사 파일명 처리와 같은 이유).
 let sportsCultureAdditionalConcept = "";
+// 좌측 "교과" 드롭다운에서 고른 값 — 지금 활성 프로젝트가 속한 교과로 시작하고, 이후엔
+// 사용자가 고른 값을 따로 기억한다(프로젝트 자체의 데이터가 아니라 화면 필터일 뿐이라
+// state/projectStore에는 안 담는다).
+let selectedSubjectArea = null;
 let selectedDraftBatches = new Set();
 let expandedDraftBatches = new Set();
 // 스포츠 문화 "전체 스타일·초고" 표는 회차 단위가 아니라 파일 단위(PPT/교과서/지도서/이미지)로
@@ -2136,14 +2142,38 @@ function renderProjectSwitcher() {
   const container = document.querySelector("#projectSwitcher");
   const bookKeys = Object.keys(project.books);
   const catalogId = inferredCatalogId(project) || PROJECT_CATALOG[0].id;
+  const activeCatalogItem = PROJECT_CATALOG.find((item) => item.id === catalogId);
+  if (!selectedSubjectArea) selectedSubjectArea = activeCatalogItem?.subjectArea || PROJECT_CATALOG[0].subjectArea;
+  const subjectAreas = [...new Set(PROJECT_CATALOG.map((item) => item.subjectArea))];
+  const visibleCatalog = PROJECT_CATALOG.filter((item) => item.subjectArea === selectedSubjectArea);
   const groups = ["초등학교", "중학교", "고등학교"];
   container.innerHTML = `
+    <label for="subjectAreaSelect">교과</label>
+    <select id="subjectAreaSelect">${subjectAreas.map((area) => `<option value="${escapeHtml(area)}" ${area === selectedSubjectArea ? "selected" : ""}>${escapeHtml(area)}</option>`).join("")}</select>
     <label for="activeProjectSelect">책 프로젝트</label>
-    <select id="activeProjectSelect">${groups.map((group) => `<optgroup label="${group}">${PROJECT_CATALOG.filter((item) => item.group === group).map((item) => `<option value="${item.id}" ${item.id === catalogId ? "selected" : ""}>${escapeHtml(item.label)}${item.connected ? "" : item.partial ? " · 쪽수 기준 미연결" : " · 공식자료 미연결"}</option>`).join("")}</optgroup>`).join("")}</select>
+    <select id="activeProjectSelect">${groups.map((group) => {
+      const itemsInGroup = visibleCatalog.filter((item) => item.group === group);
+      if (!itemsInGroup.length) return "";
+      return `<optgroup label="${group}">${itemsInGroup.map((item) => `<option value="${item.id}" ${item.id === catalogId ? "selected" : ""}>${escapeHtml(item.label)}${item.connected ? "" : item.partial ? " · 쪽수 기준 미연결" : " · 공식자료 미연결"}</option>`).join("")}</optgroup>`;
+    }).join("")}</select>
     ${isPairedProject(project) && state.currentStep > 0 ? `<div class="book-mode-tabs" aria-label="학년책과 비교 보기">
       ${bookKeys.map((bookKey) => `<button class="${project.viewMode === "book" && project.activeBookKey === bookKey ? "active" : ""}" data-book-key="${bookKey}" type="button">${bookKey.replace("학년", "")}</button>`).join("")}
       <button class="${project.viewMode === "compare" ? "active" : ""}" id="compareBooksButton" type="button">비교</button>
     </div>` : ""}`;
+
+  container.querySelector("#subjectAreaSelect").addEventListener("change", (event) => {
+    selectedSubjectArea = event.target.value;
+    // 교과를 바꾸면 그 교과의 첫 번째 항목으로 자동 전환한다(빈 목록 상태를 안 만들기 위함).
+    const firstItem = PROJECT_CATALOG.find((item) => item.subjectArea === selectedSubjectArea);
+    if (firstItem) {
+      const selectedProject = projectForCatalog(firstItem);
+      if (!projectStore.projects.some((candidate) => candidate.id === selectedProject.id)) projectStore.projects.push(selectedProject);
+      projectStore.activeProjectId = selectedProject.id;
+      useActiveBookState();
+      persist("교과 전환됨");
+    }
+    render();
+  });
 
   container.querySelector("#activeProjectSelect").addEventListener("change", (event) => {
     persist();
