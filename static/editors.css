@@ -1,7 +1,7 @@
 .editors-page {
   min-height: 100vh;
   padding: 40px;
-  background: #f3f5f1;
+  background: #f0f2f6;
 }
 
 .editors-shell {
@@ -31,7 +31,7 @@
 .editor-panel {
   margin-bottom: 20px;
   padding: 28px;
-  border: 1px solid #d7dfd8;
+  border: 1px solid #d5d9e1;
   border-radius: 20px;
   background: #fff;
 }
@@ -43,14 +43,14 @@
 .editor-panel input {
   flex: 1;
   padding: 14px 16px;
-  border: 1px solid #cbd5cf;
+  border: 1px solid #c8ced8;
   border-radius: 12px;
   font: inherit;
 }
 
 .editor-row {
   padding: 16px 0;
-  border-top: 1px solid #e4e9e5;
+  border-top: 1px solid #e2e5eb;
 }
 
 .editor-meta {
@@ -59,7 +59,7 @@
 }
 
 .editor-meta span {
-  color: #66736c;
+  color: #626a77;
 }
 
 @media (max-width: 700px) {

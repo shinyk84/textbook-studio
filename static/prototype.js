@@ -138,9 +138,16 @@ const steps = [
   ["프로젝트 설정", "기본 조건 설정"],
   ["교육과정 확인", "성취기준 확인"],
   ["단원·차시 배분", "단원·차시·쪽수 편집"],
-  ["체제안 선택", "스타일·초고 생성"],
-  ["모의심사", "PDF 모의심사"],
+  ["현장 의견 분석", "현장 만족도·검토 의견을 쟁점으로 묶고 반영할 쟁점 고르기"],
+  ["초안·시안·조판", "현장 의견을 반영한 초안 생성과 조판"],
+  ["조판 후 수정안", "고른 쟁점으로 조판한 원고의 수정안 만들기"],
+  ["지도서·부속 자료", "확정 교과서로 지도서·활동지·평가지·과정안 생성"],
 ];
+
+// 단계 번호(0부터). 04 현장 의견 분석을 새로 끼우면서 초안 이후 단계가 하나씩 밀렸다.
+const FEEDBACK_STEP_INDEX = 3;
+const DRAFT_STEP_INDEX = 4;
+const STEP_LAYOUT_VERSION = 2;
 
 const frameworks = [
   {
@@ -211,18 +218,28 @@ function defaultFrameworkMetrics(options = frameworks) {
 const DOMAIN_ORDER = ["운동", "스포츠", "표현"];
 const SPORTS_CULTURE_DOMAIN_ORDER = ["스포츠 인문 문화", "스포츠 경기 문화"];
 
+// 좌측 맨 위 구분은 교육과정 개정 연도다(개정 → 교과 → 책 프로젝트). 지금 책 프로젝트는 모두 2022 개정
+// 교육과정 기준이고, 2015·2009 개정은 전처리 교과서·지도서를 근거 검색 참고 자료로만 쓴다. 차기 개정은
+// 교육과정 원문을 전처리해 등록하면 이 목록에 프로젝트가 생긴다.
+const CURRICULUM_REVISIONS = [
+  { id: "next", label: "차기 개정", note: "교육과정 등록 전" },
+  { id: "2022", label: "2022 개정" },
+  { id: "2015", label: "2015 개정", note: "분석" },
+  { id: "2009", label: "2009 개정", note: "분석" },
+];
+
 // subjectArea는 개별 과목명(subject)보다 한 단계 위의 큰 교과 분류다 — 지금은 전부 "체육"뿐이지만,
 // 나중에 영어·수학·음악 등 타교과가 추가될 때 좌측 "교과" 드롭다운이 이 값으로 목록을 나눈다.
 const PROJECT_CATALOG = [
-  { id: "elementary-3-4", group: "초등학교", label: "초등 체육 3~4학년군", schoolLevel: "초등학교", subjectArea: "체육", subject: "체육", band: "3~4학년군", connected: true },
-  { id: "elementary-5-6", group: "초등학교", label: "초등 체육 5~6학년군", schoolLevel: "초등학교", subjectArea: "체육", subject: "체육", band: "5~6학년군", connected: true },
-  { id: "middle-pe", group: "중학교", label: "중등체육", schoolLevel: "중학교", subjectArea: "체육", subject: "중등체육", connected: false, partial: secondaryCourses["중등 체육"]?.status === "partial" },
-  { id: "high-pe", group: "고등학교", label: "고등 체육", schoolLevel: "고등학교", subjectArea: "체육", subject: "체육1·체육2", connected: secondaryCourses["체육1"]?.status === "connected" && secondaryCourses["체육2"]?.status === "connected" },
-  { id: "high-exercise-health", group: "고등학교", label: "고등 운동과 건강", schoolLevel: "고등학교", subjectArea: "체육", subject: "운동과 건강", connected: secondaryCourses["운동과 건강"]?.status === "connected" },
-  { id: "high-sports-culture", group: "고등학교", label: "고등 스포츠 문화", schoolLevel: "고등학교", subjectArea: "체육", subject: "스포츠 문화", connected: true },
-  { id: "high-sports-science", group: "고등학교", label: "고등 스포츠 과학", schoolLevel: "고등학교", subjectArea: "체육", subject: "스포츠 과학", connected: secondaryCourses["스포츠 과학"]?.status === "connected" },
-  { id: "high-sports-life-1", group: "고등학교", label: "고등 스포츠 생활1", schoolLevel: "고등학교", subjectArea: "체육", subject: "스포츠 생활1", connected: secondaryCourses["스포츠 생활1"]?.status === "connected" },
-  { id: "high-sports-life-2", group: "고등학교", label: "고등 스포츠 생활2", schoolLevel: "고등학교", subjectArea: "체육", subject: "스포츠 생활2", connected: secondaryCourses["스포츠 생활2"]?.status === "connected" },
+  { id: "elementary-3-4", group: "초등학교", label: "초등 체육 3~4학년군", schoolLevel: "초등학교", revision: "2022", subjectArea: "체육", subject: "체육", band: "3~4학년군", connected: true },
+  { id: "elementary-5-6", group: "초등학교", label: "초등 체육 5~6학년군", schoolLevel: "초등학교", revision: "2022", subjectArea: "체육", subject: "체육", band: "5~6학년군", connected: true },
+  { id: "middle-pe", group: "중학교", label: "중등체육", schoolLevel: "중학교", revision: "2022", subjectArea: "체육", subject: "중등체육", connected: false, partial: secondaryCourses["중등 체육"]?.status === "partial" },
+  { id: "high-pe", group: "고등학교", label: "고등 체육", schoolLevel: "고등학교", revision: "2022", subjectArea: "체육", subject: "체육1·체육2", connected: secondaryCourses["체육1"]?.status === "connected" && secondaryCourses["체육2"]?.status === "connected" },
+  { id: "high-exercise-health", group: "고등학교", label: "고등 운동과 건강", schoolLevel: "고등학교", revision: "2022", subjectArea: "체육", subject: "운동과 건강", connected: secondaryCourses["운동과 건강"]?.status === "connected" },
+  { id: "high-sports-culture", group: "고등학교", label: "고등 스포츠 문화", schoolLevel: "고등학교", revision: "2022", subjectArea: "체육", subject: "스포츠 문화", connected: true },
+  { id: "high-sports-science", group: "고등학교", label: "고등 스포츠 과학", schoolLevel: "고등학교", revision: "2022", subjectArea: "체육", subject: "스포츠 과학", connected: secondaryCourses["스포츠 과학"]?.status === "connected" },
+  { id: "high-sports-life-1", group: "고등학교", label: "고등 스포츠 생활1", schoolLevel: "고등학교", revision: "2022", subjectArea: "체육", subject: "스포츠 생활1", connected: secondaryCourses["스포츠 생활1"]?.status === "connected" },
+  { id: "high-sports-life-2", group: "고등학교", label: "고등 스포츠 생활2", schoolLevel: "고등학교", revision: "2022", subjectArea: "체육", subject: "스포츠 생활2", connected: secondaryCourses["스포츠 생활2"]?.status === "connected" },
 ];
 
 const DEFAULT_INTRO_PAGES = 2;
@@ -385,7 +402,7 @@ function frameworkOptions(targetState = state) {
 
 function ensureSportsCultureDraftSettings(book) {
   if (!book || !isSportsCultureProject(book)) return book;
-  book.generationProviderId ||= globalThis.TEXTBOOK_DRAFT_ENGINE?.internalProviderId || "internal-rules-v1";
+  book.generationProviderId = "external-ai-v1";
   if (!Array.isArray(book.selectedSports)) {
     const previousSports = String(book.carrierSport || "배드민턴").split(/[,·/]/).map((item) => item.trim()).filter(Boolean);
     book.selectedSports = previousSports.filter((sport) => SPORTS_CULTURE_SPORT_OPTIONS.includes(sport));
@@ -562,8 +579,19 @@ function specialPagesTotal(targetState = state, domain = "") {
     .reduce((sum, page) => sum + Math.max(0, Number(page.pages) || 0), 0);
 }
 
+// 초등 체육의 확장 코너(디지털 체육·생활 속 체육·안전 특집·융합·시민·영역 통합 프로젝트)도 같은
+// 특별 페이지 목록(state.specialPages)에 두어 03단계 쪽수 배분에 함께 잡힌다. 대단원 이름이 없는
+// 항목(domain "")은 책 전체 통합 코너로 마지막 대단원 뒤에 놓인다.
+function elementaryCornerPageTypes() {
+  return (globalThis.ELEMENTARY_DRAFT_ENGINE?.cornerTypes() || []).map((corner) => ({ id: corner.id, label: corner.label }));
+}
+
+function specialPageTypes(targetState = state) {
+  return isSportsCultureProject(targetState) ? SPORTS_CULTURE_SPECIAL_PAGE_TYPES : elementaryCornerPageTypes();
+}
+
 function sportsCultureSpecialPageTypeLabel(typeId) {
-  return SPORTS_CULTURE_SPECIAL_PAGE_TYPES.find((type) => type.id === typeId)?.label || "특별 페이지";
+  return [...SPORTS_CULTURE_SPECIAL_PAGE_TYPES, ...elementaryCornerPageTypes()].find((type) => type.id === typeId)?.label || "특별 페이지";
 }
 
 function parseLineItems(text) {
@@ -597,6 +625,7 @@ function sampleState() {
   return {
     version: 11,
     currentStep: 0,
+    stepLayout: STEP_LAYOUT_VERSION,
     selectedPages: [1],
     curriculumDomain: "전체",
     unitDomainFilter: "전체",
@@ -611,7 +640,6 @@ function sampleState() {
     previewSmallUnitKey: "",
     frameworkDraftLog: [],
     frameworkApproval: { status: "draft", frameworkId: null, approvedAt: null },
-    mockReview: null,
   };
 }
 
@@ -623,14 +651,18 @@ let editingSourceId = null;
 let pagePreviewOpen = false;
 let moveMenuOpenPath = null;
 let evidenceDetailsOpen = false;
-let mockReviewSelectedFileName = null;
 // 체크박스를 하나만 눌러도 화면 전체가 다시 그려지므로, state가 아닌 일반 변수에 담아
-// 재렌더가 일어나도 지금까지 입력한 내용이 지워지지 않게 한다(모의심사 파일명 처리와 같은 이유).
+// 재렌더가 일어나도 지금까지 입력한 내용이 지워지지 않게 한다.
 let sportsCultureAdditionalConcept = "";
 // 좌측 "교과" 드롭다운에서 고른 값 — 지금 활성 프로젝트가 속한 교과로 시작하고, 이후엔
 // 사용자가 고른 값을 따로 기억한다(프로젝트 자체의 데이터가 아니라 화면 필터일 뿐이라
 // state/projectStore에는 안 담는다).
 let selectedSubjectArea = null;
+// 좌측 "교육과정" 드롭다운에서 고른 개정(화면 필터, 위와 같은 이유로 state에 안 담음).
+let selectedRevision = null;
+// 개발(01~06 단계) / 분석(이미 나온 책의 구조 보기). 2009·2015 개정은 분석만.
+let workMode = "develop";
+let analysisCatalogId = null;
 let selectedDraftBatches = new Set();
 let expandedDraftBatches = new Set();
 // 스포츠 문화 "전체 스타일·초고" 표는 회차 단위가 아니라 파일 단위(PPT/교과서/지도서/이미지)로
@@ -671,7 +703,7 @@ function initializedSportsCultureState(projectName) {
   initial.backMatterText = "참고문헌, 1\n집필자 소개, 1\n판권, 1";
   initial.appendixText = "자료 출처와 찾아보기, 4";
   initial.frameworkMetrics = defaultFrameworkMetrics(SPORTS_CULTURE_FRAMEWORKS);
-  initial.generationProviderId = globalThis.TEXTBOOK_DRAFT_ENGINE?.internalProviderId || "internal-rules-v1";
+  initial.generationProviderId = "external-ai-v1";
   initial.selectedSports = ["배드민턴"];
   initial.customSports = "";
   initial.carrierSport = "배드민턴";
@@ -1047,7 +1079,7 @@ function collectAllVisualItems() {
 }
 
 async function rehydrateMissingImages() {
-  const items = collectAllVisualItems().filter((item) => item.imageId && !item.imageBase64);
+  const items = collectAllVisualItems().filter((item) => (item.imageId || item.folderImagePath) && !item.imageBase64);
   if (!items.length) return;
   let cursor = 0;
   let restored = 0;
@@ -1055,6 +1087,15 @@ async function rehydrateMissingImages() {
     while (cursor < items.length) {
       const item = items[cursor];
       cursor += 1;
+      if (item.folderImagePath && workspaceFolder?.isConnected()) {
+        const file = await workspaceFolder.readFile(item.folderImagePath);
+        if (file) {
+          item.imageBase64 = await blobToBase64(file);
+          restored += 1;
+          continue;
+        }
+      }
+      if (!item.imageId) continue;
       try {
         const response = await fetch(`/api/prototype/image/${encodeURIComponent(item.imageId)}`);
         const data = await response.json().catch(() => ({}));
@@ -1079,6 +1120,12 @@ async function syncProjectStoreFromServer({ silent = true } = {}) {
     if (!response.ok || data.error || !data.result?.payload) return;
     const hydrated = hydrateProjectStorePayload(data.result.payload);
     if (!hydrated) return;
+    // 지금 보고 있는 책 프로젝트는 이 브라우저의 선택을 유지한다. 서버 값의 activeProjectId를 따르면
+    // 다른 컴퓨터에서 마지막으로 연 과목(예: 스포츠 문화)으로 화면이 바뀌어 버린다.
+    const localActive = projectStore ? activeProject() : null;
+    const keepActive = localActive && (hydrated.projects.find((project) => project.id === localActive.id)
+      || hydrated.projects.find((project) => project.catalogId && project.catalogId === localActive.catalogId));
+    if (keepActive) hydrated.activeProjectId = keepActive.id;
     projectStore = hydrated;
     serverStateVersion = data.result.version;
     useActiveBookState();
@@ -1087,7 +1134,8 @@ async function syncProjectStoreFromServer({ silent = true } = {}) {
     } catch {
       // 저장 용량 초과 등으로 로컬 저장에 실패해도 서버에서 불러온 값은 화면에 반영한다.
     }
-    renderWorkspace();
+    // 본문만 다시 그리면 왼쪽 프로젝트 선택·단계 제목은 이전 프로젝트로 남아 화면이 어긋난다.
+    render();
     if (!silent) showToast("다른 컴퓨터에서 저장된 최신 내용을 불러왔습니다.");
   } catch {
     // 오프라인이거나 서버에 연결하지 못하면 로컬 저장값을 그대로 사용한다.
@@ -1133,6 +1181,553 @@ function persistNow(message) {
   clearTimeout(serverSyncTimer);
   pushProjectStoreToServer();
   return saved;
+}
+
+// ── 작업 폴더 저장 ──
+// 폴더를 연결하면 (1) 프로젝트 전체 저장본, (2) 초고 회차별 파일(교과서·지도서 TXT/PDF, 펼침면 PNG,
+// 삽화 원본, 원고 데이터 JSON), (3) 생성 이력(CSV·JSONL)을 그 폴더에 직접 쓴다. 브라우저 저장소와
+// 서버 동기화는 그대로 두고, 폴더 저장은 그 위에 덧붙이는 가장 확실한 보관 경로로 쓴다.
+const workspaceFolder = globalThis.WORKSPACE_FOLDER || null;
+const FOLDER_DATA_DIR = "_작업데이터";
+// 이전 버전(작업자 구분 전)의 단일 저장본. 공용 폴더를 여러 컴퓨터가 함께 쓰면 서로 덮어쓰므로
+// 지금은 작업자별 파일(프로젝트저장본_<작업자>.json)에 저장하고, 이 파일은 읽기만 한다.
+const LEGACY_FOLDER_SNAPSHOT_PATH = `${FOLDER_DATA_DIR}/프로젝트저장본.json`;
+const DRAFT_HISTORY_CSV_HEADER = "﻿회차,생성일시,작업자,책,대단원·중단원,소단원,유형,차시,쪽수,제공자,스타일,폴더\n";
+
+function folderWorker() {
+  return workspaceFolder?.workerName() || "작업자";
+}
+
+function folderSnapshotPath(worker = folderWorker()) {
+  return `${FOLDER_DATA_DIR}/프로젝트저장본_${workspaceFolder.safeSegment(worker)}.json`;
+}
+
+// 공용 폴더에서 누가 만든 파일인지 구분하려고 컴퓨터마다 작업자 이름을 한 번 받는다.
+function ensureFolderWorkerName(force = false) {
+  if (!workspaceFolder) return "";
+  if (!force && workspaceFolder.workerName()) return workspaceFolder.workerName();
+  const answer = prompt("공용 폴더에서 이 컴퓨터의 작업을 구분할 작업자 이름을 적어 주세요(예: 홍길동).", workspaceFolder.workerName() || "");
+  if (answer === null) return workspaceFolder.workerName();
+  return workspaceFolder.setWorkerName(answer.trim() || "작업자");
+}
+let folderSnapshotTimer = null;
+let folderStatusMessage = "";
+
+function folderStamp(isoString = new Date().toISOString()) {
+  const date = new Date(isoString);
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
+function renderWorkspaceFolderPanel(message = folderStatusMessage) {
+  folderStatusMessage = message;
+  const panel = document.querySelector("#workspaceFolderPanel");
+  if (!panel) return;
+  const info = workspaceFolder?.status() || { status: "unavailable", name: "" };
+  const title = {
+    checking: "확인 중…",
+    connected: `📁 ${info.name}`,
+    none: "작업 폴더를 골라 주세요",
+    remote: `📁 ${info.name}`,
+    unavailable: "확인할 수 없음",
+  }[info.status] || "작업 폴더";
+  const detail = {
+    connected: "초고·시안·조판 결과와 원고 파일이 모두 이 폴더에 저장됩니다. 다른 컴퓨터로 옮길 때는 도구를 끄고 이 폴더를 통째로 복사한 뒤, 그 컴퓨터에서 같은 폴더를 고르세요.",
+    none: "지금은 도구 폴더 안에 저장됩니다. 폴더를 고르면 지금까지의 작업을 그 폴더로 옮기고, 이후 만드는 것도 모두 그 폴더에 저장합니다.",
+    remote: "다른 컴퓨터에서 접속 중입니다. 작업 폴더는 도구를 실행한 컴퓨터에서만 바꿀 수 있습니다.",
+    unavailable: "서버에 연결되지 않았습니다.",
+  }[info.status] || "";
+  panel.querySelector("[data-folder-title]").textContent = title;
+  // 연결된 뒤의 긴 설명은 사이드바가 길어지지 않게 마우스를 올렸을 때만 보인다.
+  panel.querySelector("[data-folder-title]").title = [info.path, info.status === "connected" ? detail : ""].filter(Boolean).join(" — ");
+  const shownDetail = message || (info.status === "connected" ? "" : detail);
+  const detailLine = panel.querySelector("[data-folder-detail]");
+  detailLine.textContent = shownDetail;
+  detailLine.hidden = !shownDetail;
+  const workerLine = panel.querySelector("[data-folder-worker]");
+  if (workerLine) {
+    workerLine.hidden = info.status !== "connected";
+    workerLine.querySelector("b").textContent = folderWorker();
+  }
+  const pick = panel.querySelector("#connectWorkspaceFolderButton");
+  pick.hidden = !(info.local && info.editable && ["connected", "none"].includes(info.status));
+  pick.textContent = info.status === "connected" ? "다른 폴더로" : "작업 폴더 고르기";
+  pick.title = info.status === "connected" ? "다른 작업 폴더를 고릅니다. 빈 폴더면 지금 작업을 그 폴더로 옮기고, 작업이 있는 폴더면 그것을 엽니다." : "";
+  panel.querySelector("#reconnectWorkspaceFolderButton").hidden = true;
+  panel.querySelector("#exportDraftsToFolderButton").hidden = info.status !== "connected";
+  panel.querySelector("#loadFolderSnapshotButton").hidden = true;
+}
+
+function scheduleFolderSnapshot() {
+  if (!workspaceFolder?.isConnected()) return;
+  clearTimeout(folderSnapshotTimer);
+  folderSnapshotTimer = setTimeout(writeFolderSnapshot, 1500);
+}
+
+async function writeFolderSnapshot() {
+  if (!workspaceFolder?.isConnected()) return;
+  try {
+    const savedAt = new Date().toISOString();
+    const body = JSON.stringify({ savedAt, store: JSON.parse(serializeProjectStoreForStorage(projectStore)) });
+    await workspaceFolder.writeFile(folderSnapshotPath(), body);
+    // 날짜별 저장본도 하나씩 남겨, 잘못 덮어써도 그날 처음 상태로 되돌릴 수 있게 한다.
+    await workspaceFolder.writeFile(`${FOLDER_DATA_DIR}/저장본/프로젝트저장본_${workspaceFolder.safeSegment(folderWorker())}_${folderStamp(savedAt).slice(0, 8)}.json`, body);
+    renderWorkspaceFolderPanel(`프로젝트 저장 ${new Date(savedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`);
+  } catch (error) {
+    renderWorkspaceFolderPanel(`폴더 저장 실패: ${error?.message || error}`);
+  }
+}
+
+function bookFolderPath(project = activeProject()) {
+  const parts = [workspaceFolder.safeSegment(project.name)];
+  const bookKeys = Object.keys(project.books || {});
+  if (bookKeys.length > 1 && project.activeBookKey) parts.push(workspaceFolder.safeSegment(project.activeBookKey));
+  return parts.join("/");
+}
+
+function base64ToBlob(base64, type = "image/png") {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new Blob([bytes], { type });
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function writeEntryFilesToFolder(directory, entry, prefix) {
+  const write = (name, data) => workspaceFolder.writeFile(`${directory}/${prefix}${name}`, data);
+  await write("교과서원고.txt", textbookManuscriptText(entry));
+  await write("지도서원고.txt", teacherGuideManuscriptText(entry));
+  await write("교과서원고.pdf", canvasPagesToPdfBlob(buildTextbookManuscriptPdfPages(entry)));
+  await write("지도서원고.pdf", canvasPagesToPdfBlob(buildTeacherGuideManuscriptPdfPages(entry)));
+  for (const [spreadIndex, spread] of (entry.spreads || []).entries()) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1400;
+    canvas.height = 900;
+    await drawDraftSpreadCanvas(canvas, entry, spread);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (blob) await write(`펼침면_${String(spreadIndex + 1).padStart(2, "0")}.png`, blob);
+    const columns = manuscriptVisualColumns(spread.textbook_manuscript || {});
+    for (const [side, sideLabel] of [["left", "좌"], ["right", "우"]]) {
+      for (const [visualIndex, visual] of (columns[side] || []).entries()) {
+        if (!visual.imageBase64) continue;
+        const name = `이미지/${String(spreadIndex + 1).padStart(2, "0")}_${sideLabel}_${visualIndex + 1}.png`;
+        await write(name, base64ToBlob(visual.imageBase64));
+        visual.folderImagePath = `${directory}/${prefix}${name}`;
+      }
+    }
+  }
+  try {
+    const pptBlob = await spreadsToPptx(entry).write({ outputType: "blob" });
+    await write("편집시안.pptx", pptBlob);
+  } catch {
+    // PPT 변환 실패는 나머지 파일 저장을 막지 않는다.
+  }
+  try {
+    await write("교수학습과정안.hwpx", await fetchLessonPlanHwpxBlob(entry));
+  } catch {
+    // HWPX는 서버가 만들므로 오프라인이면 건너뛴다(화면의 다운로드 버튼으로 다시 받을 수 있다).
+  }
+  await write("원고데이터.json", JSON.stringify(entry, stripEmbeddedImages, 1));
+}
+
+async function saveDraftBatchToFolder(batch, batchIndex) {
+  if (!workspaceFolder?.isConnected() || !batch) return null;
+  const base = bookFolderPath();
+  const labelParts = String(batch.smallUnitLabel || "").split(" · ");
+  const worker = folderWorker();
+  // 여러 컴퓨터가 같은 폴더에 쓰므로 회차 번호 대신 생성 시각·작업자로 폴더 이름이 겹치지 않게 한다.
+  const folderName = workspaceFolder.safeSegment(`${folderStamp(batch.generatedAt)}_${worker}_${labelParts[labelParts.length - 1] || "초고"}`);
+  const directory = `${base}/초안/${folderName}`;
+  for (const entry of batch.entries || []) {
+    const prefix = batch.entries.length > 1 ? `${sanitizeZipEntryName(entry.frameworkName)}_` : "";
+    await writeEntryFilesToFolder(directory, entry, prefix);
+  }
+  const entry = batch.entries?.[0] || {};
+  const row = {
+    batch: batchIndex + 1,
+    generatedAt: batch.generatedAt,
+    worker,
+    book: activeProject().activeBookKey || state.project.grade || "",
+    unit: labelParts.slice(0, -1).join(" · "),
+    smallUnit: labelParts[labelParts.length - 1] || "",
+    type: entry.primaryTypeLabel || "",
+    lessons: entry.lessonRange || "",
+    pages: (entry.spreads || []).length * 2,
+    provider: batch.provider?.label || "",
+    style: batch.styleLabel || "",
+    folder: `초안/${folderName}`,
+  };
+  // 이력 파일도 작업자별로 따로 쓴다 — 클라우드 동기화 중 두 컴퓨터가 같은 파일에 덧붙이면
+  // 한쪽 줄이 사라지거나 충돌 사본이 생긴다. 화면의 "공용 이력"이 모든 작업자 파일을 합쳐 보여 준다.
+  const historyName = `초안이력_${workspaceFolder.safeSegment(worker)}`;
+  await workspaceFolder.appendText(`${base}/${historyName}.jsonl`, JSON.stringify(row));
+  await workspaceFolder.appendText(
+    `${base}/${historyName}.csv`,
+    [row.batch, row.generatedAt, row.worker, row.book, row.unit, row.smallUnit, row.type, row.lessons, row.pages, row.provider, row.style, row.folder].map(csvEscape).join(","),
+    DRAFT_HISTORY_CSV_HEADER,
+  );
+  batch.folderPath = directory;
+  return directory;
+}
+
+async function saveNewDraftBatchesToFolder(fromIndex) {
+  if (!workspaceFolder?.isConnected()) return 0;
+  let saved = 0;
+  for (let index = fromIndex; index < (state.frameworkDraftLog || []).length; index += 1) {
+    const batch = state.frameworkDraftLog[index];
+    if (batch.folderPath) continue;
+    try {
+      await saveDraftBatchToFolder(batch, index);
+      saved += 1;
+    } catch (error) {
+      renderWorkspaceFolderPanel(`초고 폴더 저장 실패: ${error?.message || error}`);
+      showToast(`초고는 생성됐지만 폴더 저장에 실패했습니다: ${error?.message || error}`);
+      return saved;
+    }
+  }
+  if (saved) renderWorkspaceFolderPanel(`초고 ${saved}개 회차를 폴더에 저장 · ${new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`);
+  return saved;
+}
+
+// ── 공용 폴더 이력 ──
+// 클라우드 동기화 폴더를 여러 컴퓨터가 함께 연결하면, 각자 쓴 초안이력_<작업자>.jsonl을 합쳐
+// 이 책의 모든 생성 이력을 보여 주고, 다른 사람이 만든 초고도 원고데이터.json으로 가져와 연다.
+let sharedFolderHistory = { bookPath: "", rows: null, loading: false, error: "" };
+
+async function loadSharedFolderHistory() {
+  if (!workspaceFolder?.isConnected()) return;
+  const base = bookFolderPath();
+  sharedFolderHistory = { bookPath: base, rows: sharedFolderHistory.bookPath === base ? sharedFolderHistory.rows : null, loading: true, error: "" };
+  renderWorkspace();
+  try {
+    const names = (await workspaceFolder.list(base, "file")).filter((name) => /^초안이력.*\.jsonl$/.test(name));
+    const rows = [];
+    for (const name of names) {
+      const fallbackWorker = name.replace(/^초안이력_?/, "").replace(/\.jsonl$/, "") || "이전 기록";
+      for (const line of String(await workspaceFolder.readText(`${base}/${name}`) || "").split("\n")) {
+        if (!line.trim()) continue;
+        try {
+          const row = JSON.parse(line);
+          rows.push({ ...row, worker: row.worker || fallbackWorker });
+        } catch {
+          // 동기화 중 잘린 줄은 건너뛴다.
+        }
+      }
+    }
+    rows.sort((a, b) => String(b.generatedAt).localeCompare(String(a.generatedAt)));
+    sharedFolderHistory = { bookPath: base, rows, loading: false, error: "" };
+  } catch (error) {
+    sharedFolderHistory = { bookPath: base, rows: [], loading: false, error: error?.message || String(error) };
+  }
+  renderWorkspace();
+}
+
+function isSharedDraftImported(row) {
+  return (state.frameworkDraftLog || []).some((batch) => String(batch.folderPath || "").endsWith(`/${row.folder}`));
+}
+
+async function importSharedDraft(row) {
+  const directory = `${bookFolderPath()}/${row.folder}`;
+  const names = (await workspaceFolder.list(directory, "file")).filter((name) => name.endsWith("원고데이터.json"));
+  const entries = [];
+  for (const name of names) {
+    try {
+      entries.push(JSON.parse(await workspaceFolder.readText(`${directory}/${name}`)));
+    } catch {
+      // 읽을 수 없는 원고 파일은 건너뛴다.
+    }
+  }
+  if (!entries.length) {
+    showToast("그 회차 폴더에서 원고데이터.json을 찾지 못했습니다. 클라우드 동기화가 끝났는지 확인해 주세요.");
+    return;
+  }
+  state.frameworkDraftLog ||= [];
+  state.frameworkDraftLog.push({
+    generatedAt: row.generatedAt,
+    smallUnitLabel: [row.unit, row.smallUnit].filter(Boolean).join(" · ") || entries[0].smallUnitLabel,
+    styleLabel: row.style || "",
+    provider: { label: row.provider || "" },
+    entries,
+    folderPath: directory,
+    importedFrom: row.worker,
+  });
+  persist(`${row.worker} 초고 가져옴`);
+  renderWorkspace();
+  rehydrateMissingImages();
+  showToast(`${row.worker}님의 '${row.smallUnit}' 초고를 화면으로 가져왔습니다.`);
+}
+
+function renderSharedFolderHistory() {
+  if (!workspaceFolder?.isConnected()) return "";
+  const current = sharedFolderHistory.bookPath === bookFolderPath() ? sharedFolderHistory : { rows: null, loading: false, error: "" };
+  const rows = current.rows;
+  const workers = rows ? [...new Set(rows.map((row) => row.worker))] : [];
+  return `
+    <section class="shared-history-panel">
+      <div class="draft-target-heading">
+        <div><strong>공용 폴더 이력</strong><small>여러 사람이 같은 폴더(클라우드 동기화 폴더)를 연결해 쓸 때, 모든 작업자가 이 책에서 만든 초고 목록입니다. 다른 사람이 만든 초고를 내 화면으로 가져올 수 있습니다. 혼자 쓰면 볼 필요 없습니다.${rows ? ` · ${rows.length}건 · 작업자 ${workers.length}명` : ""}</small></div>
+        <button class="secondary-button" type="button" data-shared-history-refresh ${current.loading ? "disabled" : ""}>${current.loading ? "읽는 중…" : rows ? "새로 고침" : "공용 이력 보기"}</button>
+      </div>
+      ${current.error ? `<p class="shared-history-empty">이력을 읽지 못했습니다: ${escapeHtml(current.error)}</p>` : ""}
+      ${rows && !rows.length ? `<p class="shared-history-empty">아직 폴더에 남은 생성 이력이 없습니다.</p>` : ""}
+      ${rows?.length ? `<div class="shared-history-table-wrap"><table class="shared-history-table">
+        <thead><tr><th>생성 일시</th><th>작업자</th><th>소단원·페이지</th><th>유형</th><th>차시</th><th>제공자</th><th></th></tr></thead>
+        <tbody>${rows.map((row, index) => `<tr>
+          <td>${escapeHtml(new Date(row.generatedAt).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }))}</td>
+          <td>${escapeHtml(row.worker)}${row.worker === folderWorker() ? " (나)" : ""}</td>
+          <td>${escapeHtml(row.smallUnit || "")}</td>
+          <td>${escapeHtml(row.type || "")}</td>
+          <td>${escapeHtml(row.lessons || "")}</td>
+          <td>${escapeHtml(row.provider || "")}</td>
+          <td>${isSharedDraftImported(row) ? "<small>화면에 있음</small>" : `<button class="secondary-button" type="button" data-shared-history-import="${index}">화면으로 가져오기</button>`}</td>
+        </tr>`).join("")}</tbody>
+      </table></div>` : ""}
+    </section>`;
+}
+
+async function applyFolderSnapshot({ askFirst = true, path = "" } = {}) {
+  const text = path
+    ? await workspaceFolder?.readText(path)
+    : (await workspaceFolder?.readText(folderSnapshotPath())) ?? (await workspaceFolder?.readText(LEGACY_FOLDER_SNAPSHOT_PATH));
+  if (!text) return false;
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    showToast("폴더의 프로젝트 저장본을 읽지 못했습니다.");
+    return false;
+  }
+  const hydrated = hydrateProjectStorePayload(parsed.store || parsed);
+  if (!hydrated) return false;
+  const savedAt = parsed.savedAt ? new Date(parsed.savedAt).toLocaleString("ko-KR") : "시각 미상";
+  if (askFirst && !confirm(`작업 폴더에 ${savedAt} 저장본(프로젝트 ${hydrated.projects.length}개)이 있습니다. 이 저장본으로 지금 화면을 바꿀까요?\n취소하면 지금 화면 내용을 폴더에 저장합니다.`)) return false;
+  projectStore = hydrated;
+  useActiveBookState();
+  try {
+    localStorage.setItem(PROJECTS_STORAGE_KEY, serializeProjectStoreForStorage(projectStore));
+  } catch {
+    // 저장 용량 초과 등으로 로컬 저장에 실패해도 폴더 저장본은 화면에 반영한다.
+  }
+  render();
+  rehydrateMissingImages();
+  showToast("작업 폴더의 저장본을 불러왔습니다.");
+  return true;
+}
+
+async function connectWorkspaceFolder() {
+  const button = document.querySelector("#connectWorkspaceFolderButton");
+  if (button) button.disabled = true;
+  renderWorkspaceFolderPanel("폴더 고르기 창이 열렸습니다. 안 보이면 작업 표시줄을 확인해 주세요.");
+  let result;
+  try {
+    // 바꾸기 전에 지금 화면의 작업을 서버에 먼저 저장해 둔다(옮길 때 빠지지 않게).
+    clearTimeout(serverSyncTimer);
+    await pushProjectStoreToServer();
+    result = await workspaceFolder.connect();
+  } catch (error) {
+    renderWorkspaceFolderPanel(error?.message || "작업 폴더를 고르지 못했습니다.");
+    return;
+  } finally {
+    if (button) button.disabled = false;
+  }
+  if (result.mode === "cancelled") {
+    renderWorkspaceFolderPanel("");
+    return;
+  }
+  if (result.mode === "same") {
+    renderWorkspaceFolderPanel("이미 이 폴더를 쓰고 있습니다.");
+    return;
+  }
+  ensureFolderWorkerName();
+  renderWorkspaceFolderPanel(result.mode === "moved" ? "지금까지의 작업을 이 폴더로 옮겼습니다. 화면을 다시 엽니다…" : "이 폴더에 저장된 작업을 엽니다…");
+  setTimeout(() => location.reload(), 1200);
+}
+
+function bindWorkspaceFolderPanel() {
+  if (!workspaceFolder) return;
+  workspaceFolder.subscribe(() => renderWorkspaceFolderPanel());
+  document.querySelector("#connectWorkspaceFolderButton")?.addEventListener("click", () => connectWorkspaceFolder());
+  document.querySelector("#loadFolderSnapshotButton")?.addEventListener("click", async () => {
+    // 공용 폴더에는 작업자별 저장본이 여러 개 있으므로 고를 수 있게 한다.
+    const names = (await workspaceFolder.list(FOLDER_DATA_DIR, "file")).filter((name) => /^프로젝트저장본.*\.json$/.test(name));
+    if (!names.length) {
+      showToast("폴더에 불러올 저장본이 없습니다.");
+      return;
+    }
+    let chosen = names[0];
+    if (names.length > 1) {
+      const mine = names.indexOf(folderSnapshotPath().split("/").pop());
+      const answer = prompt(`불러올 저장본 번호를 적어 주세요.\n${names.map((name, index) => `${index + 1}. ${name}`).join("\n")}`, String(Math.max(1, mine + 1)));
+      if (answer === null) return;
+      chosen = names[Number(answer) - 1];
+      if (!chosen) {
+        showToast("번호를 다시 확인해 주세요.");
+        return;
+      }
+    }
+    if (!await applyFolderSnapshot({ askFirst: true, path: `${FOLDER_DATA_DIR}/${chosen}` })) showToast("저장본을 불러오지 않았습니다.");
+  });
+  // 공용 이력 버튼은 본문을 다시 그릴 때마다 새로 생기므로 #workspace에 한 번만 위임해 둔다.
+  document.querySelector("#workspace")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-shared-history-refresh]")) {
+      loadSharedFolderHistory();
+      return;
+    }
+    const importButton = event.target.closest("[data-shared-history-import]");
+    if (importButton) {
+      const row = sharedFolderHistory.rows?.[Number(importButton.dataset.sharedHistoryImport)];
+      if (row) {
+        importButton.disabled = true;
+        importSharedDraft(row);
+      }
+    }
+  });
+  document.querySelector("#changeFolderWorkerButton")?.addEventListener("click", () => {
+    ensureFolderWorkerName(true);
+    renderWorkspaceFolderPanel();
+    scheduleFolderSnapshot();
+  });
+  document.querySelector("#exportDraftsToFolderButton")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    const saved = await saveNewDraftBatchesToFolder(0);
+    button.disabled = false;
+    persist("초고 폴더 저장 위치 기록됨");
+    showToast(saved ? `이 책의 초고 ${saved}개 회차를 폴더에 저장했습니다.` : "폴더에 새로 저장할 초고가 없습니다.");
+  });
+  workspaceFolder.init().then((info) => {
+    renderWorkspaceFolderPanel();
+    if (info.status === "connected") rehydrateMissingImages();
+  });
+}
+
+// ── AI 생성 키(컴퓨터별) ──
+// 키는 브라우저에 두지 않고, 이 컴퓨터에서 실행 중인 서버가 .env.local에 저장한다. 화면에는
+// 설정 여부와 끝 4자리만 보인다. 한 번 저장하면 서버를 다시 켜도 계속 쓴다.
+let aiKeyStatus = null;
+
+function renderAiKeyPanel(message = "") {
+  const panel = document.querySelector("#aiKeyPanel");
+  if (!panel) return;
+  const info = aiKeyStatus;
+  const title = !info ? "확인할 수 없음" : info.configured ? `설정됨 ${info.masked}` : "설정 안 됨";
+  let detail = message;
+  if (!detail && info) {
+    if (info.source === "environment") detail = "컴퓨터 환경 변수의 키를 쓰는 중입니다. 화면에서 바꾸려면 환경 변수를 먼저 지워야 합니다.";
+    else if (!info.editable) detail = "온라인 배포본은 관리자가 설정한 키를 씁니다.";
+    else if (!info.local) detail = "키는 도구를 실행한 그 컴퓨터(127.0.0.1)에서만 입력할 수 있습니다.";
+    else detail = info.configured ? "" : "OpenAI API 키를 한 번 입력해 주세요.";
+  }
+  if (!info && !message) detail = "서버에 연결되지 않았습니다.";
+  panel.querySelector("[data-ai-key-title]").textContent = title;
+  panel.querySelector("[data-ai-key-detail]").textContent = detail;
+  const canEdit = Boolean(info?.editable && info?.local && info?.source !== "environment");
+  const formOpen = !panel.querySelector("#aiKeyForm").hidden;
+  panel.querySelector("#openAiKeyFormButton").hidden = !canEdit || formOpen;
+  panel.querySelector("#removeAiKeyButton").hidden = !info?.configured;
+}
+
+async function refreshAiKeyStatus() {
+  try {
+    const response = await fetch("/api/settings/openai-key");
+    const data = await response.json().catch(() => ({}));
+    aiKeyStatus = response.ok ? data.result : null;
+  } catch {
+    aiKeyStatus = null;
+  }
+  renderAiKeyPanel();
+}
+
+async function submitAiKey(key) {
+  const response = await fetch("/api/settings/openai-key", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.error) throw new Error(data.error || "키를 저장하지 못했습니다.");
+  aiKeyStatus = { ...aiKeyStatus, ...data.result };
+  return data.result;
+}
+
+// ── 도구 끄기 ──
+// 브라우저 창을 닫아도 서버(파이썬)는 계속 켜져 있다. 작업 폴더를 복사하기 전 등에는 이 버튼으로 서버까지 끈다.
+function bindQuitStudioButton() {
+  const button = document.querySelector("#quitStudioButton");
+  if (!button) return;
+  button.addEventListener("click", async () => {
+    const busy = typeof designcraftBusy !== "undefined" && designcraftBusy ? `\n\n지금 "${designcraftBusy}" 작업이 진행 중입니다. 끄면 그 작업은 멈춥니다(이미 끝난 것은 저장되어 있습니다).` : "";
+    if (!confirm(`도구를 끌까요?\n\n작업 내용은 저장한 뒤 끕니다. 다시 쓰려면 바탕화면의 'YBM 교과서 스튜디오' 아이콘(또는 start-studio.cmd)을 누르세요.${busy}`)) return;
+    button.disabled = true;
+    button.textContent = "저장 후 끄는 중…";
+    clearTimeout(serverSyncTimer);
+    try { persist("자동 저장됨"); } catch { /* 저장 표시 실패는 무시 */ }
+    clearTimeout(serverSyncTimer);
+    await pushProjectStoreToServer();
+    try {
+      const response = await fetch("/api/server/shutdown", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.error) throw new Error(data.error || "도구를 끄지 못했습니다.");
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = "도구 끄기";
+      showToast(error?.message || "도구를 끄지 못했습니다.");
+      return;
+    }
+    document.body.innerHTML = `<div class="studio-stopped"><strong>도구를 껐습니다.</strong><p>이 창은 닫아도 됩니다. 작업 폴더를 복사하거나 옮겨도 안전합니다.</p><p>다시 쓰려면 바탕화면의 <b>YBM 교과서 스튜디오</b> 아이콘(또는 도구 폴더의 <b>start-studio.cmd</b>)을 누르세요.</p></div>`;
+  });
+}
+
+function bindAiKeyPanel() {
+  const panel = document.querySelector("#aiKeyPanel");
+  if (!panel) return;
+  const form = panel.querySelector("#aiKeyForm");
+  const input = panel.querySelector("#aiKeyInput");
+  const closeForm = () => {
+    input.value = "";
+    form.hidden = true;
+  };
+  panel.querySelector("#openAiKeyFormButton").addEventListener("click", () => {
+    form.hidden = false;
+    renderAiKeyPanel();
+    input.focus();
+  });
+  panel.querySelector("#cancelAiKeyButton").addEventListener("click", () => {
+    closeForm();
+    renderAiKeyPanel();
+  });
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const key = input.value.trim();
+    if (!key) return;
+    renderAiKeyPanel("키를 확인하는 중…");
+    try {
+      const result = await submitAiKey(key);
+      closeForm();
+      renderAiKeyPanel(result.verification === "unverified" ? "저장했습니다. 인터넷 연결 문제로 키가 유효한지는 확인하지 못했습니다." : "저장했습니다. 이제 AI 실시간 생성을 쓸 수 있습니다.");
+    } catch (error) {
+      renderAiKeyPanel(error.message);
+    }
+  });
+  panel.querySelector("#removeAiKeyButton").addEventListener("click", async () => {
+    if (!confirm("이 컴퓨터에 저장된 OpenAI API 키를 삭제할까요?")) return;
+    try {
+      await submitAiKey("");
+      closeForm();
+      renderAiKeyPanel("키를 삭제했습니다.");
+    } catch (error) {
+      renderAiKeyPanel(error.message);
+    }
+  });
+  refreshAiKeyStatus();
 }
 
 function activeProject() {
@@ -1305,6 +1900,7 @@ function persist(message = "자동 저장됨") {
   const saveState = document.querySelector("#saveState");
   activeProject().updatedAt = new Date().toISOString();
   scheduleServerSync();
+  scheduleFolderSnapshot();
   if (validation.unavailable) {
     try {
       localStorage.setItem(PROJECTS_STORAGE_KEY, serializeProjectStoreForStorage(projectStore));
@@ -1342,26 +1938,44 @@ function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-
   URL.revokeObjectURL(url);
 }
 
-function textbookManuscriptText(entry) {
-  const lines = [
-    "[스포츠 문화 교과서 원고]",
-    `체제안: ${entry.frameworkName}`,
-    `소단원: ${entry.smallUnitLabel}`,
-    `소단원 성격: ${entry.primaryTypeLabel}`,
+function entryHeaderLines(entry) {
+  if (isElementaryEntry(entry)) {
+    return [
+      `수업 유형: ${entry.primaryTypeLabel || ""}`,
+      ...(entry.carrierSport ? [`원 활동: ${entry.carrierSport}`] : []),
+      `차시: ${entry.lessonRange || ""}`,
+    ];
+  }
+  return [
     `종목 사용 방식: ${sportsCultureSportModeLabel(entry.sportMode)}`,
     `종목: ${entry.carrierSport || "특정 종목 없음"}`,
+  ];
+}
+
+function manuscriptSectionHeading(section) {
+  const tag = section.boxType ? (section.boxType === section.title ? " [코너]" : ` [구성요소: ${section.boxType}]`) : "";
+  return `${section.label || section.number}. ${section.title}${tag}`;
+}
+
+function textbookManuscriptText(entry) {
+  const lines = [
+    `[${entrySubjectLabel(entry)} 교과서 원고]`,
+    `체제안: ${entry.frameworkName}`,
+    `소단원: ${entry.smallUnitLabel}`,
+    ...(isElementaryEntry(entry) ? [] : [`소단원 성격: ${entry.primaryTypeLabel}`]),
+    ...entryHeaderLines(entry),
     `성취기준: ${(entry.traceability?.standardCodes || []).join(", ")}`,
     "",
   ];
   entry.spreads.forEach((spread, index) => {
     const manuscript = spread.textbook_manuscript || {};
-    lines.push(`===== 펼침면 ${index + 1} · ${spread.left_page}~${spread.right_page}쪽 =====`);
+    lines.push(`===== 펼침면 ${index + 1} · ${spread.left_page}~${spread.right_page}쪽${spread.lesson_label ? ` · ${spread.lesson_label}` : ""} =====`);
     lines.push(`# ${manuscript.headline || spread.title}`);
     lines.push(`학습 목표: ${manuscript.learningGoal || ""}`);
     lines.push(`생각 열기: ${manuscript.openingQuestion || ""}`);
     lines.push(`도입문: ${manuscript.deck || spread.intro}`, "");
     (manuscript.sections || []).forEach((section) => {
-      lines.push(`${section.number}. ${section.title}${section.boxType ? ` [구성요소: ${section.boxType}]` : ""}`);
+      lines.push(manuscriptSectionHeading(section));
       (section.paragraphs || []).forEach((paragraph) => lines.push(paragraph));
       lines.push("");
     });
@@ -1378,26 +1992,25 @@ function textbookManuscriptText(entry) {
 
 function teacherGuideManuscriptText(entry) {
   const lines = [
-    "[스포츠 문화 지도서 원고]",
+    `[${entrySubjectLabel(entry)} 지도서 원고]`,
     `연계 교과서: ${entry.smallUnitLabel}`,
     `체제안: ${entry.frameworkName}`,
-    `종목 사용 방식: ${sportsCultureSportModeLabel(entry.sportMode)}`,
-    `종목: ${entry.carrierSport || "특정 종목 없음"}`,
+    ...entryHeaderLines(entry),
     `성취기준: ${(entry.traceability?.standardCodes || []).join(", ")}`,
     `차시·분량: ${entry.teacherGuide?.annualPlanLink || ""}`,
     "",
   ];
   entry.spreads.forEach((spread, index) => {
     const guide = spread.teacher_guide || {};
-    lines.push(`===== ${index + 1}차시군 · 교과서 ${spread.left_page}~${spread.right_page}쪽 =====`);
+    lines.push(`===== ${spread.lesson_label || `${index + 1}차시군`} · 교과서 ${spread.left_page}~${spread.right_page}쪽 =====`);
     lines.push("[수업 목표]", ...(guide.lessonGoals || []).map((item) => `- ${item}`));
     lines.push("", `[준비물] ${(guide.preparation || []).join(" · ")}`);
     lines.push("", "[수업 흐름]", ...(guide.lessonFlow || []).map((item) => `- ${item.stage}: ${item.guidance}`));
     lines.push("", "[지도상의 유의점]", ...(guide.teachingNotes || []).map((item) => `- ${item}`));
     lines.push("", "[핵심 발문]", ...(guide.questions || []).map((item) => `- ${item}`));
     lines.push("", "[예상 답변]", ...(guide.expectedResponses || []).map((item) => `- ${item}`));
-    lines.push("", "[개별화·대체 참여]", ...(guide.differentiation || []).map((item) => `- ${item}`));
-    lines.push("", `[안전·포용] ${guide.safety || ""}`);
+    lines.push("", `[${isElementaryEntry(entry) ? "수준별 지도·대체 활동" : "개별화·대체 참여"}]`, ...(guide.differentiation || []).map((item) => `- ${item}`));
+    lines.push("", `[${isElementaryEntry(entry) ? "안전 지도" : "안전·포용"}] ${guide.safety || ""}`);
     lines.push("", `[평가] ${(guide.assessment || []).join(" · ")}`, "");
   });
   return lines.join("\r\n");
@@ -1469,6 +2082,8 @@ function unitsTocRows() {
   });
   parseLineItems(state.backMatterText).forEach((item) => rows.push(["뒷부속", "", item.title, "", "", "", "", item.pages]));
   parseLineItems(state.appendixText).forEach((item) => rows.push(["부록", "", item.title, "", "", "", "", item.pages]));
+  // 종목 사용 방식·종목·구성요소는 고등 스포츠 문화에서만 정하는 값이라 초등 목차에서는 열을 뺀다.
+  if (!isSportsCultureProject()) return rows.map((row) => [row[0] === "특별페이지" ? "확장 코너" : row[0], ...row.slice(1, 3), ...row.slice(6)]);
   return rows;
 }
 
@@ -1594,7 +2209,7 @@ function addEntrySlidesToPptx(pres, entry, headingPrefix = "") {
     y += 1.0;
 
     const sections = (manuscript.sections || []).map((section) => ({ data: section, kind: "section" }));
-    const half = Math.ceil(sections.length / 2);
+    const half = manuscriptPageSplit(manuscript);
     const visualColumns = manuscriptVisualColumns(manuscript);
 
     pptxStackManuscriptBlocks(
@@ -1671,19 +2286,20 @@ async function buildEntryImagesZip(entry) {
 const DRAFT_FILE_TYPES = [
   { id: "pptx", label: "PPT" },
   { id: "textbook", label: "교과서 TXT" },
-  { id: "guide", label: "지도서 TXT" },
   { id: "textbook_pdf", label: "교과서 PDF" },
-  { id: "guide_pdf", label: "지도서 PDF" },
-  { id: "lesson_plan_hwpx", label: "교수학습과정안" },
   { id: "images", label: "이미지" },
 ];
 
 function canvasPagesToPdfBlob(canvases) {
   const { jsPDF } = globalThis.jspdf;
-  const pdf = new jsPDF({ unit: "px", format: [794, 1123], compress: true });
+  // 가로로 그린 쪽(캔버스 폭 > 높이)은 가로 A4로 넣는다.
+  const sizeOf = (canvas) => (canvas.width > canvas.height ? [1123, 794] : [794, 1123]);
+  const first = sizeOf(canvases[0]);
+  const pdf = new jsPDF({ unit: "px", format: first, orientation: first[0] > first[1] ? "landscape" : "portrait", compress: true });
   canvases.forEach((canvas, index) => {
-    if (index > 0) pdf.addPage([794, 1123]);
-    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 794, 1123);
+    const [width, height] = sizeOf(canvas);
+    if (index > 0) pdf.addPage([width, height], width > height ? "landscape" : "portrait");
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, width, height);
   });
   return pdf.output("blob");
 }
@@ -1695,7 +2311,7 @@ async function fetchLessonPlanHwpxBlob(entry) {
   const spreads = entry.spreads.map((spread, index) => {
     const guide = spread.teacher_guide || {};
     return {
-      spreadLabel: `${index + 1}차시군 · 교과서 ${spread.left_page}~${spread.right_page}쪽`,
+      spreadLabel: `${spread.lesson_label || `${index + 1}차시군`} · 교과서 ${spread.left_page}~${spread.right_page}쪽`,
       lessonGoals: guide.lessonGoals || [],
       preparation: guide.preparation || [],
       lessonFlow: guide.lessonFlow || [],
@@ -1820,6 +2436,85 @@ function allocateCounts(total, weights) {
   return counts;
 }
 
+// ── 기준 쪽수에 맞춘 기본 배분 ──
+// 01단계 "본문·부록 합계"와 "부속자료"를 목표로, 03단계 기본값을 미리 맞춘다.
+// · 부속자료(앞·뒷부속): 흔히 쓰는 항목을 차례로 더하고, 넘치면 뒤에서부터 줄인다.
+// · 본문·부록: 단원 도입·마무리·특별 페이지·부록은 그대로 두고, 남은 쪽을 소단원에 펼침면(2쪽) 단위로
+//   차시가 많은 소단원부터 더 준다(소단원 최소 2쪽). 홀수로 남는 1쪽은 부록에 붙인다.
+const FRONT_MATTER_DEFAULTS = [["속표지", 1], ["이 책의 구성과 특징", 2], ["차례", 2]];
+const BACK_MATTER_DEFAULTS = [["찾아보기", 2], ["사진·자료 출처", 1], ["판권", 1]];
+
+function lineItemsToText(items) {
+  return items.filter((item) => item.pages > 0).map((item) => `${item.title}, ${item.pages}`).join("\n");
+}
+
+function fitSupplementaryPages(book) {
+  const target = Math.max(0, Number(book.project.supplementaryPages) || 0);
+  const front = parseLineItems(book.frontMatterText);
+  const back = parseLineItems(book.backMatterText);
+  const total = () => [...front, ...back].reduce((sum, item) => sum + item.pages, 0);
+  const has = (items, title) => items.some((item) => item.title.replace(/\s/g, "").includes(title.replace(/\s/g, "")) || title.replace(/\s/g, "").includes(item.title.replace(/\s/g, "")));
+  const candidates = [];
+  for (let index = 0; index < Math.max(FRONT_MATTER_DEFAULTS.length, BACK_MATTER_DEFAULTS.length); index += 1) {
+    if (FRONT_MATTER_DEFAULTS[index]) candidates.push([front, ...FRONT_MATTER_DEFAULTS[index]]);
+    if (BACK_MATTER_DEFAULTS[index]) candidates.push([back, ...BACK_MATTER_DEFAULTS[index]]);
+  }
+  for (const [items, title, pages] of candidates) {
+    const missing = target - total();
+    if (missing <= 0) break;
+    if (!has(items, title)) items.push({ title, pages: Math.min(pages, missing) });
+  }
+  if (total() < target) {
+    const filler = front.length ? front[front.length - 1] : (front.push({ title: "차례", pages: 0 }), front[0]);
+    filler.pages += target - total();
+  }
+  for (const items of [back, front]) {
+    for (let index = items.length - 1; index >= 0 && total() > target; index -= 1) {
+      items[index].pages -= Math.min(items[index].pages, total() - target);
+    }
+  }
+  book.frontMatterText = lineItemsToText(front);
+  book.backMatterText = lineItemsToText(back);
+}
+
+function fitCorePages(book) {
+  const target = Math.max(0, Number(book.project.corePages) || 0);
+  const smallUnits = (book.units || []).flatMap((unit) => unit.subdomainGroups.flatMap((group) => group.middleUnits.flatMap((middle) => middle.smallUnits)));
+  if (!target || !smallUnits.length) return;
+  const introWrap = (book.units || []).reduce((sum, unit) => sum + Number(unit.introPages || 0) + Number(unit.wrapUpPages || 0), 0);
+  const appendix = parseLineItems(book.appendixText);
+  const appendixTotal = appendix.reduce((sum, item) => sum + item.pages, 0);
+  const forSmallUnits = target - introWrap - specialPagesTotal(book) - appendixTotal;
+  if (forSmallUnits < smallUnits.length * 2) return;
+  const extraSpreads = Math.floor((forSmallUnits - smallUnits.length * 2) / 2);
+  const counts = allocateCounts(extraSpreads, smallUnits.map((small) => Number(small.hours) || 1));
+  smallUnits.forEach((small, index) => { small.pages = 2 + counts[index] * 2; });
+  const leftover = forSmallUnits - smallUnits.reduce((sum, small) => sum + small.pages, 0);
+  if (leftover > 0) {
+    if (appendix.length) appendix[appendix.length - 1].pages += leftover;
+    else appendix.push({ title: "부록", pages: leftover });
+    book.appendixText = lineItemsToText(appendix);
+  }
+}
+
+function fitBookPagesToTargets(book) {
+  if (!pagePolicyFor(book) || !book.units?.length) return false;
+  fitSupplementaryPages(book);
+  fitCorePages(book);
+  book.pages = buildPagePlan(book);
+  book.selectedPages = [1];
+  return true;
+}
+
+// 기본값이 기준 쪽수와 안 맞는 책은 처음 한 번 자동으로 맞춘다(이후 편집자가 고친 값은 건드리지 않음).
+const PAGE_FIT_VERSION = 1;
+function ensurePagesFitTargets(book) {
+  if (!book || book.pageFitVersion === PAGE_FIT_VERSION) return false;
+  const changed = fitBookPagesToTargets(book);
+  book.pageFitVersion = PAGE_FIT_VERSION;
+  return changed;
+}
+
 function buildPagePlan(targetState = state) {
   const pages = [];
   const placedSpecialIds = new Set();
@@ -1931,16 +2626,11 @@ function renderPagePreviewModal() {
 }
 
 function renderNavigation() {
-  // 05 모의심사는 01~04를 순서대로 마쳐야 여는 단계가 아니라, 그 시점의 결과물만 공식
-  // 기준으로 독립 평가하는 별도 도구다. 목록 안에서도 구분되도록 구분선과 표시를 둔다.
   document.querySelector("#stepNavigation").innerHTML = steps.map(([defaultLabel], index) => {
-    const label = isSportsCultureProject() && index === 3 ? "전체 스타일·초고" : defaultLabel;
-    const isStandalone = index === steps.length - 1;
-    const divider = isStandalone ? `<div class="step-nav-divider"><span>독립 평가</span></div>` : "";
+    const label = defaultLabel;
     return `
-    ${divider}
-    <button class="prototype-step ${isStandalone ? "standalone" : ""} ${index === state.currentStep ? "active" : ""} ${index < state.currentStep ? "completed" : ""}" data-step="${index}" type="button">
-      ${isStandalone ? "" : `<span class="step-index">${String(index + 1).padStart(2, "0")}</span>`}
+    <button class="prototype-step ${index === state.currentStep ? "active" : ""} ${index < state.currentStep ? "completed" : ""}" data-step="${index}" type="button">
+      <span class="step-index">${String(index + 1).padStart(2, "0")}</span>
       <b>${label}</b>
       <small>${index < state.currentStep ? "✓" : ""}</small>
     </button>
@@ -1952,32 +2642,21 @@ function renderNavigation() {
 
 function renderHeader() {
   let [heading, subtitle] = steps[state.currentStep];
-  if (isSportsCultureProject() && state.currentStep === 3) {
-    heading = "전체 스타일·초고 생성";
-    subtitle = "전체 편집 방향을 정하고 소단원과 특별 페이지의 초고를 단일 또는 일괄 생성합니다.";
+  if (usesDraftStudio() && state.currentStep === DRAFT_STEP_INDEX) {
+    heading = "초안·시안·조판";
+    subtitle = isSportsCultureProject()
+      ? "전체 편집 방향을 정하고 소단원과 특별 페이지의 초고를 단일 또는 일괄 생성합니다."
+      : "전체 편집 방향을 정하고 소단원·대단원 도입·마무리·확장 코너 초고를 차시 구조에 맞춰 단일 또는 일괄 생성합니다.";
   }
-  document.querySelector("#stepEyebrow").textContent = `PROTOTYPE STEP ${String(state.currentStep + 1).padStart(2, "0")}`;
   document.querySelector("#stepHeading").textContent = heading;
-  document.querySelector("#stepSubtitle").textContent = subtitle;
-  document.querySelector("#progressText").textContent = `${state.currentStep + 1}/${steps.length}`;
-  document.querySelector("#progressLabel").textContent = heading;
-  document.querySelector("#progressBar").style.width = `${((state.currentStep + 1) / steps.length) * 100}%`;
   document.querySelector("#previousButton").disabled = state.currentStep === 0;
   const nextButton = document.querySelector("#nextButton");
-  // 04단계(체제안 선택/전체 스타일·초고)에는 "다음" 버튼을 두지 않는다 — 05 모의심사는
-  // 01~04를 순서대로 끝내야 여는 단계가 아니라 좌측 메뉴에서 바로 여는 독립 평가라서,
-  // "다음"이 마치 04를 끝내야 05로 갈 수 있다는 것처럼 보이면 오해를 준다.
-  nextButton.style.display = state.currentStep === 3 ? "none" : "";
+  nextButton.style.display = state.currentStep === steps.length - 1 ? "none" : "";
   nextButton.textContent = state.currentStep === steps.length - 1 ? "완료" : "다음";
 }
 
 function sectionHeading(kicker, title, description, action = "") {
-  return `
-    <div class="section-heading">
-      <div><p class="section-kicker">${kicker}</p><h2>${title}</h2></div>
-      ${description ? `<p>${description}</p>` : ""}
-      ${action ? `<div class="section-actions">${action}</div>` : ""}
-    </div>`;
+  return action ? `<div class="section-heading actions-only"><div class="section-actions">${action}</div></div>` : "";
 }
 
 function renderEditableSource(sourceId, label, suppliedOriginalText) {
@@ -2027,10 +2706,6 @@ function renderProject() {
     const placeholderBookCards = Object.values(portfolio.books).map((book) => `<article class="setup-book-card invalid"><header><div><span>교과서 기본값</span><h3>${escapeHtml(book.project.subject)}</h3></div><b>공식자료 미연결</b></header><div class="setup-book-fields"><label><span>교과서·부록 합계</span><input placeholder="공식 분량 자료 필요" disabled /></label><label><span>부속자료</span><input placeholder="확인되지 않음" disabled /></label><label><span>공식 기준 시수</span><input value="${book.project.targetHours || ""}" placeholder="확인되지 않음" disabled /></label></div></article>`).join("");
     return `
       ${sectionHeading("PROJECT PROFILE", "프로젝트 기본 조건", "교육과정의 체육 관련 과목 목록에서 선택했습니다. 공식 편찬 기준 데이터가 연결되면 쪽수·차시가 자동 입력됩니다.")}
-      <div class="setup-profile-strip"><span>${portfolio.pairLabel || representative.project.subject} · ${isPairedProject(portfolio) ? "분권형" : "단권형"}</span><strong class="setup-status draft">공식자료 대기</strong><small>교육과정 과목명만 확인됨</small></div>
-      <div class="form-grid project-form-grid setup-common-fields">
-        <label class="project-name"><span>프로젝트명</span><input data-project="name" maxlength="80" value="${escapeHtml(portfolio.name)}" /></label>
-      </div>
       <div class="setup-book-grid ${isPairedProject(portfolio) ? "paired" : "single"}">${placeholderBookCards}</div>
       <div class="validation-box invalid"><strong>공식 편찬 기준 자료가 연결되기 전에는 다음 단계로 이동할 수 없습니다.</strong><ul><li>선택한 과목의 쪽수·차시 편찬 기준이 현재 전처리 자료에서 확인되지 않았습니다.</li></ul></div>`;
   }
@@ -2069,16 +2744,8 @@ function renderProject() {
       : `<button class="secondary-button" id="reviseSetup" type="button">수정본 만들기</button>`;
   return `
     ${sectionHeading("PROJECT PROFILE", "프로젝트 기본 조건", "")}
-    <div class="setup-profile-strip">
-      <span>${isElementary ? "학년군 분권형" : isMiddleBand ? "분권형 · 쪽수 미검증" : isPaired ? `${courseMeta.category} 분권형` : `${courseMeta.category} 단권형`}</span>
-      <strong class="setup-status ${approval.status}">${statusLabels[approval.status]}</strong>
-      <small>${approval.approvedAt ? `최근 승인 ${new Date(approval.approvedAt).toLocaleString("ko-KR")}` : "아직 승인된 설정 없음"}</small>
-    </div>
-    <div class="form-grid project-form-grid setup-common-fields">
-      <label class="project-name"><span>프로젝트명</span><input data-project="name" maxlength="80" value="${escapeHtml(portfolio.name)}" ${editable ? "" : "disabled"} /></label>
-    </div>
     <div class="official-policy-banner ${isMiddleBand ? "unverified" : ""}">
-      <div class="policy-banner-title">${isMiddleBand ? "공식 쪽수 자료 미연결 — 직접 입력한 값입니다" : "전처리 공식자료 연결됨"}</div>
+      ${isMiddleBand ? `<div class="policy-banner-title">공식 쪽수 자료 미연결 — 직접 입력한 값입니다</div>` : ""}
       <div class="policy-stat-grid">
         ${(isElementary ? [
           { label: "교과서·부록 기준", value: `${policy.baseline_pages}쪽`, note: `허용 ${policy.minimum_pages}~${policy.maximum_pages}쪽` },
@@ -2106,7 +2773,7 @@ function renderProject() {
       <strong>${validation.valid ? "✓ 모든 책의 쪽수·차시 조건이 기준을 충족합니다." : "다음 단계로 이동하기 전에 설정값을 확인해 주세요."}</strong>
       ${validation.errors.length ? `<ul>${validation.errors.map((error) => `<li>${escapeHtml(error)}</li>`).join("")}</ul>` : ""}
     </div>
-    <div class="setup-approval-bar"><div><b>설정 승인</b><span>승인 후 값이 잠깁니다.</span></div><div>${approvalActions}</div></div>
+    <div class="setup-approval-bar"><div><b>설정 승인</b><strong class="setup-status ${approval.status}">${approval.status === "approved" ? "승인 완료" : statusLabels[approval.status]}</strong></div><div>${approvalActions}</div></div>
     ${isElementary ? `<div class="evidence-grid">
       <details data-evidence-details ${evidenceDetailsOpen ? "open" : ""}><summary>쪽수·차시 근거 한 번에 보기</summary>
         <div class="combined-evidence-grid">
@@ -2143,28 +2810,64 @@ function renderProjectSwitcher() {
   const bookKeys = Object.keys(project.books);
   const catalogId = inferredCatalogId(project) || PROJECT_CATALOG[0].id;
   const activeCatalogItem = PROJECT_CATALOG.find((item) => item.id === catalogId);
+  if (!selectedRevision) selectedRevision = activeCatalogItem?.revision || "2022";
   if (!selectedSubjectArea) selectedSubjectArea = activeCatalogItem?.subjectArea || PROJECT_CATALOG[0].subjectArea;
-  const subjectAreas = [...new Set(PROJECT_CATALOG.map((item) => item.subjectArea))];
-  const visibleCatalog = PROJECT_CATALOG.filter((item) => item.subjectArea === selectedSubjectArea);
+  // 2015·2009 개정은 분석만 있다. 책 프로젝트 목록은 그 개정에 분석 자료가 있는 것만 보여 준다.
+  const analysisOnly = isAnalysisOnlyRevision();
+  const analysisView = inAnalysisView();
+  const shownCatalogId = analysisOnly ? analysisCatalogFor() : catalogId;
+  const revisionCatalog = analysisOnly
+    ? PROJECT_CATALOG.filter((item) => analysisProjectIds(selectedRevision).includes(item.id))
+    : PROJECT_CATALOG.filter((item) => item.revision === selectedRevision);
+  const subjectAreas = [...new Set(revisionCatalog.map((item) => item.subjectArea))];
+  const visibleCatalog = revisionCatalog.filter((item) => item.subjectArea === selectedSubjectArea);
   const groups = ["초등학교", "중학교", "고등학교"];
   container.innerHTML = `
+    <label for="curriculumRevisionSelect">교육과정</label>
+    <select id="curriculumRevisionSelect" class="revision-select">${CURRICULUM_REVISIONS.map((revision) => {
+      const available = PROJECT_CATALOG.some((item) => item.revision === revision.id) || hasRevisionReference(revision.id);
+      return `<option value="${revision.id}" ${revision.id === selectedRevision ? "selected" : ""} ${available ? "" : "disabled"}>${escapeHtml(revision.label)}${revision.note ? ` · ${escapeHtml(revision.note)}` : ""}</option>`;
+    }).join("")}</select>
     <label for="subjectAreaSelect">교과</label>
     <select id="subjectAreaSelect">${subjectAreas.map((area) => `<option value="${escapeHtml(area)}" ${area === selectedSubjectArea ? "selected" : ""}>${escapeHtml(area)}</option>`).join("")}</select>
     <label for="activeProjectSelect">책 프로젝트</label>
     <select id="activeProjectSelect">${groups.map((group) => {
       const itemsInGroup = visibleCatalog.filter((item) => item.group === group);
       if (!itemsInGroup.length) return "";
-      return `<optgroup label="${group}">${itemsInGroup.map((item) => `<option value="${item.id}" ${item.id === catalogId ? "selected" : ""}>${escapeHtml(item.label)}${item.connected ? "" : item.partial ? " · 쪽수 기준 미연결" : " · 공식자료 미연결"}</option>`).join("")}</optgroup>`;
+      return `<optgroup label="${group}">${itemsInGroup.map((item) => `<option value="${item.id}" ${item.id === shownCatalogId ? "selected" : ""}>${escapeHtml(item.label)}${analysisOnly || item.connected ? "" : item.partial ? " · 쪽수 기준 미연결" : " · 공식자료 미연결"}</option>`).join("")}</optgroup>`;
     }).join("")}</select>
-    ${isPairedProject(project) && state.currentStep > 0 ? `<div class="book-mode-tabs" aria-label="학년책과 비교 보기">
+    <div class="work-mode-tabs" role="tablist" aria-label="개발·분석">
+      <button type="button" role="tab" data-work-mode="develop" class="${analysisView ? "" : "active"}" ${analysisOnly ? "disabled title=\"이 개정은 분석만 합니다\"" : ""}>개발</button>
+      <button type="button" role="tab" data-work-mode="analysis" class="${analysisView ? "active" : ""}">분석</button>
+    </div>
+    ${!analysisView && isPairedProject(project) && state.currentStep > 0 ? `<div class="book-mode-tabs" aria-label="학년책과 비교 보기">
       ${bookKeys.map((bookKey) => `<button class="${project.viewMode === "book" && project.activeBookKey === bookKey ? "active" : ""}" data-book-key="${bookKey}" type="button">${bookKey.replace("학년", "")}</button>`).join("")}
-      <button class="${project.viewMode === "compare" ? "active" : ""}" id="compareBooksButton" type="button">비교</button>
+      <button class="compare ${project.viewMode === "compare" ? "active" : ""}" id="compareBooksButton" type="button">${bookKeys.map((bookKey) => bookKey.replace("학년", "")).join("·")} 비교</button>
     </div>` : ""}`;
+
+  container.querySelector("#curriculumRevisionSelect").addEventListener("change", (event) => {
+    selectedRevision = event.target.value;
+    if (isAnalysisOnlyRevision()) {
+      render();
+      return;
+    }
+    // 개정을 바꾸면 그 개정의 첫 번째 교과·프로젝트로 전환한다.
+    const firstItem = PROJECT_CATALOG.find((item) => item.revision === selectedRevision);
+    if (firstItem) {
+      selectedSubjectArea = firstItem.subjectArea;
+      const selectedProject = projectForCatalog(firstItem);
+      if (!projectStore.projects.some((candidate) => candidate.id === selectedProject.id)) projectStore.projects.push(selectedProject);
+      projectStore.activeProjectId = selectedProject.id;
+      useActiveBookState();
+      persist("교육과정 개정 전환됨");
+    }
+    render();
+  });
 
   container.querySelector("#subjectAreaSelect").addEventListener("change", (event) => {
     selectedSubjectArea = event.target.value;
     // 교과를 바꾸면 그 교과의 첫 번째 항목으로 자동 전환한다(빈 목록 상태를 안 만들기 위함).
-    const firstItem = PROJECT_CATALOG.find((item) => item.subjectArea === selectedSubjectArea);
+    const firstItem = PROJECT_CATALOG.find((item) => item.revision === selectedRevision && item.subjectArea === selectedSubjectArea);
     if (firstItem) {
       const selectedProject = projectForCatalog(firstItem);
       if (!projectStore.projects.some((candidate) => candidate.id === selectedProject.id)) projectStore.projects.push(selectedProject);
@@ -2175,7 +2878,19 @@ function renderProjectSwitcher() {
     render();
   });
 
-  container.querySelector("#activeProjectSelect").addEventListener("change", (event) => {
+  container.querySelectorAll("[data-work-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      workMode = button.dataset.workMode;
+      render();
+    });
+  });
+
+  container.querySelector("#activeProjectSelect")?.addEventListener("change", (event) => {
+    if (isAnalysisOnlyRevision()) {
+      analysisCatalogId = event.target.value;
+      render();
+      return;
+    }
     persist();
     const item = PROJECT_CATALOG.find((candidate) => candidate.id === event.target.value);
     if (!item) return;
@@ -2260,18 +2975,16 @@ function renderSecondaryCurriculum() {
   const pageRange = sourcePages.length ? `${Math.min(...sourcePages)}~${Math.max(...sourcePages)}쪽` : "확인 필요";
   const printedPageRange = sourcePages.length ? `${Math.min(...sourcePages) - 6}~${Math.max(...sourcePages) - 6}쪽` : "확인 필요";
   return `
-    ${sectionHeading("CURRICULUM", `${subject} 교육과정 확인`, "", `<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>${SECONDARY_CURRICULUM_DEVELOPMENT_NOTES[subject] ? '<button class="secondary-button" id="downloadCurriculumNoteButton" type="button">분석 내용 PDF로 저장</button>' : ""}`)}
-    <div class="curriculum-summary">
-      <article><span>과목 분류</span><strong>${meta.category}</strong><small>고등학교 체육</small></article>
-      <article><span>기본 학점</span><strong>${meta.credits}학점</strong><small>${meta.minimum_credits}~${meta.maximum_credits}학점</small></article>
-      <article><span>기본 수업량</span><strong>${meta.default_hours}차시</strong><small>50분 × 16회 × ${meta.credits}학점</small></article>
-      <article><span>성취기준</span><strong>${standards.length}개</strong><small>${domains.length}개 영역</small></article>
+    ${sectionHeading("CURRICULUM", `${subject} 교육과정 확인`, "", `<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 PDF</button>${SECONDARY_CURRICULUM_DEVELOPMENT_NOTES[subject] ? '<button class="secondary-button" id="downloadCurriculumNoteButton" type="button">분석 내용 PDF로 저장</button>' : ""}`)}
+    <div class="band-overview">
+      <div class="band-overview-row">
+        <b class="band-overview-name">${escapeHtml(subject)} <small>${escapeHtml(meta.category)}</small></b>
+        <span><small>학점</small> ${meta.credits}학점 <small>(${meta.minimum_credits}~${meta.maximum_credits})</small></span>
+        <span><small>수업량</small> ${meta.default_hours}차시 <small>(허용 ${meta.minimum_hours}~${meta.maximum_hours})</small></span>
+        <span><small>성취기준</small> ${standards.length}개 <small>(${domains.length}개 영역)</small></span>
+        ${subject === "스포츠 문화" ? `<span><small>종목</small> 지정 없음 <small>(택 1 이상)</small></span>` : ""}
+      </div>
     </div>
-    <div class="curriculum-notice">
-      <strong>기본 ${meta.default_hours}차시</strong>
-      <span>허용 ${meta.minimum_hours}~${meta.maximum_hours}차시</span>
-    </div>
-    ${subject === "스포츠 문화" ? `<div class="curriculum-notice"><strong>종목 지정 없음</strong><span>스포츠 종목 중 택 1 이상</span></div>` : ""}
     <details class="curriculum-evidence">
       <summary>과목 분류·학점·성취기준 자료 색인 보기</summary>
       <p><b>과목 분류·학점:</b> 「${escapeHtml(meta.hours_source_document_id)}」 · PDF 원본 ${meta.hours_source_page}쪽 · 문서 인쇄면 ${meta.hours_source_printed_page}쪽 · ${escapeHtml(meta.hours_source_location)}</p>
@@ -2324,16 +3037,8 @@ function renderMiddleCurriculum() {
   const pageRange = sourcePages.length ? `${Math.min(...sourcePages)}~${Math.max(...sourcePages)}쪽` : "확인 필요";
   const printedPageRange = sourcePages.length ? `${Math.min(...sourcePages) - 6}~${Math.max(...sourcePages) - 6}쪽` : "확인 필요";
   return `
-    ${sectionHeading("CURRICULUM", "중등체육 교육과정 확인", "", '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>')}
-    <div class="curriculum-summary">
-      <article><span>학교급</span><strong>중학교</strong><small>1~3학년</small></article>
-      <article><span>기준 시수</span><strong>${meta?.hours || 272}시간</strong><small>3개년 합계</small></article>
-      <article><span>성취기준</span><strong>${standards.length}개</strong><small>${domains.length}개 영역</small></article>
-      <article><span>쪽수 기준</span><strong>미연결</strong><small>1단계에서 직접 입력</small></article>
-    </div>
-    <div class="curriculum-notice">
-      <strong>쪽수 기준 미연결</strong><span>1단계 입력값 사용</span>
-    </div>
+    ${sectionHeading("CURRICULUM", "중등체육 교육과정 확인", "", '<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 PDF</button>')}
+    ${renderGradeBandOverview("중학교 1~3학년", `${meta?.hours || 272}시간`, standards.length, `${domains.length}개 영역 · 쪽수 기준 미연결`)}
     <details class="curriculum-evidence">
       <summary>기준 시수·성취기준 자료 색인 보기</summary>
       <p><b>기준 시수:</b> 「${escapeHtml(meta?.hours_source_document_id || "초·중등학교 교육과정 총론")}」 · PDF 원본 ${meta?.hours_source_page || 28}쪽 · 문서 인쇄면 ${meta?.hours_source_printed_page || 20}쪽 · 중학교 시간 배당 기준 &lt;표 2&gt;</p>
@@ -2452,16 +3157,8 @@ function renderCurriculum() {
   const pageRange = sourcePages.length ? `${Math.min(...sourcePages)}~${Math.max(...sourcePages)}쪽` : "확인 필요";
   const printedPageRange = sourcePages.length ? `${Math.min(...sourcePages) - 6}~${Math.max(...sourcePages) - 6}쪽` : "확인 필요";
   return `
-    ${sectionHeading("CURRICULUM", "교육과정 원문 확인", "", `<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 다운로드</button>${CURRICULUM_DEVELOPMENT_NOTES[gradeBand] ? '<button class="secondary-button" id="downloadCurriculumNoteButton" type="button">분석 내용 PDF로 저장</button>' : ""}`)}
-    <div class="curriculum-summary">
-      <article><span>선택 학년</span><strong>${grade}학년</strong><small>${gradeBand}</small></article>
-      <article><span>공식 기준 시수</span><strong>204시간</strong><small>학년군 2년 합계</small></article>
-      <article><span>학년 배분안</span><strong>102차시</strong><small>프로젝트 기본값</small></article>
-      <article><span>성취기준</span><strong>${bandStandards.length}개</strong><small>운동·스포츠·표현 전체</small></article>
-    </div>
-    <div class="curriculum-notice">
-      <strong>공식 204시간</strong><span>학년별 102차시는 프로젝트 배분안</span>
-    </div>
+    ${sectionHeading("CURRICULUM", "교육과정 원문 확인", "", `<button class="secondary-button" id="downloadCurriculumButton" type="button">성취기준·고려사항 PDF</button>${CURRICULUM_DEVELOPMENT_NOTES[gradeBand] ? '<button class="secondary-button" id="downloadCurriculumNoteButton" type="button">분석 내용 PDF로 저장</button>' : ""}`)}
+    ${renderGradeBandOverview(gradeBand, "204시간", bandStandards.length, domains.map((domain) => `${domain} ${bandStandards.filter((item) => item.domain === domain).length}`).join(" · "))}
     <details class="curriculum-evidence">
       <summary>204시간과 성취기준 자료 색인 보기</summary>
       <p><b>기준 시수:</b> 「초등학교 교육과정」 PDF 원본 25쪽, 문서 인쇄면 17쪽</p>
@@ -2514,9 +3211,395 @@ function renderCurriculum() {
     </div>`;
 }
 
+// 02단계 맨 위 요약: 학년군(기준 시수·성취기준) 아래에 학년책별 차시가 오는 위계로 보여 준다.
+// 성취기준은 학년군 단위라 두 학년이 같고, 차시만 학년책마다 따로 정한다.
+function renderGradeBandOverview(bandLabel, bandHours, standardCount, standardBreakdown) {
+  const project = activeProject();
+  const currentKey = project.activeBookKey;
+  const books = Object.entries(project.books || {});
+  return `
+    <div class="band-overview">
+      <div class="band-overview-row">
+        <b class="band-overview-name">${escapeHtml(bandLabel)}</b>
+        <span><small>기준 시수</small> ${escapeHtml(bandHours)}</span>
+        <span><small>성취기준</small> ${standardCount}개${standardBreakdown ? ` <small>(${escapeHtml(standardBreakdown)})</small>` : ""}</span>
+      </div>
+      ${books.length > 1 ? `<ul class="band-overview-grades">${books.map(([bookKey, book]) => `<li class="${bookKey === currentKey ? "current" : ""}"><b>${escapeHtml(bookKey)}</b> ${Number(book.project.targetHours) || 0}차시</li>`).join("")}</ul>` : ""}
+    </div>`;
+}
+
+// ── 초등 체육 단원명 AI 제안 ──
+// 교육과정 내용 요소로 만든 기본 소단원명("○○에 도전해요")은 자리만 잡아 둔 이름이다. 새 교과서의
+// 중단원·소단원명은 AI가 기존 교과서 제목의 말투만 참고해 새로 짓고, 편집자가 항목별로 골라 적용한다.
+// 받은 제안은 책마다 state.unitTitleProposalLog에 이력으로 남겨, 나중에 다시 열어 다른 후보로 바꾸거나
+// 적용을 되돌리고, 엑셀·PDF·한글·워드로 내려받을 수 있다.
+let unitTitleProposal = { bookKey: "", loading: false, error: "", openId: "" };
+
+function unitTitleProposalBookKey() {
+  return `${activeProject().id}:${activeProject().activeBookKey || ""}`;
+}
+
+function unitTitleProposalLog() {
+  if (!Array.isArray(state.unitTitleProposalLog)) state.unitTitleProposalLog = [];
+  return state.unitTitleProposalLog;
+}
+
+function unitTitleProposalRequest() {
+  const band = String(activeProject().band || "");
+  const grade = Number.parseInt(state.project.grade, 10) || 3;
+  const bandLabel = band || (grade <= 4 ? "3~4학년군" : "5~6학년군");
+  const middles = [];
+  state.units.forEach((unit, unitIndex) => unit.subdomainGroups.forEach((group, groupIndex) => group.middleUnits.forEach((middle, middleIndex) => {
+    middles.push({
+      key: `${unitIndex}:${groupIndex}:${middleIndex}`,
+      domain: unit.domain,
+      subdomain: group.subtitle || "",
+      officialTitle: stripManualUnitNumberPrefix(middle.officialTitle || middle.title || ""),
+      currentTitle: middle.title || "",
+      smalls: middle.smallUnits.map((small, smallIndex) => ({
+        key: `${unitIndex}:${groupIndex}:${middleIndex}:${smallIndex}`,
+        sourceActivity: small.sourceActivity || "",
+        currentTitle: small.title || "",
+        hours: Number(small.hours) || 0,
+      })),
+    });
+  })));
+  const domains = new Set(state.units.map((unit) => unit.domain));
+  const standards = (curriculumData.standards || [])
+    .filter((item) => item.grade_band === bandLabel && domains.has(item.domain))
+    .map((item) => `${item.code} ${item.statement}`);
+  return { gradeLabel: state.project.grade, band: bandLabel, standards, middles, concept: sportsCultureAdditionalConcept.trim() };
+}
+
+async function requestUnitTitleProposal() {
+  const bookKey = unitTitleProposalBookKey();
+  const book = state;
+  const request = unitTitleProposalRequest();
+  unitTitleProposal = { bookKey, loading: true, error: "", openId: "" };
+  renderWorkspace();
+  try {
+    const response = await fetch("/api/prototype/elementary-unit-titles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.error) throw new Error(data.error || "단원명 제안을 받지 못했습니다.");
+    // 제안 당시의 이름·영역·원 활동을 함께 남겨, 단원 구성이 바뀐 뒤에도 무엇을 제안했는지 알 수 있게 한다.
+    const meta = {};
+    request.middles.forEach((middle) => {
+      meta[middle.key] = { kind: "중단원", domain: middle.domain, source: middle.officialTitle, before: middle.currentTitle };
+      middle.smalls.forEach((small) => {
+        meta[small.key] = { kind: "소단원", domain: middle.domain, source: small.sourceActivity, before: small.currentTitle };
+      });
+    });
+    const record = {
+      id: `utp-${Date.now().toString(36)}`,
+      createdAt: new Date().toISOString(),
+      model: data.result.model || "",
+      gradeLabel: request.gradeLabel,
+      concept: request.concept,
+      meta,
+      middles: data.result.middles || [],
+      applications: [],
+    };
+    if (!Array.isArray(book.unitTitleProposalLog)) book.unitTitleProposalLog = [];
+    book.unitTitleProposalLog.push(record);
+    persist("단원명 제안 이력 저장됨");
+    unitTitleProposal = { bookKey, loading: false, error: "", openId: record.id };
+  } catch (error) {
+    unitTitleProposal = { bookKey, loading: false, error: error.message, openId: "" };
+  }
+  if (unitTitleProposalBookKey() === bookKey) renderWorkspace();
+}
+
+function unitTitleTarget(key) {
+  const [unitIndex, groupIndex, middleIndex, smallIndex] = key.split(":").map(Number);
+  const middle = state.units[unitIndex]?.subdomainGroups[groupIndex]?.middleUnits[middleIndex];
+  if (!middle) return null;
+  return Number.isInteger(smallIndex) ? middle.smallUnits[smallIndex] || null : middle;
+}
+
+function unitTitleProposalRows(record) {
+  return (record.middles || []).flatMap((middle) => [
+    { key: middle.key, title: middle.title, alternatives: middle.alternatives || [], reason: "" },
+    ...(middle.smalls || []).map((small) => ({ key: small.key, title: small.title, alternatives: small.alternatives || [], reason: small.reason || "" })),
+  ]);
+}
+
+function renderUnitTitleChoiceRow(record, row) {
+  const target = unitTitleTarget(row.key);
+  const meta = record.meta?.[row.key] || {};
+  const isMiddle = !row.key.split(":")[3];
+  if (!target) {
+    return `<tr class="${isMiddle ? "is-middle" : ""} is-missing"><td>${isMiddle ? "중" : "소"}</td><td>${escapeHtml(meta.before || "")}</td><td colspan="2"><small>지금 단원 구성에는 이 항목이 없습니다.</small></td></tr>`;
+  }
+  const candidates = [...new Set([row.title, ...row.alternatives].filter(Boolean))];
+  // 이미 후보 중 하나를 적용했다면 그 후보를 선택한 상태로 보여 준다.
+  const selected = candidates.includes(target.title) ? target.title : candidates[0];
+  return `
+    <tr class="${isMiddle ? "is-middle" : ""}">
+      <td>${isMiddle ? "중" : "소"}</td>
+      <td class="unit-title-now" title="${escapeHtml(meta.source ? `원 활동·내용 요소: ${meta.source}` : "")}">${escapeHtml(target.title || "(제목 없음)")}</td>
+      <td><select data-unit-title-choice="${row.key}">
+        ${candidates.map((text) => `<option value="${escapeHtml(text)}" ${text === selected ? "selected" : ""}>${escapeHtml(text)}</option>`).join("")}
+        <option value="">지금 이름 유지</option>
+      </select></td>
+      <td class="unit-title-reason" title="${escapeHtml(row.reason)}">${escapeHtml(row.reason)}</td>
+    </tr>`;
+}
+
+function unitTitleRecordLabel(record) {
+  return new Date(record.createdAt).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function renderUnitTitleProposal() {
+  if (!isElementaryPeProject()) return "";
+  const current = unitTitleProposal.bookKey === unitTitleProposalBookKey() ? unitTitleProposal : { error: "", openId: "" };
+  const log = unitTitleProposalLog();
+  const record = log.find((item) => item.id === current.openId);
+  const lastApplication = record?.applications?.filter((item) => !item.revertedAt).at(-1);
+  return `
+    ${current.error ? `<div class="validation-box invalid unit-title-proposal"><strong>단원명 제안을 받지 못했습니다.</strong><p>${escapeHtml(current.error)}</p></div>` : ""}
+    ${record ? `
+      <section class="unit-title-proposal">
+        <div class="unit-title-proposal-head">
+          <div><strong>AI 단원명 제안 · ${escapeHtml(unitTitleRecordLabel(record))}</strong><small>후보를 고르고 적용하세요. 기존 교과서 제목은 말투만 참고했습니다. 적용 후에도 아래 입력칸에서 직접 고칠 수 있습니다.</small></div>
+          <div class="unit-title-proposal-actions">
+            ${lastApplication ? `<button class="secondary-button" type="button" data-unit-title-revert="${record.id}">마지막 적용 되돌리기</button>` : ""}
+            <button class="secondary-button" type="button" data-unit-title-dismiss>닫기</button>
+            <button class="primary-button" type="button" data-unit-title-apply="${record.id}">선택한 이름 적용</button>
+          </div>
+        </div>
+        <div class="unit-title-table-wrap"><table class="unit-title-table">
+          <thead><tr><th></th><th>지금 이름</th><th>새 이름 후보</th><th>까닭</th></tr></thead>
+          <tbody>${unitTitleProposalRows(record).map((row) => renderUnitTitleChoiceRow(record, row)).join("")}</tbody>
+        </table></div>
+      </section>` : ""}
+    ${log.length ? `
+      <details class="unit-title-history" ${record ? "" : "open"}>
+        <summary>AI 단원명 제안 이력 <span>${log.length}건</span></summary>
+        <table class="unit-title-history-table">
+          <tbody>${log.slice().reverse().map((item) => {
+            const applied = (item.applications || []).filter((application) => !application.revertedAt);
+            const changed = applied.reduce((sum, application) => sum + application.changes.length, 0);
+            return `<tr class="${item.id === record?.id ? "is-open" : ""}">
+              <td>${escapeHtml(unitTitleRecordLabel(item))}</td>
+              <td>${escapeHtml(item.gradeLabel || "")} · ${unitTitleProposalRows(item).length}개 항목</td>
+              <td>${changed ? `적용 ${changed}개` : "<small>미적용</small>"}</td>
+              <td class="unit-title-history-actions">
+                <button type="button" data-unit-title-open="${item.id}">${item.id === record?.id ? "열림" : "열기"}</button>
+                ${["xlsx:엑셀", "pdf:PDF", "hwpx:한글", "docx:워드"].map((pair) => {
+                  const [format, label] = pair.split(":");
+                  return `<button type="button" data-unit-title-export="${item.id}:${format}">${label}</button>`;
+                }).join("")}
+                <button type="button" data-unit-title-delete="${item.id}" aria-label="이력 삭제">삭제</button>
+              </td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>
+      </details>` : ""}`;
+}
+
+function applyUnitTitleProposal(recordId) {
+  const record = unitTitleProposalLog().find((item) => item.id === recordId);
+  if (!record) return;
+  const changes = [];
+  document.querySelectorAll("[data-unit-title-choice]").forEach((select) => {
+    const key = select.dataset.unitTitleChoice;
+    const target = unitTitleTarget(key);
+    if (!target || !select.value || select.value === target.title) return;
+    // 공식 내용 요소 이름은 다시 제안할 때 근거로 쓰도록 처음 한 번만 보관한다.
+    if (!key.split(":")[3] && !target.officialTitle) target.officialTitle = target.title;
+    changes.push({ key, from: target.title, to: select.value });
+    target.title = select.value;
+  });
+  if (changes.length) record.applications = [...(record.applications || []), { at: new Date().toISOString(), changes }];
+  persist("단원명 제안 적용됨");
+  renderWorkspace();
+  showToast(changes.length ? `단원명 ${changes.length}개를 바꿨습니다. 이력에서 다시 열어 되돌릴 수 있습니다.` : "바꾼 단원명이 없습니다.");
+}
+
+function revertUnitTitleProposal(recordId) {
+  const record = unitTitleProposalLog().find((item) => item.id === recordId);
+  const application = record?.applications?.filter((item) => !item.revertedAt).at(-1);
+  if (!application) return;
+  let reverted = 0;
+  let skipped = 0;
+  application.changes.forEach((change) => {
+    const target = unitTitleTarget(change.key);
+    // 적용 뒤에 편집자가 직접 고친 이름은 덮어쓰지 않는다.
+    if (target && target.title === change.to) {
+      target.title = change.from;
+      reverted += 1;
+    } else skipped += 1;
+  });
+  application.revertedAt = new Date().toISOString();
+  persist("단원명 적용 되돌림");
+  renderWorkspace();
+  showToast(`단원명 ${reverted}개를 되돌렸습니다.${skipped ? ` 적용 뒤 직접 고친 ${skipped}개는 그대로 두었습니다.` : ""}`);
+}
+
+function unitTitleExportTable(record) {
+  const columns = ["구분", "영역", "원 활동·내용 요소", "제안 당시 이름", "AI 제안", "대안 1", "대안 2", "까닭", "지금 이름"];
+  const rows = unitTitleProposalRows(record).map((row) => {
+    const meta = record.meta?.[row.key] || {};
+    return [
+      meta.kind || (row.key.split(":")[3] ? "소단원" : "중단원"),
+      meta.domain || "",
+      meta.source || "",
+      meta.before || "",
+      row.title || "",
+      row.alternatives[0] || "",
+      row.alternatives[1] || "",
+      row.reason || "",
+      unitTitleTarget(row.key)?.title || "",
+    ];
+  });
+  return {
+    title: `${record.gradeLabel || ""} 단원명 제안`.trim(),
+    subtitle: `${activeProject().name} · ${new Date(record.createdAt).toLocaleString("ko-KR")} · ${record.model || "AI"}${record.concept ? ` · 추가 지침: ${record.concept}` : ""}`,
+    columns,
+    rows,
+    widths: [6, 6, 14, 18, 20, 18, 18, 28, 18],
+    filename: `${activeProject().name}_${record.gradeLabel || ""}_단원명제안_${folderStamp(record.createdAt).slice(0, 13)}`,
+  };
+}
+
+// PDF는 한글 글꼴을 서버에 두지 않고, 화면 글꼴로 캔버스에 표를 그려 A4 가로 쪽으로 묶는다.
+function tableToPdfBlob({ title, subtitle, columns, rows, widths }) {
+  const pageWidth = 1123;
+  const pageHeight = 794;
+  const margin = 40;
+  const total = widths.reduce((sum, value) => sum + value, 0);
+  const colWidths = widths.map((value) => ((pageWidth - margin * 2) * value) / total);
+  const font = "13px 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif";
+  const measure = document.createElement("canvas").getContext("2d");
+  measure.font = font;
+  const wrap = (text, width) => {
+    const lines = [];
+    String(text || "").split("\n").forEach((paragraph) => {
+      let line = "";
+      for (const char of paragraph) {
+        if (measure.measureText(line + char).width > width - 10 && line) {
+          lines.push(line);
+          line = char;
+        } else line += char;
+      }
+      lines.push(line);
+    });
+    return lines;
+  };
+  const pages = [];
+  let context = null;
+  let y = 0;
+  const lineHeight = 18;
+  const drawRow = (values, header) => {
+    const wrapped = values.map((value, index) => wrap(value, colWidths[index]));
+    const height = Math.max(...wrapped.map((lines) => lines.length)) * lineHeight + 10;
+    let x = margin;
+    if (header) {
+      context.fillStyle = "#ddebe3";
+      context.fillRect(margin, y, pageWidth - margin * 2, height);
+    }
+    context.strokeStyle = "#c9d3cc";
+    context.fillStyle = "#202a26";
+    context.font = header ? `bold ${font}` : font;
+    wrapped.forEach((lines, index) => {
+      context.strokeRect(x, y, colWidths[index], height);
+      lines.forEach((line, lineIndex) => context.fillText(line, x + 5, y + 18 + lineIndex * lineHeight));
+      x += colWidths[index];
+    });
+    y += height;
+    return height;
+  };
+  const newPage = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = pageWidth;
+    canvas.height = pageHeight;
+    context = canvas.getContext("2d");
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, pageWidth, pageHeight);
+    pages.push(canvas);
+    y = margin;
+    if (pages.length === 1) {
+      context.fillStyle = "#176b4f";
+      context.font = "bold 20px 'Malgun Gothic', sans-serif";
+      context.fillText(title, margin, y + 18);
+      context.fillStyle = "#5b6b60";
+      context.font = "12px 'Malgun Gothic', sans-serif";
+      context.fillText(subtitle, margin, y + 40);
+      y += 56;
+    }
+    drawRow(columns, true);
+  };
+  newPage();
+  rows.forEach((row) => {
+    const needed = Math.max(...row.map((value, index) => wrap(value, colWidths[index]).length)) * lineHeight + 10;
+    if (y + needed > pageHeight - margin) newPage();
+    drawRow(row, false);
+  });
+  const { jsPDF } = globalThis.jspdf;
+  const pdf = new jsPDF({ unit: "px", format: [pageWidth, pageHeight], orientation: "landscape", compress: true });
+  pages.forEach((canvas, index) => {
+    if (index > 0) pdf.addPage([pageWidth, pageHeight], "landscape");
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidth, pageHeight);
+  });
+  return pdf.output("blob");
+}
+
+async function exportUnitTitleProposal(recordId, format) {
+  const record = unitTitleProposalLog().find((item) => item.id === recordId);
+  if (!record) return;
+  const table = unitTitleExportTable(record);
+  if (format === "pdf") {
+    triggerBlobDownload(tableToPdfBlob(table), `${table.filename}.pdf`);
+    return;
+  }
+  const response = await fetch("/api/prototype/table-export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...table, format }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    showToast(data.error || "파일을 만들지 못했습니다.");
+    return;
+  }
+  triggerBlobDownload(await response.blob(), `${table.filename}.${format}`);
+}
+
+function bindUnitTitleProposal() {
+  document.querySelector("#workspace")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-unit-title-propose], [data-unit-title-dismiss], [data-unit-title-apply], [data-unit-title-revert], [data-unit-title-open], [data-unit-title-export], [data-unit-title-delete]");
+    if (!button) return;
+    const data = button.dataset;
+    if ("unitTitlePropose" in data) requestUnitTitleProposal();
+    else if ("unitTitleDismiss" in data) {
+      unitTitleProposal = { ...unitTitleProposal, openId: "", error: "" };
+      renderWorkspace();
+    } else if (data.unitTitleApply) applyUnitTitleProposal(data.unitTitleApply);
+    else if (data.unitTitleRevert) revertUnitTitleProposal(data.unitTitleRevert);
+    else if (data.unitTitleOpen) {
+      unitTitleProposal = { bookKey: unitTitleProposalBookKey(), loading: false, error: "", openId: data.unitTitleOpen };
+      renderWorkspace();
+      document.querySelector(".unit-title-proposal")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    } else if (data.unitTitleExport) {
+      const [id, format] = data.unitTitleExport.split(":");
+      exportUnitTitleProposal(id, format);
+    } else if (data.unitTitleDelete && confirm("이 단원명 제안 이력을 삭제할까요? 이미 적용한 단원명은 그대로 남습니다.")) {
+      state.unitTitleProposalLog = unitTitleProposalLog().filter((item) => item.id !== data.unitTitleDelete);
+      if (unitTitleProposal.openId === data.unitTitleDelete) unitTitleProposal = { ...unitTitleProposal, openId: "" };
+      persist("단원명 제안 이력 삭제됨");
+      renderWorkspace();
+    }
+  });
+}
+
 function renderUnits() {
   const sportsCulture = isSportsCultureProject();
   if (sportsCulture) ensureSportsCultureDraftSettings(state);
+  if (isElementaryPeProject()) ensureElementaryDraftSettings(state);
   normalizeAutomaticUnitNumbering(state);
   const allocatedHours = unitsTotalHours(state.units);
   const targetHours = projectTargetHours();
@@ -2539,7 +3622,8 @@ function renderUnits() {
     0
   );
   return `
-    ${sectionHeading("UNIT STRUCTURE", "단원 구성·차시 배분", "", `${isSportsCultureProject() ? '<button class="secondary-button" id="applySportsCultureDetailedUnits" type="button">18개 소단원 초기안 적용</button>' : ''}<button class="secondary-button" id="openPagePreview" type="button">배열표 미리보기</button><button class="secondary-button" id="downloadTocButton" type="button">목차 다운로드</button>`)}
+    ${sectionHeading("UNIT STRUCTURE", "단원 구성·차시 배분", "", `${isSportsCultureProject() ? '<button class="secondary-button" id="applySportsCultureDetailedUnits" type="button">18개 소단원 초기안 적용</button>' : ''}${isElementaryPeProject() ? `<button class="secondary-button" type="button" data-unit-title-propose ${unitTitleProposal.loading ? "disabled" : ""}>${unitTitleProposal.loading ? "AI가 단원명을 짓는 중…" : "AI로 단원명 새로 제안"}</button>` : ""}<button class="secondary-button" id="openPagePreview" type="button">배열표 미리보기</button><button class="secondary-button" id="downloadTocButton" type="button">목차 다운로드</button>`)}
+    ${renderUnitTitleProposal()}
     <div class="unit-summary-row">
       <div class="unit-summary-item ${allocatedHours === targetHours ? "valid" : "invalid"}">
         <span>차시</span><strong>${allocatedHours}</strong><small>/ ${targetHours}차시${hourDifference === 0 ? "" : hourDifference > 0 ? ` · ${hourDifference}차시 추가 필요` : ` · ${Math.abs(hourDifference)}차시 초과`}</small>
@@ -2551,6 +3635,7 @@ function renderUnits() {
         <span>부속자료 쪽수</span><strong>${frontBackTotal}</strong><small>/ ${supplementaryTarget}쪽${frontBackDifference === 0 ? "" : frontBackDifference > 0 ? ` · ${frontBackDifference}쪽 추가 필요` : ` · ${Math.abs(frontBackDifference)}쪽 초과`}</small>
       </div>
     </div>
+    ${coreDifference || frontBackDifference ? `<div class="page-fit-bar"><span>쪽수가 기준과 다릅니다.</span><button class="secondary-button" type="button" id="fitPagesButton">기준 쪽수에 맞게 배분</button></div>` : ""}
     <div class="domain-summary-row">
       ${domainOrder.map((domain) => {
         const domainUnits = state.units.filter((item) => item.domain === domain);
@@ -2613,23 +3698,23 @@ function renderUnits() {
         <textarea data-appendix-text rows="4" placeholder="예: 안전 수칙 안내, 2">${escapeHtml(state.appendixText)}</textarea>
       </div>
     </div>
-    ${sportsCulture ? `
+    ${sportsCulture || isElementaryPeProject() ? `
       <section class="special-page-panel toc-special-page-panel">
-        <div class="draft-target-heading"><div><strong>특별페이지 구성</strong><p>본문 뒤·마무리 앞에 배치</p></div><b>${plannedSpecialPages}쪽</b></div>
+        <div class="draft-target-heading"><div><strong>${sportsCulture ? "특별페이지 구성" : "확장 코너·통합 프로젝트"}</strong><p>${sportsCulture ? "본문 뒤·마무리 앞에 배치" : "대단원 마무리 앞, 또는 책 전체(모든 단원 통합)로 마지막 단원 뒤에 배치"}</p></div><b>${plannedSpecialPages}쪽</b></div>
         <div class="special-page-add">
-          <select id="tocSpecialPageTypeSelect" aria-label="특별페이지 유형">${SPORTS_CULTURE_SPECIAL_PAGE_TYPES.map((type) => `<option value="${type.id}">${type.label}</option>`).join("")}</select>
-          <select id="tocSpecialPageDomainSelect" aria-label="특별페이지 대단원">${state.units.map((unit) => `<option value="${escapeHtml(unit.domain)}">${escapeHtml(unit.domain)}</option>`).join("")}</select>
-          <button class="secondary-button" id="addTocSpecialPageButton" type="button">특별페이지 추가</button>
+          <select id="tocSpecialPageTypeSelect" aria-label="유형">${specialPageTypes().map((type) => `<option value="${type.id}">${type.label}</option>`).join("")}</select>
+          <select id="tocSpecialPageDomainSelect" aria-label="배치">${state.units.map((unit) => `<option value="${escapeHtml(unit.domain)}">${escapeHtml(unit.domain)}</option>`).join("")}${sportsCulture ? "" : '<option value="">책 전체(통합)</option>'}</select>
+          <button class="secondary-button" id="addTocSpecialPageButton" type="button">${sportsCulture ? "특별페이지 추가" : "코너 추가"}</button>
         </div>
         <div class="special-page-list">
           ${(state.specialPages || []).length ? state.specialPages.map((page) => `
             <article class="toc-special-page-row">
-              <label><span>유형</span><select data-toc-special-type="${page.id}">${SPORTS_CULTURE_SPECIAL_PAGE_TYPES.map((type) => `<option value="${type.id}" ${type.id === page.type ? "selected" : ""}>${type.label}</option>`).join("")}</select></label>
+              <label><span>유형</span><select data-toc-special-type="${page.id}">${specialPageTypes().map((type) => `<option value="${type.id}" ${type.id === page.type ? "selected" : ""}>${type.label}</option>`).join("")}</select></label>
               <label class="toc-special-title"><span>이름</span><input data-toc-special-title="${page.id}" value="${escapeHtml(page.title)}" /></label>
-              <label><span>대단원</span><select data-toc-special-domain="${page.id}">${state.units.map((unit) => `<option value="${escapeHtml(unit.domain)}" ${unit.domain === page.domain ? "selected" : ""}>${escapeHtml(unit.domain)}</option>`).join("")}</select></label>
+              <label><span>배치</span><select data-toc-special-domain="${page.id}">${state.units.map((unit) => `<option value="${escapeHtml(unit.domain)}" ${unit.domain === page.domain ? "selected" : ""}>${escapeHtml(unit.domain)}</option>`).join("")}${sportsCulture ? "" : `<option value="" ${state.units.some((unit) => unit.domain === page.domain) ? "" : "selected"}>책 전체(통합)</option>`}</select></label>
               <label class="small-unit-hours-field"><span>쪽수</span><input data-toc-special-pages="${page.id}" type="number" min="1" value="${Math.max(1, Number(page.pages) || 2)}" /></label>
               <button class="secondary-button" data-delete-toc-special-page="${page.id}" type="button">삭제</button>
-            </article>`).join("") : '<p class="bulk-edit-note">추가한 특별페이지가 없습니다. 필요한 경우 여기에서 먼저 쪽수를 배정하세요.</p>'}
+            </article>`).join("") : `<p class="bulk-edit-note">추가한 ${sportsCulture ? "특별페이지" : "코너"}가 없습니다. 필요한 경우 여기에서 먼저 쪽수를 배정하세요.</p>`}
         </div>
       </section>` : ""}
     <div class="curriculum-domain-tabs">
@@ -2645,23 +3730,19 @@ function renderUnits() {
         if (selectedDomain !== "전체" && unit.domain !== selectedDomain) return "";
         const unitTotalPages = unitsTotalPages([unit]) + specialPagesTotal(state, unit.domain);
         return `
-          <article class="unit-card">
-            ${sportsCulture ? `
-            <div class="unit-level-label">
-              <span>대단원</span>
-              <div class="unit-card-actions">
-                <button type="button" data-unit-action="up" data-unit-index="${unitIndex}" title="위로 이동">↑</button>
-                <button type="button" data-unit-action="down" data-unit-index="${unitIndex}" title="아래로 이동">↓</button>
-                <button type="button" data-unit-action="delete" data-unit-index="${unitIndex}">삭제</button>
-                <button type="button" data-unit-action="duplicate" data-unit-index="${unitIndex}">대단원 복제</button>
-              </div>
-            </div>` : ""}
+          <article class="unit-card" data-drop-kind="unit" data-drop-path="${unitIndex}">
             <div class="unit-top-row">
+              ${sportsCulture ? dragHandle("unit", unitIndex, "대단원") : ""}
+              <span class="automatic-unit-number">${unitNumberLabel(unitIndex)}</span>
               <span class="domain-badge ${escapeHtml(unit.domain)}">${sportsCulture ? `<input class="domain-name-input" data-unit-domain="${unitIndex}" value="${escapeHtml(unit.domain)}" aria-label="대단원명" />` : escapeHtml(unit.domain)}</span>
-              ${unit.subdomainGroups.map((group, groupIndex) => `<div class="numbered-unit-title"><span class="automatic-unit-number">${unitNumberLabel(unitIndex)}</span><input class="unit-subtitle-input" data-unit-subtitle="${unitIndex}:${groupIndex}" value="${escapeHtml(group.subtitle)}" aria-label="${unit.domain} 대단원 부제" title="대단원 부제(세부 영역)" /></div>`).join("")}
+              ${unit.subdomainGroups.map((group, groupIndex) => `<div class="numbered-unit-title"><input class="unit-subtitle-input" data-unit-subtitle="${unitIndex}:${groupIndex}" value="${escapeHtml(group.subtitle)}" aria-label="${unit.domain} 대단원 부제" title="대단원 부제(세부 영역)" /></div>`).join("")}
               <label class="small-unit-hours-field"><span>도입 쪽수</span><input data-unit-intro="${unitIndex}" type="number" min="0" value="${unit.introPages}" aria-label="${unit.domain} 도입 쪽수" /></label>
               <label class="small-unit-hours-field"><span>마무리 쪽수</span><input data-unit-wrapup="${unitIndex}" type="number" min="0" value="${unit.wrapUpPages}" aria-label="${unit.domain} 마무리 쪽수" /></label>
               <div class="unit-total-pages" aria-label="${unit.domain} 전체 쪽수"><span>전체 쪽수</span><strong>${unitTotalPages}</strong></div>
+              ${sportsCulture ? `<div class="unit-card-actions">
+                <button type="button" data-unit-action="delete" data-unit-index="${unitIndex}">삭제</button>
+                <button type="button" data-unit-action="duplicate" data-unit-index="${unitIndex}">대단원 복제</button>
+              </div>` : ""}
             </div>
             ${unit.subdomainGroups.map((group, groupIndex) => `
               <div class="subdomain-group">
@@ -2674,34 +3755,30 @@ function renderUnits() {
                     g.middleUnits.map((m, mIdx) => ({ groupIndex: gIdx, middleIndex: mIdx, title: m.title }))
                   ).filter((t) => !(t.groupIndex === groupIndex && t.middleIndex === middleIndex));
                   return `
-                  <div class="middle-unit-block">
-                    <div class="unit-level-label">
-                      <span>중단원</span>
+                  <div class="middle-unit-block" data-drop-kind="middle" data-drop-path="${middlePath}">
+                    <div class="numbered-middle-title">
+                      ${dragHandle("middle", middlePath, "중단원")}
+                      <span class="automatic-unit-number">${middleNumber}</span>
+                      <input data-middle-title="${middlePath}" value="${escapeHtml(middle.title)}" aria-label="${unit.domain} 중단원명" />
                       <div class="unit-card-actions">
-                        <button type="button" data-middle-action="up" data-middle-path="${middlePath}" title="위로 이동">↑</button>
-                        <button type="button" data-middle-action="down" data-middle-path="${middlePath}" title="아래로 이동">↓</button>
                         <button type="button" data-middle-action="delete" data-middle-path="${middlePath}">삭제</button>
                         <button type="button" data-middle-action="duplicate" data-middle-path="${middlePath}">중단원 복제</button>
                       </div>
                     </div>
-                    <div class="numbered-middle-title"><span class="automatic-unit-number">${middleNumber}</span><input data-middle-title="${middlePath}" value="${escapeHtml(middle.title)}" aria-label="${unit.domain} 중단원명" /></div>
-                    <p class="small-unit-label">소단원과 차시</p>
                     <div class="small-unit-grid">
                       ${middle.smallUnits.map((smallUnit, smallIndex) => {
                         const smallPath = `${middlePath}:${smallIndex}`;
                         const smallNumber = unitNumberLabel(unitIndex, middlePosition, smallIndex + 1);
                         return `
-                        <div class="small-unit-card">
+                        <div class="small-unit-card" data-drop-kind="small" data-drop-path="${smallPath}">
                           <div class="small-unit-meta">
                             <small class="small-unit-source">${isSportsCultureProject() ? "구성 근거" : "원 활동"}: ${escapeHtml(smallUnit.sourceActivity)}</small>
                             ${isSportsCultureProject() && Array.isArray(smallUnit.standardCodes) ? `<small class="small-unit-source standard-link">성취기준: ${escapeHtml(smallUnit.standardCodes.join(", "))}</small>` : ""}
                           </div>
-                          <label class="small-unit-title-field"><span>소단원명</span><b class="automatic-unit-number">${smallNumber}</b><input class="small-unit-title" data-small-title="${smallPath}" value="${escapeHtml(smallUnit.title)}" aria-label="소단원명" /></label>
+                          <label class="small-unit-title-field">${dragHandle("small", smallPath, "소단원")}<b class="automatic-unit-number">${smallNumber}</b><input class="small-unit-title" data-small-title="${smallPath}" value="${escapeHtml(smallUnit.title)}" aria-label="소단원명" /></label>
                           <label class="small-unit-hours-field"><span>차시</span><input data-small-hours="${smallPath}" type="number" min="1" value="${smallUnit.hours}" aria-label="소단원 차시" /></label>
                           <label class="small-unit-hours-field"><span>쪽수</span><input data-small-pages="${smallPath}" type="number" min="0" value="${smallUnit.pages}" aria-label="소단원 쪽수" /></label>
                           <div class="small-unit-actions" aria-label="소단원 편집 작업">
-                            <button type="button" data-small-action="up" data-small-path="${smallPath}" title="위로 이동">↑</button>
-                            <button type="button" data-small-action="down" data-small-path="${smallPath}" title="아래로 이동">↓</button>
                             <button type="button" data-small-action="delete" data-small-path="${smallPath}">삭제</button>
                             <button type="button" data-small-action="duplicate" data-small-path="${smallPath}">복제</button>
                             <button type="button" data-toggle-move="${smallPath}">이동</button>
@@ -2751,6 +3828,107 @@ function renderUnits() {
     ${renderPagePreviewModal()}`;
 }
 
+// ── 03단계 단원 순서: 손잡이(⠿)를 끌어 놓아 옮긴다 ──
+// 대단원끼리, 같은 대단원 안의 중단원끼리, 같은 대단원 안의 소단원끼리 옮길 수 있다.
+// 소단원을 다른 중단원 제목 위에 놓으면 그 중단원 맨 끝으로 들어간다.
+let unitDragSource = null;
+
+function dragHandle(kind, path, label) {
+  return `<span class="drag-handle" draggable="true" data-drag-kind="${kind}" data-drag-path="${path}" title="끌어서 ${label} 순서 바꾸기" aria-label="${label} 끌어서 옮기기">⠿</span>`;
+}
+
+function unitListAt(kind, path) {
+  const [unitIndex, groupIndex, middleIndex, smallIndex] = String(path).split(":").map(Number);
+  if (kind === "unit") return { list: state.units, index: unitIndex, unitIndex };
+  const group = state.units[unitIndex].subdomainGroups[groupIndex];
+  if (kind === "middle") return { list: group.middleUnits, index: middleIndex, unitIndex };
+  return { list: group.middleUnits[middleIndex].smallUnits, index: smallIndex, unitIndex };
+}
+
+function canDropUnitItem(source, target) {
+  if (!source) return false;
+  const targetKind = target.dataset.dropKind;
+  const sameUnit = () => source.path.split(":")[0] === target.dataset.dropPath.split(":")[0];
+  if (source.kind === "unit") return targetKind === "unit";
+  if (source.kind === "middle") return targetKind === "middle" && sameUnit();
+  return (targetKind === "small" || targetKind === "middle") && sameUnit();
+}
+
+function clearUnitDropMarks() {
+  document.querySelectorAll(".drop-before, .drop-after, .drop-into, .dragging").forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-into", "dragging"));
+}
+
+function dropUnitItem(source, targetKind, targetPath, after) {
+  const from = unitListAt(source.kind, source.path);
+  let to;
+  let insertAt;
+  if (source.kind === "small" && targetKind === "middle") {
+    to = unitListAt("small", `${targetPath}:0`);
+    insertAt = to.list.length;
+  } else {
+    to = unitListAt(targetKind, targetPath);
+    insertAt = to.index + (after ? 1 : 0);
+  }
+  if (from.list === to.list && from.index < insertAt) insertAt -= 1;
+  if (from.list === to.list && from.index === insertAt) return;
+  if (from.list !== to.list && from.list.length <= 1) {
+    showToast(source.kind === "small" ? "중단원에는 소단원이 하나 이상 있어야 합니다." : "세부 영역에는 중단원이 하나 이상 있어야 합니다.");
+    return;
+  }
+  const [item] = from.list.splice(from.index, 1);
+  to.list.splice(insertAt, 0, item);
+  moveMenuOpenPath = null;
+  persist(source.kind === "unit" ? "대단원 순서 변경됨" : source.kind === "middle" ? "중단원 순서 변경됨" : "소단원 순서 변경됨");
+  renderWorkspace();
+}
+
+function bindUnitDragAndDrop() {
+  document.querySelectorAll("[data-drag-kind]").forEach((handle) => {
+    handle.addEventListener("dragstart", (event) => {
+      const block = handle.closest("[data-drop-kind]");
+      unitDragSource = { kind: handle.dataset.dragKind, path: handle.dataset.dragPath };
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", unitDragSource.path);
+      if (block) {
+        event.dataTransfer.setDragImage(block, 24, 20);
+        block.classList.add("dragging");
+      }
+    });
+    handle.addEventListener("dragend", () => {
+      unitDragSource = null;
+      clearUnitDropMarks();
+    });
+  });
+  document.querySelectorAll("[data-drop-kind]").forEach((target) => {
+    const placement = (event) => {
+      if (unitDragSource?.kind === "small" && target.dataset.dropKind === "middle") return "drop-into";
+      const rect = target.getBoundingClientRect();
+      return event.clientY > rect.top + rect.height / 2 ? "drop-after" : "drop-before";
+    };
+    target.addEventListener("dragover", (event) => {
+      if (!canDropUnitItem(unitDragSource, target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = "move";
+      document.querySelectorAll(".drop-before, .drop-after, .drop-into").forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-into"));
+      target.classList.add(placement(event));
+    });
+    target.addEventListener("dragleave", (event) => {
+      if (!target.contains(event.relatedTarget)) target.classList.remove("drop-before", "drop-after", "drop-into");
+    });
+    target.addEventListener("drop", (event) => {
+      if (!canDropUnitItem(unitDragSource, target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const source = unitDragSource;
+      const mark = placement(event);
+      unitDragSource = null;
+      clearUnitDropMarks();
+      dropUnitItem(source, target.dataset.dropKind, target.dataset.dropPath, mark === "drop-after");
+    });
+  });
+}
+
 function smallUnitOptions() {
   const options = [];
   state.units.forEach((unit, unitIndex) => {
@@ -2766,6 +3944,8 @@ function smallUnitOptions() {
             middleTitle: `${middleNumber}. ${middle.title}`,
             smallTitle: `${smallNumber}. ${small.title}`,
             sourceActivity: small.sourceActivity,
+            subdomain: group.subtitle || "",
+            lessonType: small.lessonType || "",
             pages: small.pages,
             hours: small.hours,
             standardCodes: Array.isArray(small.standardCodes) ? [...small.standardCodes] : [],
@@ -2780,130 +3960,6 @@ function smallUnitOptions() {
     });
   });
   return options;
-}
-
-// 실제 API 연동 시 이 두 함수(simulatedSpreadDraft/simulatedManuscriptDraft)를 아래 프롬프트로 만든
-// 실제 API 호출로 교체하면 됨. 화면(renderSpreadDraft 등)·PPT 출력(spreadsToPptx)은 반환값 모양만
-// 같으면 수정 불필요 — activities/support_boxes 개수를 고정하지 않고 그대로 반복해서 그리는 구조라서다.
-// 소단원 하나당 스프레드 전체를 한 번에 요청(호출 비용·지연 절감). 지금 시뮬레이션은 FRAMEWORK_SPREAD_
-// STRUCTURE로 체제별 활동 개수·보조단 종류를 하드코딩해 흉내만 낸 것이고, 실제 연동 시에는 이 표 대신
-// 모델이 지표를 보고 매번 자유롭게 개수·종류를 정하게 해야 진짜 다양성이 나옴.
-//
-// [system]
-// 당신은 초등학교 체육 교과서 원고를 쓰는 AI 저자입니다. 주어진 체제(포맷) 설명과 편집 지표를 반영해
-// 소단원의 펼침면 원고 전체를 작성하세요. 보조단(준비물/안전/전략/도움말 등)은 정해진 항목이 아니라
-// 체제·지표에 맞게 개수와 종류를 자유롭게 정하세요. 안전성 지표가 높으면 안전 보조단을 반드시 포함하고,
-// 참신성 지표가 높으면 기존에 없던 새로운 유형의 보조단을 만들어도 됩니다.
-//
-// [user] (아래 값은 실제 호출 시 framework/metrics/smallUnit/spreadCount로 채움)
-// [체제 정보]
-// 이름: {framework.name} / 설명: {framework.summary} / 강점: {framework.strengths.join(', ')}
-// [편집 지표 (1~5, 높을수록 그 요소를 강하게 반영)]
-// 교육과정 충실도: {metrics.curriculum} / 실행 용이성: {metrics.feasibility} /
-// 흥미도: {metrics.engagement} / 참신성: {metrics.novelty} / 안전성: {metrics.safety}
-// [소단원 정보]
-// 영역: {smallUnit.domain} / 중단원: {smallUnit.middleTitle} / 소단원: {smallUnit.smallTitle} /
-// 원 신체활동 예시: {smallUnit.sourceActivity} / 배정 쪽수: {smallUnit.pages}
-// [요청] 이 소단원을 {spreadCount}개의 펼침면으로 나눠 원고를 작성하세요. 1번째 펼침면은 도입·기능
-// 익히기, 마지막 펼침면은 적용·정리, 중간 펼침면은 도전·전략 적용 역할로 구성하세요. 아래 JSON 스키마의
-// spreads 배열로만 응답하세요(각 항목: intro, activities[{title, objective, method[]}],
-// support_boxes[{type, content}], wrap_up) — 실제 응답 파싱은 구조화 출력(도구 사용/JSON 스키마 강제)으로
-// 처리해 형식이 깨지지 않게 함.
-const FRAMEWORK_SPREAD_STRUCTURE = {
-  balanced: { baseActivityCount: 2, boxTypes: ["준비물", "안전", "전략", "도움말"] },
-  activity: { baseActivityCount: 3, boxTypes: ["준비물", "안전", "도움말"] },
-  creative: { baseActivityCount: 2, boxTypes: ["준비물", "안전", "창의 발상", "도움말"] },
-};
-
-function supportBoxContent(type, smallUnit, emphasisLabel) {
-  switch (type) {
-    case "준비물": return `${smallUnit.sourceActivity}에 필요한 기본 교구와 기록 도구`;
-    case "안전": return "활동 간격을 유지하고 충돌 위험이 있는 이동 방향을 미리 확인합니다.";
-    case "전략": case "점검": return "친구의 움직임을 관찰하고 성공한 방법과 바꿀 점을 정리합니다.";
-    case "창의 발상": return "이 활동을 나만의 방식으로 바꾼다면 어떤 규칙이나 동작을 추가하고 싶은지 자유롭게 생각해 봅니다.";
-    case "도움말": return `이번 체제안에서는 ${emphasisLabel}을(를) 우선 강조합니다.`;
-    default: return "";
-  }
-}
-
-function deriveSpreadMeta(spreadIndex, spreadCount, smallUnit) {
-  let template;
-  let role;
-  let focus;
-  if (spreadIndex === 0) {
-    template = "기본 기능형";
-    role = "도입·기능 익히기";
-    focus = `${smallUnit.sourceActivity}의 특징과 기본 움직임을 익혀 봅시다.`;
-  } else if (spreadIndex === spreadCount - 1) {
-    template = "탐구·평가형";
-    role = "적용·정리";
-    focus = `${smallUnit.sourceActivity}을 적용하고 활동 결과를 돌아봅시다.`;
-  } else {
-    template = "게임·적용형";
-    role = "도전·전략 적용";
-    focus = `친구와 함께 ${smallUnit.sourceActivity}에 도전하며 전략을 찾아봅시다.`;
-  }
-  return {
-    template,
-    role,
-    focus,
-    left_page: 1 + spreadIndex * 2,
-    right_page: 2 + spreadIndex * 2,
-    title: `${smallUnit.smallTitle} · ${role}`,
-  };
-}
-
-function simulatedSpreadDraft(spreadIndex, spreadCount, smallUnit, framework, emphasisLabel) {
-  const meta = deriveSpreadMeta(spreadIndex, spreadCount, smallUnit);
-  const structure = FRAMEWORK_SPREAD_STRUCTURE[framework.id] || FRAMEWORK_SPREAD_STRUCTURE.balanced;
-  const activityCount = structure.baseActivityCount + (spreadCount > 1 && spreadIndex === spreadCount - 1 ? 1 : 0);
-  const activityTitles = [
-    `${smallUnit.smallTitle} 기본 움직임 익히기`,
-    `${smallUnit.smallTitle} 상황에 맞게 도전하기`,
-    `${smallUnit.smallTitle} 전략 만들기`,
-    `${smallUnit.smallTitle} 응용하여 확장하기`,
-  ];
-  const activities = Array.from({ length: activityCount }, (_, index) => ({
-    number: index + 1,
-    title: activityTitles[index] || `${smallUnit.smallTitle} 활동 ${index + 1}`,
-    placement: index === 0 ? "left" : "right",
-    objective: `${smallUnit.sourceActivity}의 방법을 이해하고 자신의 수준에 맞게 수행할 수 있다.`,
-    method: [
-      "모둠을 정하고 활동 공간과 준비물을 확인합니다.",
-      `${smallUnit.sourceActivity}의 핵심 움직임을 단계에 따라 수행합니다.`,
-      "친구와 결과를 비교하고 더 나은 방법을 찾아 다시 활동합니다.",
-    ],
-  }));
-  const support_boxes = structure.boxTypes.map((type) => {
-    const resolvedType = type === "전략" && meta.role === "적용·정리" ? "점검" : type;
-    return { type: resolvedType, content: supportBoxContent(resolvedType, smallUnit, emphasisLabel) };
-  });
-  return {
-    left_page: meta.left_page,
-    right_page: meta.right_page,
-    layout_template: meta.template,
-    role: meta.role,
-    title: meta.title,
-    intro: `${smallUnit.middleTitle}에서 배운 내용을 바탕으로 ${meta.focus} 활동 전에는 공간과 도구를 확인하고 모둠의 안전 약속을 정합니다.`,
-    activities,
-    support_boxes,
-    wrap_up: `${smallUnit.sourceActivity}에서 잘된 점과 다음 활동에서 바꿀 점을 한 가지씩 적어 봅시다.`,
-  };
-}
-
-function simulatedManuscriptDraft(framework, metrics, smallUnit) {
-  const emphasisKey = Object.entries(metrics).sort((a, b) => b[1] - a[1])[0][0];
-  const emphasisLabel = FRAMEWORK_METRIC_LABELS[emphasisKey];
-  const spreadCount = Math.max(1, Math.round((Number(smallUnit.pages) || 2) / 2));
-  return {
-    frameworkName: framework.name,
-    smallUnitLabel: `${smallUnit.domain} · ${smallUnit.middleTitle} · ${smallUnit.smallTitle}`,
-    instruction: `${smallUnit.sourceActivity}의 핵심 동작을 탐색하고, 자신의 수준에 맞게 연습한 뒤 친구와 결과를 나눠 봅시다.`,
-    spreads: Array.from(
-      { length: spreadCount },
-      (_, index) => simulatedSpreadDraft(index, spreadCount, smallUnit, framework, emphasisLabel)
-    ),
-  };
 }
 
 function canvasWrappedText(context, text, x, y, maxWidth, lineHeight, maxLines = 4) {
@@ -3042,6 +4098,44 @@ function createPrintDocument() {
     y += height;
   }
 
+  // 구획 안의 소제목 — 띠 없이 굵은 파란 글씨만.
+  function subheading(text) {
+    ensureSpace(30);
+    context.font = `700 12px ${PRINT_DOC_FONT_STACK}`;
+    context.fillStyle = PRINT_DOC_PALETTE.accent;
+    context.fillText(text, margin, y + 13);
+    y += 22;
+  }
+
+  // 글머리 항목: 굵은 첫 줄(핵심어) 아래에 설명을 들여 쓴다. 표 칸 없이 읽기 쉽게.
+  function bulletItem(lead, detail = "", { indent = 16 } = {}) {
+    const size = 10.5;
+    const lineHeight = size * 1.6;
+    context.font = `700 ${size}px ${PRINT_DOC_FONT_STACK}`;
+    const leadLines = wrapTextLines(context, lead || "", contentWidth - indent);
+    context.font = `${size}px ${PRINT_DOC_FONT_STACK}`;
+    const detailLines = detail ? wrapTextLines(context, detail, contentWidth - indent) : [];
+    ensureSpace(lineHeight * Math.min(3, leadLines.length + detailLines.length));
+    context.fillStyle = PRINT_DOC_PALETTE.accent;
+    context.font = `700 ${size}px ${PRINT_DOC_FONT_STACK}`;
+    context.fillText("•", margin + 3, y + size);
+    leadLines.forEach((line) => {
+      ensureSpace(lineHeight);
+      context.font = `700 ${size}px ${PRINT_DOC_FONT_STACK}`;
+      context.fillStyle = PRINT_DOC_PALETTE.text;
+      context.fillText(line, margin + indent, y + size);
+      y += lineHeight;
+    });
+    detailLines.forEach((line) => {
+      ensureSpace(lineHeight);
+      context.font = `${size}px ${PRINT_DOC_FONT_STACK}`;
+      context.fillStyle = PRINT_DOC_PALETTE.muted;
+      context.fillText(line, margin + indent, y + size);
+      y += lineHeight;
+    });
+    y += 6;
+  }
+
   // 표 한 행 — cells: [{ text, width, bold, color, tag }] 또는 { items: [...], width, ... }.
   // items를 주면 항목 하나하나를 따로 줄바꿈해 "· 항목"으로 각자 새 줄에서 시작한다(지도안
   // 표처럼 문장이 한 덩어리로 붙지 않도록). 구글 시트 느낌의 옅은 회색 격자선과 헤더 행 옅은
@@ -3110,7 +4204,7 @@ function createPrintDocument() {
     );
   }
 
-  return { canvases, title, sectionBar, paragraph, gap, tableRow, keyValueRow, ensureSpace, contentWidth };
+  return { canvases, title, sectionBar, subheading, bulletItem, paragraph, gap, tableRow, keyValueRow, ensureSpace, contentWidth };
 }
 
 function downloadCanvasPagesAsPdf(filename, canvases) {
@@ -3127,6 +4221,31 @@ function currentCurriculumDevelopmentNotes() {
   return CURRICULUM_DEVELOPMENT_NOTES[gradeBand] || null;
 }
 
+// 02단계 "성취기준·고려사항" 문서: 영역마다 성취기준(코드·문장 → 해설)과 적용 시 고려 사항을 차례로.
+function buildCurriculumStandardsPdfPages() {
+  const rows = curriculumDownloadRows().slice(1);
+  if (!rows.length) return null;
+  const doc = createPrintDocument();
+  const grade = Number.parseInt(state.project.grade, 10) || 3;
+  const scope = isHighSchoolProject() || state.project.schoolLevel === "중학교" ? state.project.subject : grade <= 4 ? "3~4학년군" : "5~6학년군";
+  doc.title(`성취기준과 적용 시 고려 사항 · ${scope}`);
+  const domains = [...new Set(rows.map((row) => row[0]))];
+  domains.forEach((domain, index) => {
+    const domainRows = rows.filter((row) => row[0] === domain);
+    const standards = domainRows.filter((row) => row[1] !== "적용 시 고려 사항");
+    const considerations = domainRows.filter((row) => row[1] === "적용 시 고려 사항");
+    if (index) doc.gap(10);
+    doc.sectionBar(`${domain} · 성취기준 ${standards.length}개`);
+    standards.forEach(([, code, statement, explanation]) => doc.bulletItem(`${code} ${statement}`, explanation ? `해설: ${explanation}` : ""));
+    considerations.forEach(([, , text]) => {
+      doc.gap(4);
+      doc.subheading("적용 시 고려 사항");
+      String(text || "").split(/\n+/).map((line) => line.trim()).filter(Boolean).forEach((line) => doc.paragraph(line, { indent: 16, color: PRINT_DOC_PALETTE.text }));
+    });
+  });
+  return doc.canvases;
+}
+
 function buildCurriculumDevelopmentNotePdfPages() {
   const notesByDomain = currentCurriculumDevelopmentNotes();
   if (!notesByDomain) return null;
@@ -3137,30 +4256,33 @@ function buildCurriculumDevelopmentNotePdfPages() {
     { text: item.keyword, width: keywordWidth, bold: true, color: PRINT_DOC_PALETTE.accent },
     { text: item.detail, width: detailWidth },
   ]);
+  void noteRow;
   doc.title(`교육과정 분석 및 집필 방향 · ${state.project.name || "프로젝트"}`);
-  Object.entries(notesByDomain).forEach(([domain, note]) => {
-    doc.sectionBar(`${domain} · 이전 개정 대비 달라진 점`);
-    note.changes.forEach(noteRow);
-    doc.gap(10);
-    doc.sectionBar(`${domain} · 집필 시 강조할 점`);
-    note.emphasis.forEach(noteRow);
-    doc.gap(18);
+  Object.entries(notesByDomain).forEach(([domain, note], index) => {
+    if (index) doc.gap(10);
+    doc.sectionBar(domain);
+    doc.subheading("1. 이전 개정 대비 달라진 점");
+    note.changes.forEach((item) => doc.bulletItem(item.keyword, item.detail));
+    doc.gap(6);
+    doc.subheading("2. 집필 시 강조할 점");
+    note.emphasis.forEach((item) => doc.bulletItem(item.keyword, item.detail));
   });
   return doc.canvases;
 }
 
 function buildTextbookManuscriptPdfPages(entry) {
   const doc = createPrintDocument();
-  doc.title("스포츠 문화 교과서 원고");
+  doc.title(`${entrySubjectLabel(entry)} 교과서 원고`);
   doc.keyValueRow("체제안", entry.frameworkName);
   doc.keyValueRow("소단원", entry.smallUnitLabel);
-  doc.keyValueRow("소단원 성격", entry.primaryTypeLabel);
-  doc.keyValueRow("종목", `${sportsCultureSportModeLabel(entry.sportMode)} · ${entry.carrierSport || "특정 종목 없음"}`);
+  doc.keyValueRow(isElementaryEntry(entry) ? "수업 유형" : "소단원 성격", entry.primaryTypeLabel);
+  if (isElementaryEntry(entry)) doc.keyValueRow("차시", entry.lessonRange || "");
+  else doc.keyValueRow("종목", `${sportsCultureSportModeLabel(entry.sportMode)} · ${entry.carrierSport || "특정 종목 없음"}`);
   doc.keyValueRow("성취기준", (entry.traceability?.standardCodes || []).join(", "));
   doc.gap(14);
   entry.spreads.forEach((spread, index) => {
     const manuscript = spread.textbook_manuscript || {};
-    doc.sectionBar(`펼침면 ${index + 1} · ${spread.left_page}~${spread.right_page}쪽 — ${manuscript.headline || spread.title || ""}`);
+    doc.sectionBar(`펼침면 ${index + 1} · ${spread.left_page}~${spread.right_page}쪽${spread.lesson_label ? ` · ${spread.lesson_label}` : ""} — ${manuscript.headline || spread.title || ""}`);
     doc.keyValueRow("학습 목표", manuscript.learningGoal || "");
     if (manuscript.openingQuestion) doc.keyValueRow("생각 열기", manuscript.openingQuestion);
     if (manuscript.deck) doc.keyValueRow("도입문", manuscript.deck);
@@ -3170,7 +4292,7 @@ function buildTextbookManuscriptPdfPages(entry) {
     const bodyWidth = doc.contentWidth - numberWidth - titleWidth;
     (manuscript.sections || []).forEach((section) => {
       doc.tableRow([
-        { text: String(section.number ?? ""), width: numberWidth, bold: true, color: PRINT_DOC_PALETTE.accent },
+        { text: String(section.label ? section.label.replace("활동 ", "활동\n") : section.number ?? ""), width: numberWidth, bold: true, color: PRINT_DOC_PALETTE.accent },
         { text: section.title || "", width: titleWidth, bold: true, tag: section.boxType || null },
         { items: (section.paragraphs || []).filter(Boolean), width: bodyWidth },
       ], { tint: section.boxType ? PRINT_DOC_PALETTE.boxTint : null });
@@ -3190,24 +4312,25 @@ function buildTextbookManuscriptPdfPages(entry) {
 
 function buildTeacherGuideManuscriptPdfPages(entry) {
   const doc = createPrintDocument();
-  doc.title("스포츠 문화 지도서 원고");
+  doc.title(`${entrySubjectLabel(entry)} 지도서 원고`);
   doc.keyValueRow("연계 교과서", entry.smallUnitLabel);
   doc.keyValueRow("체제안", entry.frameworkName);
-  doc.keyValueRow("종목", `${sportsCultureSportModeLabel(entry.sportMode)} · ${entry.carrierSport || "특정 종목 없음"}`);
+  if (isElementaryEntry(entry)) doc.keyValueRow("수업 유형", `${entry.primaryTypeLabel || ""} · 원 활동 ${entry.carrierSport || ""}`);
+  else doc.keyValueRow("종목", `${sportsCultureSportModeLabel(entry.sportMode)} · ${entry.carrierSport || "특정 종목 없음"}`);
   doc.keyValueRow("성취기준", (entry.traceability?.standardCodes || []).join(", "));
   if (entry.teacherGuide?.annualPlanLink) doc.keyValueRow("차시·분량", entry.teacherGuide.annualPlanLink);
   doc.gap(14);
   entry.spreads.forEach((spread, index) => {
     const guide = spread.teacher_guide || {};
-    doc.sectionBar(`${index + 1}차시군 · 교과서 ${spread.left_page}~${spread.right_page}쪽`);
+    doc.sectionBar(`${spread.lesson_label || `${index + 1}차시군`} · 교과서 ${spread.left_page}~${spread.right_page}쪽`);
     doc.keyValueRow("수업 목표", null, { bulletItems: guide.lessonGoals || [] });
     doc.keyValueRow("준비물", (guide.preparation || []).join(" · "));
     doc.keyValueRow("수업 흐름", null, { bulletItems: (guide.lessonFlow || []).map((item) => `${item.stage}: ${item.guidance}`) });
     doc.keyValueRow("지도상의 유의점", null, { bulletItems: guide.teachingNotes || [] });
     doc.keyValueRow("핵심 발문", null, { bulletItems: guide.questions || [] });
     doc.keyValueRow("예상 답변", null, { bulletItems: guide.expectedResponses || [] });
-    doc.keyValueRow("개별화·대체 참여", null, { bulletItems: guide.differentiation || [] });
-    doc.keyValueRow("안전·포용", guide.safety || "");
+    doc.keyValueRow(isElementaryEntry(entry) ? "수준별 지도·대체 활동" : "개별화·대체 참여", null, { bulletItems: guide.differentiation || [] });
+    doc.keyValueRow(isElementaryEntry(entry) ? "안전 지도" : "안전·포용", guide.safety || "");
     doc.keyValueRow("평가", (guide.assessment || []).join(" · "));
     doc.gap(18);
   });
@@ -3243,7 +4366,7 @@ async function drawDraftSpreadCanvas(canvas, entry, spread) {
   const pale = { balanced: "#eef1fb", activity: "#fff1eb", creative: "#eaf6f2" }[entry.frameworkId] || "#eef1fb";
   const manuscript = spread.textbook_manuscript || {};
   const sections = Array.isArray(manuscript.sections) ? manuscript.sections : [];
-  const sectionSplit = Math.ceil(sections.length / 2);
+  const sectionSplit = manuscriptPageSplit(manuscript);
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#cfd4dc";
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -3268,7 +4391,7 @@ async function drawDraftSpreadCanvas(canvas, entry, spread) {
       context.rotate(-Math.PI / 2);
       context.fillStyle = "#ffffff";
       context.font = "800 15px 'Malgun Gothic', sans-serif";
-      context.fillText(entry.smallUnitLabel || "스포츠 문화", 0, 0);
+      context.fillText(entry.smallUnitLabel || entrySubjectLabel(entry), 0, 0);
       context.restore();
     }
     const contentX = page.x + (pageIndex === 0 ? 94 : 42);
@@ -3280,7 +4403,7 @@ async function drawDraftSpreadCanvas(canvas, entry, spread) {
       y = canvasWrappedText(context, manuscript.headline || spread.title, contentX, y, contentWidth, 39, 2) + 7;
       context.fillStyle = accentDark;
       context.font = "700 13px 'Malgun Gothic', sans-serif";
-      context.fillText(`학습 목표  |  ${manuscript.learningGoal || spread.intro}`.slice(0, 82), contentX, y);
+      context.fillText(`${spread.lesson_label ? `${spread.lesson_label}  ·  ` : ""}학습 목표  |  ${manuscript.learningGoal || spread.intro}`.slice(0, 82), contentX, y);
       y += 30;
       drawRoundedRect(context, contentX, y, contentWidth, 44, 8, pale);
       context.fillStyle = accentDark;
@@ -3293,7 +4416,7 @@ async function drawDraftSpreadCanvas(canvas, entry, spread) {
       context.globalAlpha = 0.6;
       context.font = "700 10px 'Malgun Gothic', sans-serif";
       context.textAlign = "right";
-      context.fillText(`${entry.primaryTypeLabel || "스포츠 문화"} · ${spread.role}`, page.x + 664, 34);
+      context.fillText(`${entry.primaryTypeLabel || entrySubjectLabel(entry)} · ${spread.role}`, page.x + 664, 34);
       context.restore();
     }
     page.sections.forEach((section) => {
@@ -3309,7 +4432,7 @@ async function drawDraftSpreadCanvas(canvas, entry, spread) {
       context.textAlign = "left";
       context.fillStyle = "#24272c";
       context.font = "800 19px 'Malgun Gothic', sans-serif";
-      context.fillText(section.title, contentX + 34, y + 7);
+      context.fillText(section.label ? `${section.label}  ${section.title}` : section.title, contentX + 34, y + 7);
       if (section.boxType) {
         context.font = "800 10px 'Malgun Gothic', sans-serif";
         const tagWidth = context.measureText(section.boxType).width + 14;
@@ -3364,17 +4487,26 @@ async function drawDraftSpreadCanvas(canvas, entry, spread) {
     }
     context.fillStyle = "#697078";
     context.font = "12px 'Malgun Gothic', sans-serif";
-    context.fillText(`${pageIndex === 0 ? spread.left_page : spread.right_page}  |  스포츠 문화`, page.x + 292, 858);
+    context.fillText(`${pageIndex === 0 ? spread.left_page : spread.right_page}  |  ${entrySubjectLabel(entry)}`, page.x + 292, 858);
   });
   context.fillStyle = "rgba(0,0,0,.08)";
   context.fillRect(695, 24, 8, 852);
+}
+
+// 화면 미리보기·출력물에서 과목 이름을 쓰는 곳(스포츠 문화/초등 체육 공용).
+function entrySubjectLabel(entry) {
+  return entry?.subjectLabel || "스포츠 문화";
+}
+
+function isElementaryEntry(entry) {
+  return entry?.profileId === "elementary-pe-2022";
 }
 
 function renderSpreadSectionHtml(section) {
   return `
     <div class="spread-section${section.boxType ? " spread-section-boxed" : ""}">
       <div class="spread-section-head">
-        <span class="spread-section-number">${escapeHtml(String(section.number ?? ""))}</span><h3>${escapeHtml(section.title || "")}</h3>
+        ${section.label ? `<span class="spread-section-label">${escapeHtml(section.label)}</span>` : `<span class="spread-section-number">${escapeHtml(String(section.number ?? ""))}</span>`}<h3>${escapeHtml(section.title || "")}</h3>
         ${section.boxType ? `<span class="spread-section-boxtype">${escapeHtml(section.boxType)}</span>` : ""}
       </div>
       ${(section.paragraphs || []).filter(Boolean).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}
@@ -3429,11 +4561,19 @@ function renderSpreadPageVisuals(items) {
   };
 }
 
+// 왼쪽 쪽에 놓을 절 개수. 조판 편집기에서 절을 다음 쪽으로 넘기면 pageSplit에 기록되고,
+// 미리보기·PNG·PPT도 같은 경계를 따른다. 기록이 없으면 절을 반씩 나눈다.
+function manuscriptPageSplit(manuscript) {
+  const count = Array.isArray(manuscript?.sections) ? manuscript.sections.length : 0;
+  const split = Number(manuscript?.pageSplit);
+  return Number.isInteger(split) && split >= 0 && split <= count ? split : Math.ceil(count / 2);
+}
+
 function renderSpreadPageView(entry, spread) {
   const accentKey = { balanced: "balanced", activity: "activity", creative: "creative" }[entry.frameworkId] ? entry.frameworkId : "balanced";
   const manuscript = spread.textbook_manuscript || {};
   const sections = Array.isArray(manuscript.sections) ? manuscript.sections : [];
-  const sectionSplit = Math.ceil(sections.length / 2);
+  const sectionSplit = manuscriptPageSplit(manuscript);
   const leftSections = sections.slice(0, sectionSplit);
   const rightSections = sections.slice(sectionSplit);
   const leftVisuals = renderSpreadPageVisuals(manuscriptSideVisuals(manuscript, 0));
@@ -3443,28 +4583,29 @@ function renderSpreadPageView(entry, spread) {
       <div class="spread-page spread-page-left">
         <div class="spread-spine">
           <span class="spread-page-number">${String(spread.left_page || 1).padStart(2, "0")}</span>
-          <span class="spread-spine-label">${escapeHtml(entry.smallUnitLabel || "스포츠 문화")}</span>
+          <span class="spread-spine-label">${escapeHtml(entry.smallUnitLabel || entrySubjectLabel(entry))}</span>
         </div>
         <div class="spread-page-body">
           ${leftVisuals.backgroundHtml}
           <h2 class="spread-headline">${escapeHtml(manuscript.headline || spread.title || "")}</h2>
-          <p class="spread-goal"><b>학습 목표</b> ${escapeHtml(manuscript.learningGoal || spread.intro || "")}</p>
+          ${manuscript.subtitle ? `<p class="spread-subtitle">${escapeHtml(manuscript.subtitle)}</p>` : ""}
+          <p class="spread-goal">${spread.lesson_label ? `<span class="spread-lesson-label">${escapeHtml(spread.lesson_label)}</span> ` : ""}<b>학습 목표</b> ${escapeHtml(manuscript.learningGoal || spread.intro || "")}</p>
           ${manuscript.openingQuestion ? `<div class="spread-opening-question"><b>생각 열기</b> ${escapeHtml(manuscript.openingQuestion)}</div>` : ""}
           ${leftVisuals.topHtml}
           ${leftSections.map(renderSpreadSectionHtml).join("")}
           ${leftVisuals.bottomHtml}
-          <div class="spread-page-footer">${escapeHtml(String(spread.left_page || 1))} · 스포츠 문화</div>
+          <div class="spread-page-footer">${escapeHtml(String(spread.left_page || 1))} · ${escapeHtml(entrySubjectLabel(entry))}</div>
         </div>
       </div>
       <div class="spread-gutter"></div>
       <div class="spread-page spread-page-right">
         <div class="spread-page-body">
           ${rightVisuals.backgroundHtml}
-          <p class="spread-role-label">${escapeHtml(entry.primaryTypeLabel || "스포츠 문화")} · ${escapeHtml(spread.role || "")}</p>
+          <p class="spread-role-label">${escapeHtml(entry.primaryTypeLabel || entrySubjectLabel(entry))} · ${escapeHtml(spread.role || "")}</p>
           ${rightVisuals.topHtml}
           ${rightSections.map(renderSpreadSectionHtml).join("")}
           ${rightVisuals.bottomHtml}
-          <div class="spread-page-footer">${escapeHtml(String(spread.right_page || 2))} · 스포츠 문화</div>
+          <div class="spread-page-footer">${escapeHtml(String(spread.right_page || 2))} · ${escapeHtml(entrySubjectLabel(entry))}</div>
         </div>
       </div>
     </div>`;
@@ -3515,8 +4656,36 @@ function renderDraftCanvases() {
   });
 }
 
-function renderSportsDraftImages(entry, batchIndex, entryIndex) {
+// 디자인 시안이 있으면 시안을, 없으면 원고 미리보기(기본 틀)를 보여 준다.
+function renderDraftMockupViews(entry, batchIndex, entryIndex) {
+  const mockups = state.designMockups || {};
+  const keys = entry.spreads.map((_, spreadIndex) => designcraftMockupKey({ batchIndex, entryIndex }, spreadIndex));
+  if (!keys.some((key) => mockups[key]?.imageId)) {
+    const failure = keys.map((key) => mockups[key]?.error).find(Boolean);
+    return `<div class="draft-mockup-missing ${failure ? "failed" : ""}"><span>${failure ? `디자인 시안을 그리지 못했습니다: ${escapeHtml(failure)} — 다시 눌러 그려 주세요.` : "아직 디자인 시안이 없습니다."} 아래는 원고 배치 미리보기입니다.</span><button class="secondary-button" type="button" data-entry-mockup-draw="${batchIndex}:${entryIndex}">디자인 시안 그리기 (${entry.spreads.length}장)</button></div>`;
+  }
   return `
+    <div class="draft-mockup-list">
+      ${entry.spreads.map((spread, spreadIndex) => {
+        const mockup = mockups[keys[spreadIndex]];
+        return `<figure class="draft-mockup">
+          ${mockup?.imageId ? `<img src="${designcraftMockupUrl(mockup.editedAt && mockup.previewId ? mockup.previewId : mockup.imageId)}" alt="${spreadIndex + 1}번째 펼침면 디자인 시안" />` : `<div class="mockup-empty">시안 없음${mockup?.error ? `<small>${escapeHtml(mockup.error)}</small>` : ""}</div>`}
+          <figcaption>
+            <span>${spreadIndex + 1}번째 펼침면${mockup?.editedAt ? " · 고친 글 반영 미리보기" : ""}</span>
+            <span class="draft-image-actions">
+              ${mockup?.imageId ? `<button type="button" data-mockup-edit="${batchIndex}:${entryIndex}:${spreadIndex}" title="시안 위 글자를 직접 고칩니다. 처음 열 때 AI가 글 위치를 읽느라 1~3분 걸립니다.">글 고치기</button><a href="${designcraftMockupUrl(mockup.imageId)}" target="_blank" rel="noopener">크게 보기</a>` : ""}
+              <button type="button" data-entry-mockup-redo="${batchIndex}:${entryIndex}:${spreadIndex}">${mockup?.imageId ? "다시 그리기" : "시안 그리기"}</button>
+            </span>
+          </figcaption>
+        </figure>`;
+      }).join("")}
+    </div>`;
+}
+
+function renderSportsDraftImages(entry, batchIndex, entryIndex) {
+  const mockupView = isElementaryPeProject() ? renderDraftMockupViews(entry, batchIndex, entryIndex) : "";
+  if (mockupView.includes("draft-mockup-list")) return mockupView;
+  return `${mockupView}
     <div class="draft-image-comparison-card">
       <div class="draft-image-meta">
         <b>${escapeHtml(entry.primaryTypeLabel || "스포츠 문화형")}</b>
@@ -3530,58 +4699,11 @@ function renderSportsDraftImages(entry, batchIndex, entryIndex) {
             <canvas width="1400" height="900" class="draft-spread-export-canvas" data-draft-canvas="${batchIndex}:${entryIndex}:${spreadIndex}" aria-label="${escapeHtml(entry.frameworkName)} ${spreadIndex + 1}번 펼침면 PNG 저장용" aria-hidden="true"></canvas>
             <figcaption>
               <span>${spreadIndex + 1}번째 펼침면 · ${escapeHtml(spread.role)}</span>
-              <span class="draft-image-actions"><button type="button" data-enlarge-draft-image>크게 보기</button><button type="button" data-download-draft-png="${batchIndex}:${entryIndex}:${spreadIndex}">PNG 저장</button></span>
+              <span class="draft-image-actions"><button type="button" class="layout-editor-open-button" data-open-layout-editor="${batchIndex}:${entryIndex}:${spreadIndex}">조판 편집</button><button type="button" data-enlarge-draft-image>크게 보기</button><button type="button" data-download-draft-png="${batchIndex}:${entryIndex}:${spreadIndex}">PNG 저장</button></span>
             </figcaption>
           </figure>`).join("")}
       </div>
     </div>`;
-}
-
-function renderSpreadDraft(spread, spreadIndex, sportsCulture = false) {
-  const renderActivity = (item) => `
-    <article class="spread-activity">
-      <b>${sportsCulture ? escapeHtml(spread.role) : `활동 ${item.number}`}</b>
-      <input class="spread-activity-title" value="${escapeHtml(item.title)}" readonly />
-      <textarea class="spread-activity-objective" readonly>${escapeHtml(item.objective)}</textarea>
-      <textarea class="spread-activity-method" readonly>${escapeHtml(item.method.join("\n"))}</textarea>
-    </article>`;
-  const renderSupportBoxes = (side) => spread.support_boxes
-    .filter((_, index) => index % 2 === (side === "left" ? 0 : 1))
-    .map((box) => `
-      <label class="support-box">
-        <span>${escapeHtml(box.type)}</span>
-        <textarea readonly>${escapeHtml(box.content)}</textarea>
-      </label>`).join("");
-  const guide = spread.teacher_guide;
-  const guideDraft = guide ? `
-    <details class="teacher-guide-draft">
-      <summary>이 펼침면의 지도서 파생안</summary>
-      <div class="teacher-guide-grid">
-        <section><span>차시 목표</span><ul>${(guide.lessonGoals || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
-        <section><span>준비물</span><p>${escapeHtml((guide.preparation || []).join(" · "))}</p></section>
-        <section><span>수업 흐름</span><ol>${(guide.lessonFlow || []).map((item) => `<li><b>${escapeHtml(item.stage)}</b> ${escapeHtml(item.guidance)}</li>`).join("")}</ol></section>
-        <section><span>핵심 발문</span><ul>${(guide.questions || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
-        <section><span>안전·포용</span><p>${escapeHtml(guide.safety || "")}</p></section>
-        <section><span>평가</span><p>${escapeHtml((guide.assessment || []).join(" · "))}</p></section>
-      </div>
-    </details>` : "";
-  return `
-    <article class="spread-draft" data-spread-index="${spreadIndex}">
-      <p class="spread-index-label">펼침면 ${spreadIndex + 1}${sportsCulture ? ` · ${escapeHtml(spread.content_type_label || "스포츠 문화")}` : ""}</p>
-      <p class="spread-field-label">본문</p>
-      <textarea class="spread-intro" readonly aria-label="펼침면 도입">${escapeHtml(spread.intro)}</textarea>
-      <div class="spread-canvas">
-        ${["left", "right"].map((side) => `
-          <section class="book-page ${side}">
-            <div class="spread-activity-list">${spread.activities.filter((item) => item.placement === side).map(renderActivity).join("")}</div>
-            <div class="support-box-list">${renderSupportBoxes(side)}</div>
-          </section>`).join("")}
-        <div class="across-spread">${spread.activities.filter((item) => item.placement === "across").map(renderActivity).join("")}</div>
-      </div>
-      <p class="spread-field-label">마무리</p>
-      <textarea class="spread-wrap-up" readonly aria-label="펼침면 정리">${escapeHtml(spread.wrap_up)}</textarea>
-      ${guideDraft}
-    </article>`;
 }
 
 function renderDraftTraceability(entry) {
@@ -3709,12 +4831,15 @@ function renderSportsCultureDraftHistory(draftLog) {
         </td>`;
     }).join("");
     const dateCell = `<td class="col-date">${formatDraftBatchTimestamp(batch.generatedAt)}</td>`;
-    const mainRow = `<tr class="draft-file-row${isOpen ? " open" : ""}">${noCell}${unitCell}${smallTitleCell}${typeCells}${dateCell}</tr>`;
+    const confirmCell = `<td class="col-confirm">${entry.approvedAt
+      ? `<button type="button" class="confirm-chip done" data-textbook-confirm="${previewKey}" title="${escapeHtml(formatDraftBatchTimestamp(entry.approvedAt))} 확정 · 누르면 확정 취소">확정됨</button>`
+      : `<button type="button" class="confirm-chip" data-textbook-confirm="${previewKey}" title="이 원고를 교과서 확정본으로 정합니다. 확정해야 07단계에서 지도서·활동지·평가지·과정안을 만들 수 있습니다.">확정</button>`}</td>`;
+    const mainRow = `<tr class="draft-file-row${isOpen ? " open" : ""}${entry.approvedAt ? " confirmed" : ""}">${noCell}${unitCell}${smallTitleCell}${typeCells}${confirmCell}${dateCell}</tr>`;
     const previewRow = isOpen ? `
       <tr class="draft-file-preview-row">
-        <td colspan="${4 + DRAFT_FILE_TYPES.length}">
+        <td colspan="${5 + DRAFT_FILE_TYPES.length}">
           ${renderSportsDraftImages(entry, batchIndex, entryIndex)}
-          <details class="sports-draft-text-details" open><summary>교과서·지도서 원고와 근거 확인</summary>${renderDraftTraceability(entry)}<pre class="manuscript-preview">${escapeHtml(textbookManuscriptText(entry))}</pre><div class="spread-drafts">${entry.spreads.map((spread, spreadIndex) => renderSpreadDraft(spread, spreadIndex, true)).join("")}</div></details>
+          <details class="sports-draft-text-details"><summary>원고 글·근거 보기</summary>${renderDraftTraceability(entry)}<pre class="manuscript-preview">${escapeHtml(textbookManuscriptText(entry))}</pre></details>
         </td>
       </tr>` : "";
     return mainRow + previewRow;
@@ -3744,6 +4869,7 @@ function renderSportsCultureDraftHistory(draftLog) {
                     <span>${type.label}</span>
                   </label>
                 </th>`).join("")}
+              <th class="col-confirm" title="확정한 원고로 07단계 지도서·부속 자료를 만듭니다">교과서 확정</th>
               <th class="col-date">날짜</th>
             </tr>
           </thead>
@@ -3758,8 +4884,6 @@ function renderSportsCultureDraftStudio() {
   const targets = sportsCultureDraftTargets();
   const selectedKeys = new Set(state.selectedDraftSmallUnitKeys || []);
   const style = sportsCultureStyleProfile(state.bookStyleValue);
-  const providerOptions = globalThis.TEXTBOOK_DRAFT_ENGINE?.providerOptions() || [];
-  const activeProvider = providerOptions.find((provider) => provider.id === state.generationProviderId) || providerOptions[0];
   const smallTargets = targets.filter((item) => item.targetKind === "small-unit");
   const specialTargets = targets.filter((item) => item.targetKind === "special");
   return `
@@ -3774,9 +4898,10 @@ function renderSportsCultureDraftStudio() {
         <textarea id="draftAdditionalConceptInput" placeholder="이번에 생성할 소단원·특별페이지에 반영할 내용을 자유롭게 적어 주세요(예: 최근 e스포츠 사례를 강조해줘).">${escapeHtml(sportsCultureAdditionalConcept)}</textarea>
       </label>
     </section>
+    ${renderFeedbackDigest("draft")}
     <div class="generation-settings-grid compact-grid">
-      <label class="editor-field"><span>생성 제공자</span><select id="draftProviderSelect">${providerOptions.map((provider) => `<option value="${escapeHtml(provider.id)}" ${provider.id === activeProvider?.id ? "selected" : ""}>${escapeHtml(provider.label)} · ${escapeHtml(provider.mode)}</option>`).join("")}</select></label>
-      <label class="editor-field toggle-editor-field"><span>삽화 이미지</span><span class="toggle-editor-control"><input type="checkbox" id="includeImagesToggle" ${state.includeImages ? "checked" : ""} /> AI 실시간 생성 시 삽화도 함께 생성 (추가 비용·시간 소요)</span></label>
+      <div class="editor-field generation-mode-note"><span>생성 방식</span><b>근거 검색 + AI</b></div>
+      <label class="editor-field toggle-editor-field"><span>삽화 이미지</span><span class="toggle-editor-control"><input type="checkbox" id="includeImagesToggle" ${state.includeImages ? "checked" : ""} /> 삽화도 함께 생성</span></label>
     </div>
     <section class="draft-target-panel">
       <div class="draft-target-heading"><div><strong>소단원 유형과 생성 대상</strong></div><span id="draftTargetSelectedCount">${selectedKeys.size}개 선택</span></div>
@@ -3800,7 +4925,252 @@ function renderSportsCultureDraftStudio() {
     </section>
     <div class="curriculum-notice compact"><strong>분량</strong><span>이론 1,400~1,800자 · 실기 900~1,400자 · 도입 300~700자 · 마무리 700~1,200자 · 특별 600~1,400자</span></div>
     <div class="draft-generate-bar"><span id="draftGenerateSelectionSummary">선택한 ${selectedKeys.size}개 항목</span><button class="primary-button" id="generateDraftButton" type="button" ${selectedKeys.size ? "" : "disabled"}>${selectedKeys.size > 1 ? `${selectedKeys.size}개 초고 일괄 생성` : "선택 초고 생성"}</button></div>
-    ${renderSportsCultureDraftHistory(state.frameworkDraftLog || [])}`;
+    ${renderDesigncraftPanel()}
+    ${renderSportsCultureDraftHistory(state.frameworkDraftLog || [])}
+    ${renderSharedFolderHistory()}`;
+}
+
+// ── 초등 체육 초고 생성 ──
+// 업무 흐름(전체 스타일 → 생성 제공자 → 대상 일괄 선택 → 회차 이력·파일 출력)은 스포츠 문화와
+// 같이 쓰고, 대상 목록과 원고 구조만 초등 체육(차시·활동 카드·확장 코너)에 맞춘다.
+const ELEMENTARY_STYLE_SUMMARIES = {
+  balanced: "기본 기능과 바른 자세를 차근차근 익히는 정석 구성 · 펼침면당 활동 2개",
+  activity: "활동 2개와 안전·도움말 코너를 균형 있게 배치",
+  creative: "놀이·게임·모둠 도전을 늘린 구성 · 펼침면당 활동 3개",
+};
+
+function isElementaryPeProject(targetState = state) {
+  return targetState.project.schoolLevel === "초등학교" && targetState.project.subject === "체육";
+}
+
+function usesDraftStudio(targetState = state) {
+  return isSportsCultureProject(targetState) || (isElementaryPeProject(targetState) && Boolean(globalThis.ELEMENTARY_DRAFT_ENGINE));
+}
+
+function ensureElementaryDraftSettings(book) {
+  if (!book || !isElementaryPeProject(book)) return book;
+  book.generationProviderId = "external-ai-v1";
+  book.bookStyleValue = Math.max(0, Math.min(100, Number(book.bookStyleValue ?? 50)));
+  book.includeImages = Boolean(book.includeImages);
+  if (!Array.isArray(book.selectedDraftSmallUnitKeys)) book.selectedDraftSmallUnitKeys = [];
+  if (!book.elementaryCornerTypes || typeof book.elementaryCornerTypes !== "object") book.elementaryCornerTypes = {};
+  if (typeof book.includeMockups !== "boolean") book.includeMockups = true;
+  // 예전에는 04단계에서 대단원별 확장 코너를 골랐고 쪽수에 잡히지 않았다. 03단계 특별 페이지(2쪽)로 옮긴다.
+  const legacyCorners = Object.entries(book.elementaryCornerTypes);
+  if (legacyCorners.length) {
+    if (!Array.isArray(book.specialPages)) book.specialPages = [];
+    legacyCorners.forEach(([unitIndex, type]) => {
+      const unit = book.units?.[Number(unitIndex)];
+      if (!unit || book.specialPages.some((page) => page.id === `corner-${unitIndex}-${type}`)) return;
+      book.specialPages.push({ id: `corner-${unitIndex}-${type}`, type, domain: unit.domain, title: `${unit.domain} ${sportsCultureSpecialPageTypeLabel(type)}`, pages: 2 });
+    });
+    book.elementaryCornerTypes = {};
+    book.selectedDraftSmallUnitKeys = book.selectedDraftSmallUnitKeys.filter((key) => !String(key).startsWith("special:corner:"));
+  }
+  return book;
+}
+
+function elementarySpecialDraftTargets() {
+  const options = smallUnitOptions();
+  const corners = globalThis.ELEMENTARY_DRAFT_ENGINE?.cornerTypes() || [];
+  const specialPages = state.specialPages || [];
+  const cornerTarget = (base, page, unitIndex) => {
+    const corner = corners.find((item) => item.id === page.type) || corners[0];
+    return { ...base, key: `special:custom:${page.id}`, pageRole: `corner-${corner?.id || "project"}`, middleTitle: "확장 코너", smallTitle: page.title, pages: Math.max(1, Number(page.pages) || 2), specialTypeLabel: corner?.label || "확장 코너", customId: page.id, unitIndex };
+  };
+  const unitTargets = state.units.flatMap((unit, unitIndex) => {
+    const outline = [];
+    options.filter((item) => item.key.startsWith(`${unitIndex}:`)).forEach((item) => {
+      let middle = outline.find((entry) => entry.middleTitle === item.middleTitle);
+      if (!middle) {
+        middle = { middleTitle: item.middleTitle, smallTitles: [], activities: [] };
+        outline.push(middle);
+      }
+      middle.smallTitles.push(item.smallTitle);
+      middle.activities.push(item.sourceActivity);
+    });
+    const unitSubtitle = [...new Set(unit.subdomainGroups.map((group) => group.subtitle).filter(Boolean))].join("·");
+    const base = {
+      domain: unit.domain,
+      middleTitle: "단원 도입·마무리",
+      hours: 0,
+      gradeLabel: state.project.grade,
+      unitTitle: `${unitIndex + 1}. ${unit.domain}`,
+      unitSubtitle,
+      unitOutline: outline,
+      standardCodes: [],
+      targetKind: "special",
+    };
+    return [
+      { ...base, key: `special:intro:${unitIndex}`, pageRole: "unit-intro", smallTitle: `${unit.domain} 단원 도입`, pages: Number(unit.introPages) || 2, specialTypeLabel: "대단원 도입", unitIndex },
+      ...specialPages.filter((page) => page.domain === unit.domain).map((page) => cornerTarget(base, page, unitIndex)),
+      { ...base, key: `special:closing:${unitIndex}`, pageRole: "unit-closing", smallTitle: `${unit.domain} 단원 마무리`, pages: Number(unit.wrapUpPages) || 2, specialTypeLabel: "대단원 마무리", unitIndex },
+    ];
+  });
+  // 책 전체 통합 코너: 모든 대단원의 중단원·소단원을 개요로 넘긴다.
+  const bookPages = specialPages.filter((page) => !state.units.some((unit) => unit.domain === page.domain));
+  if (!bookPages.length) return unitTargets;
+  const bookOutline = state.units.map((unit, unitIndex) => {
+    const items = options.filter((item) => item.key.startsWith(`${unitIndex}:`));
+    return { middleTitle: `${unitIndex + 1}. ${unit.domain}`, smallTitles: items.map((item) => item.smallTitle), activities: items.map((item) => item.sourceActivity) };
+  });
+  const bookBase = {
+    domain: state.units.map((unit) => unit.domain).join("·"),
+    middleTitle: "책 전체",
+    hours: 0,
+    gradeLabel: state.project.grade,
+    unitTitle: "책 전체(모든 단원 통합)",
+    unitSubtitle: "",
+    unitOutline: bookOutline,
+    standardCodes: [],
+    targetKind: "special",
+  };
+  return [...unitTargets, ...bookPages.map((page) => cornerTarget(bookBase, page, null))];
+}
+
+function elementaryDraftTargets() {
+  const engine = globalThis.ELEMENTARY_DRAFT_ENGINE;
+  let lessonCursor = 1;
+  const smallTargets = smallUnitOptions().map((item) => {
+    const lessonStart = lessonCursor;
+    lessonCursor += Number(item.hours) || 0;
+    const target = { ...item, targetKind: "small-unit", pageRole: "small-unit", gradeLabel: state.project.grade, lessonStart };
+    target.lessonType = item.lessonType || engine?.inferLessonType(target) || "skill";
+    return target;
+  });
+  return [...smallTargets, ...elementarySpecialDraftTargets()];
+}
+
+function specialDraftTargets() {
+  return isSportsCultureProject() ? sportsCultureSpecialDraftTargets() : elementarySpecialDraftTargets();
+}
+
+function draftStudioTargets() {
+  return isSportsCultureProject() ? sportsCultureDraftTargets() : elementaryDraftTargets();
+}
+
+function elementaryLessonRangeLabel(item) {
+  const hours = Number(item.hours) || 0;
+  if (!hours) return "차시 미배정";
+  return hours === 1 ? `${item.lessonStart}차시` : `${item.lessonStart}~${item.lessonStart + hours - 1}차시`;
+}
+
+// 전체 스타일 세 가지의 차이(초등 엔진 styleKind와 서버 지침 9번이 실제로 다르게 만든다).
+// 개수(활동·코너)는 정하지 않고 방향만 준다. 원고 지침(서버 9번)과 시안 디자인 방향에 함께 쓰인다.
+const ELEMENTARY_STYLE_HELP = [
+  ["안정·정석형", "동작 원리와 바른 자세를 단계별로 차근차근 익히고 확인하는 정돈된 교과서. 시안은 1→2→3 단계 그림, 고른 카드, 넉넉한 여백."],
+  ["균형형", "기능 익히기·활동·안전·생활 연계가 고르게 어우러진 교과서. 시안은 단계 그림·활동 카드·안전 상자를 균형 있게."],
+  ["참신·활동형", "이야기·미션·게임·모둠 도전으로 학생이 규칙을 바꾸고 만들어 가는 놀이 중심 교과서. 시안은 큰 활동 장면, 미션 카드, 말풍선으로 역동적으로."],
+];
+
+function renderStyleHelpTip(lines) {
+  return `<span class="help-tip" tabindex="0" aria-label="스타일 차이 보기">?<span class="help-tip-body">${lines.map(([label, text]) => `<b>${escapeHtml(label)}</b> ${escapeHtml(text)}`).join("<br />")}</span></span>`;
+}
+
+// 생성 대상: 대단원 → (도입) → 중단원 → 소단원 → (확장 코너) → (마무리) 순서로 묶고,
+// 대단원·중단원 줄의 체크박스로 그 아래를 한꺼번에 고른다.
+function renderElementaryTargetTree(smallTargets, specialTargets, selectedKeys, engine) {
+  const groupBox = (keys, label, level) => `<label class="target-group-head ${level}"><input type="checkbox" data-draft-group="${escapeHtml(keys.join("|"))}" />${label}</label>`;
+  const specialRow = (item) => `<label class="target-row special"><input type="checkbox" data-draft-target="${item.key}" ${selectedKeys.has(item.key) ? "checked" : ""} /><span class="target-name">${escapeHtml(item.specialTypeLabel)}${item.middleTitle === "확장 코너" ? ` · ${escapeHtml(item.smallTitle)}` : ""}</span><small>${item.pages}쪽</small></label>`;
+  // 수업 유형 선택은 소단원명 앞에 둔다(폭이 일정해 이름 줄이 가지런하고, 오른쪽 끝까지 눈을 옮기지 않아도 된다).
+  const smallRow = (item) => `<div class="target-row"><input type="checkbox" id="draft-target-${item.key}" data-draft-target="${item.key}" ${selectedKeys.has(item.key) ? "checked" : ""} /><select data-elementary-lesson-type="${item.key}" aria-label="수업 유형">${engine.lessonTypeOptions(item.domain).map((type) => `<option value="${type.id}" ${type.id === item.lessonType ? "selected" : ""} title="${escapeHtml(type.description)}">${escapeHtml(type.label)}</option>`).join("")}</select><label class="target-name" for="draft-target-${item.key}">${escapeHtml(item.smallTitle)}</label><small>${item.pages}쪽</small></div>`;
+  const units = state.units.map((unit, unitIndex) => {
+    const smalls = smallTargets.filter((item) => item.key.startsWith(`${unitIndex}:`));
+    const specials = specialTargets.filter((item) => item.unitIndex === unitIndex);
+    const intro = specials.filter((item) => item.pageRole === "unit-intro");
+    const closing = specials.filter((item) => item.pageRole === "unit-closing");
+    const corners = specials.filter((item) => item.pageRole !== "unit-intro" && item.pageRole !== "unit-closing");
+    const middles = [];
+    smalls.forEach((item) => {
+      const middleKey = item.key.split(":").slice(0, 3).join(":");
+      let middle = middles.find((entry) => entry.key === middleKey);
+      if (!middle) middles.push(middle = { key: middleKey, title: item.middleTitle, items: [] });
+      middle.items.push(item);
+    });
+    const allKeys = [...intro, ...smalls, ...corners, ...closing].map((item) => item.key);
+    return `
+      <div class="target-group">
+        ${groupBox(allKeys, `<b>${unitIndex + 1}. ${escapeHtml(unit.domain)}</b><small>${allKeys.length}개</small>`, "large")}
+        ${intro.map(specialRow).join("")}
+        ${middles.map((middle) => `
+          <div class="target-middle">
+            ${groupBox(middle.items.map((item) => item.key), `<span>${escapeHtml(middle.title)}</span>`, "middle")}
+            ${middle.items.map(smallRow).join("")}
+          </div>`).join("")}
+        ${corners.map(specialRow).join("")}
+        ${closing.map(specialRow).join("")}
+      </div>`;
+  }).join("");
+  const bookCorners = specialTargets.filter((item) => item.unitIndex === null || item.unitIndex === undefined);
+  return units + (bookCorners.length ? `
+    <div class="target-group">
+      ${groupBox(bookCorners.map((item) => item.key), "<b>책 전체</b>", "large")}
+      ${bookCorners.map(specialRow).join("")}
+    </div>` : "");
+}
+
+function syncDraftGroupCheckboxes() {
+  const selected = new Set(state.selectedDraftSmallUnitKeys || []);
+  document.querySelectorAll("[data-draft-group]").forEach((box) => {
+    const keys = box.dataset.draftGroup.split("|").filter(Boolean);
+    const count = keys.filter((key) => selected.has(key)).length;
+    box.checked = Boolean(keys.length) && count === keys.length;
+    box.indeterminate = count > 0 && count < keys.length;
+  });
+}
+
+function renderElementaryDraftStudio() {
+  ensureElementaryDraftSettings(state);
+  const engine = globalThis.ELEMENTARY_DRAFT_ENGINE;
+  const targets = elementaryDraftTargets();
+  const selectedKeys = new Set(state.selectedDraftSmallUnitKeys || []);
+  const style = sportsCultureStyleProfile(state.bookStyleValue);
+  const smallTargets = targets.filter((item) => item.targetKind === "small-unit");
+  const specialTargets = targets.filter((item) => item.targetKind === "special");
+  return `
+    ${sectionHeading("DRAFT STUDIO", "전체 스타일·초고 생성", "")}
+    ${renderFeedbackDigest("draft")}
+    <section class="book-style-panel compact">
+      <strong>전체 스타일</strong>${renderStyleHelpTip(ELEMENTARY_STYLE_HELP)}
+      <div class="book-style-options" role="radiogroup" aria-label="전체 스타일">
+        ${SPORTS_CULTURE_STYLE_CHOICES.map((choice) => `<button type="button" class="book-style-option${choice.value === style.value ? " active" : ""}" data-book-style-value="${choice.value}" role="radio" aria-checked="${choice.value === style.value}" title="${escapeHtml(ELEMENTARY_STYLE_HELP.find(([label]) => label === choice.label)?.[1] || "")}">${escapeHtml(choice.label)}</button>`).join("")}
+      </div>
+    </section>
+    <section class="draft-target-panel">
+      <div class="draft-target-heading"><div><strong>생성할 단원</strong></div><div class="draft-target-toolbar"><button class="secondary-button" id="selectAllDraftTargets" type="button">전체 선택</button><button class="secondary-button" id="clearDraftTargets" type="button">선택 해제</button></div></div>
+      <div class="draft-target-tree">${renderElementaryTargetTree(smallTargets, specialTargets, selectedKeys, engine)}</div>
+    </section>
+    <div class="draft-generate-bar">
+      <span id="draftGenerateSelectionSummary">선택한 ${selectedKeys.size}개 항목</span>
+      <label class="draft-mockup-toggle" title="원고를 만든 뒤 펼침면마다 참고 시안(design-references 폴더) 디자인으로 완성 시안을 그립니다. 펼침면마다 OpenAI 이미지 1장 비용이 들고 1~2분 걸립니다."><input type="checkbox" id="includeMockupsToggle" ${state.includeMockups ? "checked" : ""} /> 디자인 시안도 함께 그리기</label>
+      <button class="primary-button" id="generateDraftButton" type="button" ${selectedKeys.size ? "" : "disabled"}>${selectedKeys.size > 1 ? `${selectedKeys.size}개 초고 일괄 생성` : "선택 초고 생성"}</button>
+    </div>
+    ${renderDesigncraftPanel()}
+    ${renderSportsCultureDraftHistory(state.frameworkDraftLog || [])}
+    ${renderSharedFolderHistory()}`;
+}
+
+// 오래 걸리는 버튼: 빙글 도는 아이콘과 지난 시간을 보여 줘 멈춘 게 아니라 일하는 중임을 알린다.
+function startButtonBusy(button) {
+  const started = Date.now();
+  let label = "";
+  const paint = () => {
+    if (!button.isConnected) return;
+    const seconds = Math.round((Date.now() - started) / 1000);
+    const elapsed = seconds < 60 ? `${seconds}초` : `${Math.floor(seconds / 60)}분 ${seconds % 60}초`;
+    button.innerHTML = `<span class="btn-spinner" aria-hidden="true"></span>${escapeHtml(label)} <small class="btn-elapsed">${elapsed}</small>`;
+  };
+  const timer = setInterval(paint, 1000);
+  button.classList.add("is-busy");
+  button.setAttribute("aria-busy", "true");
+  return {
+    set(text) { label = text; paint(); },
+    stop() {
+      clearInterval(timer);
+      button.classList.remove("is-busy");
+      button.removeAttribute("aria-busy");
+    },
+  };
 }
 
 function refreshDraftSelectionControls() {
@@ -3809,6 +5179,7 @@ function refreshDraftSelectionControls() {
   const summary = document.querySelector("#draftGenerateSelectionSummary");
   const generateButton = document.querySelector("#generateDraftButton");
   if (countLabel) countLabel.textContent = `${count}개 선택`;
+  syncDraftGroupCheckboxes();
   if (summary) summary.textContent = `선택한 ${count}개 항목`;
   if (generateButton) {
     generateButton.disabled = count === 0;
@@ -3829,415 +5200,20 @@ function renderFrameworks() {
   selectedDraftFiles.forEach((key) => { if (!draftFileKeyStillValid(key.split(":").slice(0, 2).join(":"))) selectedDraftFiles.delete(key); });
   expandedDraftFilePreviews.forEach((key) => { if (!draftFileKeyStillValid(key)) expandedDraftFilePreviews.delete(key); });
   if (!state.frameworkApproval) state.frameworkApproval = { status: "draft", frameworkId: null, approvedAt: null };
-  const smallUnits = smallUnitOptions();
-  const draftLog = state.frameworkDraftLog;
-  const approval = state.frameworkApproval;
-  const availableFrameworks = frameworkOptions();
-  const approvedFramework = availableFrameworks.find((framework) => framework.id === approval.frameworkId);
   const sportsCulture = isSportsCultureProject();
   if (sportsCulture) ensureSportsCultureDraftSettings(state);
   if (sportsCulture) return renderSportsCultureDraftStudio();
-  const selectedSmallUnit = smallUnits.find((option) => option.key === state.previewSmallUnitKey);
-  const recommendedTypeId = sportsCulture && selectedSmallUnit ? inferSportsCultureContentType(selectedSmallUnit) : "";
-  const recommendedType = SPORTS_CULTURE_CONTENT_TYPES.find((type) => type.id === recommendedTypeId);
-  const providerOptions = sportsCulture ? (globalThis.TEXTBOOK_DRAFT_ENGINE?.providerOptions() || []) : [];
-  const activeProvider = providerOptions.find((provider) => provider.id === state.generationProviderId) || providerOptions[0];
+  if (usesDraftStudio()) return renderElementaryDraftStudio();
   return `
-    ${sectionHeading("FORMAT OPTIONS", "체제안 선택", sportsCulture ? "스포츠 문화 교육과정의 공통 규칙을 지키면서 탐구·대회·융합 강조 방식을 비교합니다." : "이번 버전에서는 설명과 예상 구조만 비교합니다.")}
-    <div class="framework-grid">
-      ${availableFrameworks.map((framework) => {
-        const metrics = state.frameworkMetrics[framework.id];
-        const metricRows = Object.entries(metrics).map(([key, value]) => `
-          <label class="metric-row">
-            <span>${FRAMEWORK_METRIC_LABELS[key]}</span>
-            <input type="range" min="1" max="5" value="${value}" data-framework-metric="${framework.id}:${key}" />
-            <b>${value}</b>
-          </label>`).join("");
-        return `
-          <article class="framework-card ${approval.frameworkId === framework.id ? "selected" : ""}">
-            <h3>${framework.name}</h3>
-            <p>${framework.summary}</p>
-            <ul>${framework.strengths.map((strength) => `<li>${strength}</li>`).join("")}</ul>
-            <em>${framework.pages}</em>
-            <span class="option-subtitle">비교 지표 · 시험용 조정</span>
-            <div class="metric-list">${metricRows}</div>
-          </article>`;
-      }).join("")}
-    </div>
-    <div class="framework-approval-bar ${approval.status === "approved" ? "approved" : ""}">
-      <div>
-        <b>체제 승인</b>
-        <span>${approval.status === "approved" ? `승인됨 · ${escapeHtml(approvedFramework?.name || "")}` : "아직 승인된 체제가 없습니다. 아래에서 초안을 비교한 뒤 하나를 승인하세요."}</span>
-      </div>
-      ${approval.status === "approved" ? `<button class="secondary-button" id="reviseFrameworkApproval" type="button">승인 취소</button>` : ""}
-    </div>
-    <div class="framework-preview-panel">
-      ${sectionHeading("MANUSCRIPT PREVIEW", sportsCulture ? "초안 생성·비교" : "AI 초안 생성·비교", sportsCulture ? "내부 규칙 조합 또는 서버의 OpenAI API 중 생성 제공자를 선택할 수 있습니다. AI 실시간 생성은 종목·소단원명·전체 스타일이 바뀔 때마다 매번 새로 집필합니다." : "소단원을 선택하고 생성하면 균형형·활동 강화형·창의형 3개 초안이 한 번에 나와 비교할 수 있습니다. 슬라이더를 조정한 뒤 다시 생성하면 최신 결과로 바뀝니다.")}
-      ${sportsCulture ? `
-        <div class="generation-settings-grid">
-          <label class="editor-field">
-            <span>생성 제공자</span>
-            <select id="draftProviderSelect">
-              ${providerOptions.map((provider) => `<option value="${escapeHtml(provider.id)}" ${provider.id === activeProvider?.id ? "selected" : ""}>${escapeHtml(provider.label)} · ${escapeHtml(provider.mode)}</option>`).join("")}
-            </select>
-            <small>${escapeHtml(activeProvider?.description || "내부 규칙 조합기를 사용합니다.")}</small>
-          </label>
-          <div class="editor-field linked-sports-field">
-            <span>선택 소단원에 배정된 종목</span>
-            <strong>${escapeHtml(selectedSmallUnit?.sports?.join(", ") || "배정된 종목 없음")}</strong>
-            <small>종목 배정은 3단계의 각 소단원 카드에서 변경합니다.</small>
-          </div>
-        </div>
-        <div class="curriculum-notice compact">
-          <strong>생성 원칙</strong>
-          <span>성취기준 6개 추적 · 직접/간접 참여 · 다양한 경기 역할 · 안전과 포용 · 과정/결과 평가 · 교과서에서 지도서 파생</span>
-        </div>` : ""}
-      <label class="editor-field">
-        <span>소단원 선택</span>
-        <select id="previewSmallUnitSelect">
-          <option value="">소단원을 선택하세요</option>
-          ${smallUnits.map((option) => `<option value="${option.key}" ${state.previewSmallUnitKey === option.key ? "selected" : ""}>${escapeHtml(option.domain)} · ${escapeHtml(option.middleTitle)} · ${escapeHtml(option.smallTitle)}</option>`).join("")}
-        </select>
-      </label>
-      ${sportsCulture ? `
-        <div class="content-type-settings">
-          <label class="editor-field">
-            <span>소단원 성격 <em>필수</em></span>
-            <select id="draftPrimaryTypeSelect">
-              ${SPORTS_CULTURE_CONTENT_TYPES.map((type) => `<option value="${type.id}" ${type.id === state.draftPrimaryType ? "selected" : ""}>${escapeHtml(type.label)}</option>`).join("")}
-            </select>
-            <small>${recommendedType ? `자동 추천: ${escapeHtml(recommendedType.label)} · ${escapeHtml(recommendedType.description)}` : "소단원을 선택하면 유형을 자동 추천합니다."}</small>
-          </label>
-          <label class="editor-field">
-            <span>수업 구성 강조 <em>선택 사항</em></span>
-            <select id="draftSecondaryTypeSelect">
-              ${SPORTS_CULTURE_ACTIVITY_MODES.map((mode) => `<option value="${mode.id}" ${mode.id === state.draftSecondaryType ? "selected" : ""}>${escapeHtml(mode.label)}</option>`).join("")}
-            </select>
-            <small>문학·예술, 프로젝트, 토론, 융합은 소단원 성격이 아니라 수업 구성 방식으로 반영합니다.</small>
-          </label>
-        </div>` : ""}
-      <button class="primary-button" id="generateDraftButton" type="button">${sportsCulture ? "3개 체제 편집디자인 펼침면 생성" : "3개 체제 초안 생성"}</button>
-      ${draftLog.length ? `
-        <div class="draft-log-list">
-          <div class="draft-log-toolbar">
-            <label class="draft-log-select-all">
-              <input type="checkbox" id="draftLogSelectAll" ${selectedDraftBatches.size && selectedDraftBatches.size === draftLog.length ? "checked" : ""} />
-              <span>전체 선택</span>
-            </label>
-            <span class="draft-log-count">${selectedDraftBatches.size}개 선택 · 총 ${draftLog.length}회차</span>
-            <div class="section-actions">
-              <button class="secondary-button" id="downloadSelectedDraftsButton" type="button" ${selectedDraftBatches.size ? "" : "disabled"}>선택 다운로드</button>
-              <button class="secondary-button" id="deleteSelectedDraftsButton" type="button" ${selectedDraftBatches.size ? "" : "disabled"}>선택 삭제</button>
-            </div>
-          </div>
-          ${draftLog.map((batch, index) => index).reverse().map((index) => {
-            const batch = draftLog[index];
-            const { breadcrumb, title } = splitSmallUnitLabel(batch.smallUnitLabel);
-            return `
-              <details class="draft-log-entry" data-draft-log-index="${index}" ${expandedDraftBatches.has(index) ? "open" : ""}>
-                <summary class="draft-log-summary">
-                  <input type="checkbox" data-draft-log-checkbox="${index}" ${selectedDraftBatches.has(index) ? "checked" : ""} />
-                  <span class="draft-log-title-block">
-                    <span class="draft-log-breadcrumb">${index + 1}회차${breadcrumb ? ` · ${escapeHtml(breadcrumb)}` : ""}</span>
-                    <span class="draft-log-title">${escapeHtml(title)}</span>
-                  </span>
-                  <span class="draft-log-tags"><span class="draft-log-tag">체제 ${batch.entries.length}개</span>${batch.provider?.label ? `<span class="draft-log-tag">${escapeHtml(batch.provider.label)}</span>` : ""}</span>
-                  <span class="draft-log-date">${formatDraftBatchTimestamp(batch.generatedAt)}</span>
-                </summary>
-                <div class="draft-log-body">
-                  <div class="framework-comparison-grid">
-                    ${batch.entries.map((entry, entryIndex) => {
-                      const isApproved = approval.frameworkId === entry.frameworkId && approval.status === "approved";
-                      return `
-                        <div class="framework-comparison-column ${isApproved ? "approved" : ""}">
-                          <div class="small-unit-heading">
-                            <span class="option-subtitle">${escapeHtml(entry.frameworkName)} · ${escapeHtml(entry.smallUnitLabel)}</span>
-                            <div class="section-actions">
-                              <button class="secondary-button" data-download-pptx="${index}:${entryIndex}" type="button">PPT 다운로드</button>
-                              ${sportsCulture ? `<button class="secondary-button" data-download-textbook-text="${index}:${entryIndex}" type="button">교과서 원고 TXT</button><button class="secondary-button" data-download-guide-text="${index}:${entryIndex}" type="button">지도서 원고 TXT</button><button class="secondary-button" data-download-textbook-pdf="${index}:${entryIndex}" type="button">교과서 원고 PDF</button><button class="secondary-button" data-download-guide-pdf="${index}:${entryIndex}" type="button">지도서 원고 PDF</button><button class="secondary-button" data-download-lesson-plan-hwpx="${index}:${entryIndex}" type="button">교수학습과정안 HWPX</button><button class="secondary-button" data-download-images-zip="${index}:${entryIndex}" type="button">이미지 ZIP</button>` : ""}
-                              ${isApproved
-                                ? `<span class="approved-badge">승인됨</span>`
-                                : `<button class="secondary-button" data-approve-framework="${entry.frameworkId}" type="button">이 체제로 승인</button>`}
-                            </div>
-                          </div>
-                          ${sportsCulture ? renderSportsDraftImages(entry, index, entryIndex) : ""}
-                          ${sportsCulture ? `<details class="sports-draft-text-details"><summary>교과서·지도서 원고와 근거 확인</summary>${renderDraftTraceability(entry)}<pre class="manuscript-preview">${escapeHtml(textbookManuscriptText(entry))}</pre><div class="spread-drafts">${entry.spreads.map((spread, spreadIndex) => renderSpreadDraft(spread, spreadIndex, true)).join("")}</div></details>` : `${renderDraftTraceability(entry)}<div class="spread-drafts">${entry.spreads.map((spread, spreadIndex) => renderSpreadDraft(spread, spreadIndex)).join("")}</div>`}
-                        </div>`;
-                    }).join("")}
-                  </div>
-                </div>
-              </details>`;
-          }).join("")}
-        </div>` : ""}
-    </div>`;
-}
-
-const MOCK_REVIEW_CRITERIA = [
-  ["Ⅰ. 교육과정의 준수", 25, 1, "교육과정의 성격과 목표 반영"],
-  ["Ⅰ. 교육과정의 준수", 25, 2, "내용 체계와 성취기준 반영"],
-  ["Ⅰ. 교육과정의 준수", 25, 3, "교수·학습과 평가 반영"],
-  ["Ⅰ. 교육과정의 준수", 25, 4, "포용성·창의성·주도성과 디지털 소양 반영"],
-  ["Ⅰ. 교육과정의 준수", 25, 5, "신체활동 역량과 움직임 기술의 체계적 발달"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 6, "신체활동을 위한·관한·통한 학습의 종합 구현"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 7, "학년 간 중복 방지와 계열성·연계성"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 8, "학습자 수준과 성취기준 도달에 적절한 내용"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 9, "영역별 비중과 내용 제시 방법"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 10, "움직임 발달 체계에 따른 활동 위계화"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 11, "개인차를 고려한 현장 적합성과 실천 가능성"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 12, "자기주도 학습과 일상생활 적용"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 13, "사실·개념·용어·사례의 정확성"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 14, "사진·삽화·인용 자료의 최신성과 출처"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 15, "편견 없는 공정한 기술"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 16, "어문·용어·단위 표기의 정확성"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 17, "문법·어휘·표현의 정확성과 이해 용이성"],
-  ["Ⅳ. 학습 활동 및 평가 지원", 25, 18, "성취기준과 연계된 창의적 활동·평가"],
-  ["Ⅳ. 학습 활동 및 평가 지원", 25, 19, "수준에 적절하고 수행 가능한 충분한 활동"],
-  ["Ⅳ. 학습 활동 및 평가 지원", 25, 20, "다양한 교수·학습 과정과 평가 방법"],
-  ["Ⅳ. 학습 활동 및 평가 지원", 25, 21, "참여와 성장을 지원하는 과정 중심 활동"],
-  ["Ⅳ. 학습 활동 및 평가 지원", 25, 22, "디지털·온오프라인 연계 활동 지원"],
-];
-
-const HIGH_RECOGNITION_CRITERIA = [
-  ["Ⅰ. 교육과정의 준수", 20, 1, "교육과정에 제시된 ‘성격’과 ‘목표’를 충실히 반영하였는가?"],
-  ["Ⅰ. 교육과정의 준수", 20, 2, "교육과정에 제시된 ‘내용 체계’와 ‘성취기준’을 충실히 반영하였는가?"],
-  ["Ⅰ. 교육과정의 준수", 20, 3, "교육과정에 제시된 ‘교수·학습’을 충실히 반영하였는가?"],
-  ["Ⅰ. 교육과정의 준수", 20, 4, "교육과정에 제시된 ‘평가’를 충실히 반영하였는가?"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 5, "내용의 수준과 범위 및 학습량이 적절한가?"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 6, "내용 요소 간 위계가 있고, 연계성, 통합성, 균형성을 가지고 있는가?"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 7, "일상생활과 연계되어 흥미와 관심을 유발할 수 있도록 다양한 주제, 제재, 소재 등을 선정하였는가?"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 8, "학생들이 배운 내용을 다양한 방식으로 일상생활에 적용함으로써 역량 및 기초 소양 함양이 가능하도록 학습 내용을 조직하였는가?"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 9, "학생의 자기주도적 학습이 촉진될 수 있도록 학습 내용을 선정 및 조직하였는가?"],
-  ["Ⅱ. 내용의 선정 및 조직", 30, 10, "단원의 전개 및 구성 체제가 학습에 효과적인가?"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 11, "사실, 개념, 용어, 이론 등은 객관적이고 정확한가?"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 12, "평가 문항의 질문과 답에 오류는 없는가?"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 13, "사진, 삽화, 통계, 도표 및 각종 자료 등은 공신력 있는 최근의 것으로서 출처를 분명히 제시하고 있으며, 해당 내용에 대한 설명으로 적합한가?"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 14, "한글, 한자, 로마자, 인명, 지명, 각종 용어, 통계, 도표, 지도, 계량 단위 등의 표기가 정확하며, 편찬상의 유의점에 제시된 기준을 충실히 따랐는가?"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 15, "문법 오류, 부적절한 어휘 등 표현상의 오류가 없고 정확한가?"],
-  ["Ⅲ. 내용의 정확성 및 공정성", 20, 16, "특정 지역, 국가, 인종, 민족, 문화, 계층, 성, 종교, 직업, 집단, 인물, 기관, 상품 등을 비방·왜곡 또는 옹호하지 않았으며, 집필자 개인의 편견 없이 공정하게 기술하였는가?"],
-  ["Ⅳ. 학습 활동 및 평가 지원", 30, 17, "학습 활동 및 평가 과제는 교과 내용과 유기적으로 연계되어 있는가?"],
-  ["Ⅳ. 학습 활동 및 평가 지원", 30, 18, "학습 활동 및 평가 과제가 학생의 수준에 적절하며, 수행이 가능한가?"],
-  ["Ⅳ. 학습 활동 및 평가 지원", 30, 19, "학생의 역량 및 기초 소양 함양이 가능하도록 다양한 학습 활동 및 평가 과제를 제시하였는가?"],
-  ["Ⅳ. 학습 활동 및 평가 지원", 30, 20, "학습의 과정을 중시하고 학생의 참여와 성장을 지원하는 학습 활동 및 평가 과제를 제시하였는가?"],
-];
-
-const MOCK_REVIEW_REVISIONS = [
-  { id: "2009", label: "2009 개정" },
-  { id: "2015", label: "2015 개정" },
-  { id: "2022", label: "2022 개정" },
-];
-
-function mockReviewStandard(targetState = state) {
-  const revision = targetState.mockReviewRevision || "2022";
-  if (revision !== "2022") {
-    const reason = revision === "2015"
-      ? "교육과정 원문조차 전처리되지 않았습니다"
-      : "편찬상의 유의점 및 검정·인정기준 문서가 전처리되지 않았습니다";
-    return {
-      id: `${revision}-unavailable`,
-      label: "심사기준",
-      count: 0,
-      criteria: [],
-      source: "공식자료 미연결",
-      sourceLocation: `${revision} 개정 심사기준은 아직 공식자료와 연결되지 않았습니다(${reason}).`,
-      available: false,
-    };
-  }
-  if (targetState.project.schoolLevel === "고등학교") {
-    return {
-      id: "high-physical-education-recognition",
-      label: "인정기준",
-      count: HIGH_RECOGNITION_CRITERIA.length,
-      criteria: HIGH_RECOGNITION_CRITERIA,
-      source: "(서울교육연구정보원) 2022 개정 교육과정 교육부 장관 고시 인정도서 편찬상의 유의점 및 인정기준",
-      sourceLocation: "고등학교 체육 · 스포츠 문화 <인정 기준> · HWP 원본 고등학교 체육 20~45쪽 범위에서 소제목 대조",
-      available: true,
-    };
-  }
-  if (targetState.project.schoolLevel === "중학교") {
-    return {
-      id: "middle-unavailable",
-      label: "심사기준",
-      count: 0,
-      criteria: [],
-      source: "공식자료 미연결",
-      sourceLocation: "중등 체육 인정·검정 구분과 심사기준 자료를 추가로 연결해야 합니다.",
-      available: false,
-    };
-  }
-  return {
-    id: "elementary-physical-education-screening",
-    label: "검정기준",
-    count: MOCK_REVIEW_CRITERIA.length,
-    criteria: MOCK_REVIEW_CRITERIA,
-    source: "2022 개정 교육과정에 따른 체육과 편찬상의 유의점 및 검정기준",
-    sourceLocation: "PDF 원본 20~21쪽",
-    available: true,
-  };
-}
-
-const MOCK_REVIEW_STATUS_LABELS = { pass: "충족", partial: "부분 충족", fail: "미흡" };
-
-// 실제 교과서 PDF는 이미지 때문에 수십~수백 MB에 달해, 파일 전체를 서버로 올리면 Vercel
-// 요청 본문 크기 제한을 넘겨 거부된다(103MB 파일에서 재현됨). 브라우저(pdf.js)에서 텍스트만
-// 미리 뽑아 보내면 보통 수백 KB 이하라 이 문제가 없다.
-async function extractPdfTextInBrowser(file) {
-  if (!window.pdfjsLib) throw new Error("PDF 읽기 라이브러리를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.");
-  // pdf.js는 (disableWorker 옵션 없이) 항상 실제 워커 스크립트를 요구한다 —
-  // GlobalWorkerOptions.workerSrc가 없으면 파싱 자체가 바로 실패한다.
-  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs?v=1";
-  }
-  const arrayBuffer = await file.arrayBuffer();
-  const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const parts = [];
-  for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
-    const page = await doc.getPage(pageNumber);
-    const content = await page.getTextContent();
-    const text = content.items.map((item) => item.str).join(" ").trim();
-    if (text) parts.push(`[${pageNumber}쪽]\n${text}`);
-  }
-  // destroy()는 워커·메모리 정리용일 뿐이라 실패해도 이미 뽑은 텍스트는 그대로 반환해야 한다
-  // (일부 환경에서 워커 로딩 문제로 destroy가 없는 객체가 돌아오는 경우가 있었음).
-  try {
-    if (typeof doc.destroy === "function") await doc.destroy();
-  } catch {
-    // 정리 실패는 무시 — 텍스트 추출 결과에는 영향 없음.
-  }
-  return parts.join("\n\n");
-}
-
-function renderMockReviewResult(review) {
-  const fallbackStandard = mockReviewStandard();
-  const resultCriteria = review.standard?.criteria?.map((item) => [item.area, item.weight, item.number, item.criterion]) || fallbackStandard.criteria;
-  const standardLabel = review.standard?.label || fallbackStandard.label;
-  const criteriaByNumber = Object.fromEntries(resultCriteria.map(([area, weight, number, criterion]) => [number, { area, weight, criterion }]));
-  const items = review.items || [];
-  const countByStatus = { pass: 0, partial: 0, fail: 0 };
-  items.forEach((item) => { if (countByStatus[item.status] != null) countByStatus[item.status] += 1; });
-  const needsWork = items.filter((item) => item.status !== "pass");
-
-  const standardsCoverage = review.standardsCoverage || [];
-  const editorialNotes = review.editorialNotes || [];
-  const dictionaryCheck = review.dictionaryCheck || [];
-
-  return `
-    <div class="mock-review-result">
-      <div class="mock-review-summary">
-        <span class="option-subtitle">${escapeHtml(review.fileName)}</span>
-        <b class="mock-review-score">${review.overallScore}점</b>
-        <span class="mock-review-decision">${escapeHtml(review.decision)}</span>
-      </div>
-      ${review.truncated ? `<p class="source-page-warning">원문이 길어 앞부분만 채점에 사용했습니다.</p>` : ""}
-      <div class="mock-review-status-counts">
-        <span class="mock-review-status pass">충족 ${countByStatus.pass}</span>
-        <span class="mock-review-status partial">부분 충족 ${countByStatus.partial}</span>
-        <span class="mock-review-status fail">미흡 ${countByStatus.fail}</span>
-      </div>
-      ${needsWork.length ? `
-        <div class="mock-review-needs-work">
-          <b>수정·보완이 필요한 항목 ${needsWork.length}개</b>
-          <ul>
-            ${needsWork.map((item) => {
-              const meta = criteriaByNumber[item.number] || {};
-              return `<li><span class="mock-review-status ${item.status}">${MOCK_REVIEW_STATUS_LABELS[item.status] || item.status}</span> <b>${item.number}.</b> ${escapeHtml(meta.criterion || "")} — ${escapeHtml(item.evidence || "")}</li>`;
-            }).join("")}
-          </ul>
-        </div>` : ""}
-      <div class="mock-review-area-grid">
-        ${Object.entries(review.areaScores || {}).map(([area, score]) => `
-          <article class="mock-review-area-card">
-            <b>${escapeHtml(area)}</b>
-            <span>${score}점</span>
-          </article>`).join("")}
-      </div>
-      <label class="mock-review-filter-toggle"><input type="checkbox" id="mockReviewFilterToggle" /><span>수정·보완 필요 항목만 보기</span></label>
-      <div class="mock-review-table-wrap">
-        <table class="mock-review-table" id="mockReviewTable">
-          <thead><tr><th>번호</th><th>${escapeHtml(standardLabel)}</th><th>판정</th><th>AI 근거</th></tr></thead>
-          <tbody>
-            ${items.map((item) => {
-              const meta = criteriaByNumber[item.number] || {};
-              return `
-                <tr data-status="${item.status}">
-                  <td>${item.number}</td>
-                  <td><small>${escapeHtml(meta.area || "")}</small><br />${escapeHtml(meta.criterion || "")}</td>
-                  <td><span class="mock-review-status ${item.status}">${MOCK_REVIEW_STATUS_LABELS[item.status] || item.status}</span></td>
-                  <td>${escapeHtml(item.evidence || "")}</td>
-                </tr>`;
-            }).join("")}
-          </tbody>
-        </table>
-      </div>
-      <label class="editor-field"><span>검토 메모</span><textarea readonly>${escapeHtml(review.reviewNote || "")}</textarea></label>
-      ${standardsCoverage.length ? `
-        <div class="mock-review-extra-section">
-          <b>교육과정 성취기준 커버리지</b>
-          <ul class="mock-review-coverage-list">
-            ${standardsCoverage.map((item) => `<li class="${item.covered ? "covered" : "missing"}"><b>${escapeHtml(item.code)}</b> ${item.covered ? "다룸" : "확인 안 됨"} — ${escapeHtml(item.evidence || "")}</li>`).join("")}
-          </ul>
-        </div>` : ""}
-      ${editorialNotes.length ? `
-        <div class="mock-review-extra-section">
-          <b>편수자료 기준 검토</b>
-          <ul>${editorialNotes.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul>
-        </div>` : ""}
-      <div class="mock-review-extra-section">
-        <b>용어 사용 확인 <small>(허용 우선순위: 교육과정 → 편수자료 → 국어대사전)</small></b>
-        ${review.dictionaryCheckAvailable === false
-          ? `<p class="source-page-warning">서버에 STDICT_API_KEY가 설정되지 않아, 교육과정·편수자료에도 없는 용어는 국어대사전 대조를 건너뛰었습니다.</p>`
-          : ""}
-        ${dictionaryCheck.length ? `
-          <ul class="mock-review-coverage-list">
-            ${dictionaryCheck.map((entry) => {
-              let statusClass = "";
-              let statusText = "";
-              if (entry.source === "curriculum") { statusClass = "covered"; statusText = "교육과정에서 확인됨 → 허용"; }
-              else if (entry.source === "editorial") { statusClass = "covered"; statusText = "편수자료에서 확인됨 → 허용"; }
-              else if (entry.found === true) { statusClass = "covered"; statusText = "국어대사전에 있음 → 허용"; }
-              else if (entry.found === false) { statusClass = "missing"; statusText = "교육과정·편수자료·국어대사전 어디에도 없음 → 검토 필요"; }
-              else { statusClass = ""; statusText = "국어대사전 대조 못함(키 없음 또는 통신 오류)"; }
-              return `<li class="${statusClass}"><b>${escapeHtml(entry.term)}</b> ${statusText}</li>`;
-            }).join("")}
-          </ul>` : `<p class="source-page-warning">AI가 별도로 대조가 필요하다고 표시한 용어가 없습니다.</p>`}
-      </div>
-    </div>`;
-}
-
-function renderMockReview() {
-  const standard = mockReviewStandard();
-  const previousResultMatches = state.mockReview?.standard?.id === standard.id;
-  const activeRevision = state.mockReviewRevision || "2022";
-  return `
-    ${sectionHeading("MOCK CERTIFICATION", "모의심사", standard.available ? `${standard.count}개 항목` : "기준 미연결")}
-    <div class="editor-field">
-      <span>심사기준 교육과정</span>
-      <div class="book-style-options" role="radiogroup" aria-label="심사기준 교육과정">
-        ${MOCK_REVIEW_REVISIONS.map((rev) => `<button type="button" class="book-style-option${rev.id === activeRevision ? " active" : ""}" data-mock-review-revision="${rev.id}" role="radio" aria-checked="${rev.id === activeRevision}">${rev.label}</button>`).join("")}
-      </div>
-    </div>
-    <div class="evidence-summary-card">
-      <b>${escapeHtml(standard.label)} 근거</b>
-      <span>${escapeHtml(standard.source)}</span>
-      <small>${escapeHtml(standard.sourceLocation)}</small>
-    </div>
-    <div class="mock-review-upload">
-      <label class="editor-field">
-        <span>교과서 PDF 업로드</span>
-        <input type="file" id="mockReviewFileInput" accept="application/pdf" ${standard.available ? "" : "disabled"} />
-      </label>
-      <button class="primary-button" id="mockReviewStartButton" type="button" ${standard.available ? "" : "disabled"}>채점 시작</button>
-    </div>
-    <small id="mockReviewSelectedFileLabel" ${mockReviewSelectedFileName ? "" : "hidden"}>선택한 파일: ${escapeHtml(mockReviewSelectedFileName || "")}</small>
-    <p class="source-page-warning" id="mockReviewError" hidden></p>
-    ${state.mockReview && !previousResultMatches ? `<p class="source-page-warning">심사기준이 변경되어 이전 채점 결과를 표시하지 않습니다. PDF를 다시 채점해 주세요.</p>` : ""}
-    ${state.mockReview && previousResultMatches ? renderMockReviewResult(state.mockReview) : ""}`;
+    ${sectionHeading("DRAFT STUDIO", "초안·시안·조판", "")}
+    <div class="curriculum-notice"><strong>아직 초안 프로필이 없는 과목입니다</strong><span>지금은 초등 체육(3~6학년)과 고등 스포츠 문화만 근거 검색 + AI 초안을 만들 수 있습니다. 이 과목은 01~03단계(구성안)까지 쓸 수 있습니다.</span></div>`;
 }
 
 // 드롭다운·체크박스를 바꿀 때마다 전체 화면을 다시 그리므로, 그대로 두면 스크롤 위치가
 // 매번 맨 위로 초기화된다(특히 소단원 목록처럼 자체 스크롤이 있는 영역). 다시 그리기 전의
 // 창·목록 스크롤 위치를 기억했다가 다시 그린 뒤 그대로 복원한다.
 function renderWorkspace() {
-  const renderers = [renderProject, renderCurriculum, renderUnits, renderFrameworks, renderMockReview];
+  const renderers = [renderProject, renderCurriculum, renderUnits, renderFeedbackAnalysisStep, renderFrameworks, renderFeedbackStep, renderDerivedStep];
   const workspace = document.querySelector("#workspace");
   const windowScrollY = window.scrollY;
   const innerScrollTops = Array.from(workspace.querySelectorAll(".draft-target-list, .special-page-list")).map((el) => el.scrollTop);
@@ -4249,22 +5225,36 @@ function renderWorkspace() {
   };
   workspace.replaceChildren();
   const project = activeProject();
-  if (state.currentStep > 0 && isPairedProject(project) && project.viewMode === "compare") {
+  // 02 교육과정은 학년군 단위라 두 학년책 내용이 같다 — 비교 보기에서도 한 번만 그린다.
+  if (state.currentStep > 1 && isPairedProject(project) && project.viewMode === "compare") {
     const originalState = state;
     const currentStep = originalState.currentStep;
+    // 비교 보기에서는 고칠 수 없으므로 입력 화면 대신 데이터만 보여 준다(03은 단원표, 04~06은 입력값을 글자로).
+    const unitsStep = renderers[currentStep] === renderUnits;
     let panels = "";
+    let filterBar = "";
     try {
       panels = Object.entries(project.books).map(([bookKey, bookState]) => {
         state = bookState;
-        const content = renderers[currentStep]();
-        return `<article class="book-comparison-panel" inert><header><h3>${bookKey}</h3><small>읽기 전용 비교</small></header>${content}</article>`;
+        const content = unitsStep ? renderUnitsComparison() : renderers[currentStep]();
+        return `<article class="book-comparison-panel${unitsStep ? " units-compare" : ""}" data-compare-book="${escapeHtml(bookKey)}"><h3>${escapeHtml(bookKey)}</h3>${content}</article>`;
       }).join("");
+      if (unitsStep) filterBar = renderUnitsComparisonFilter(Object.values(project.books));
     } finally {
       state = originalState;
     }
-    document.querySelector("#workspace").innerHTML = `
-      <div class="comparison-heading"><p class="section-kicker">GRADE COMPARISON</p><h2>${escapeHtml(project.band || project.pairLabel || project.name)} 비교 보기</h2><p>같은 단계의 두 학년책을 나란히 확인합니다. 수정하려면 왼쪽에서 학년을 선택하세요.</p></div>
-      <div class="book-comparison-grid">${panels}</div>`;
+    document.querySelector("#workspace").innerHTML = `${filterBar}<div class="book-comparison-grid">${panels}</div>`;
+    bindComparisonPanels();
+    document.querySelectorAll("[data-units-compare-export]").forEach((button) => button.addEventListener("click", () => {
+      if (button.dataset.unitsCompareExport === "pdf") {
+        downloadCanvasPagesAsPdf(`${unitsComparisonExportTable().filename}.pdf`, buildUnitsComparisonPdfPages());
+        showToast("학년군 단원표를 PDF로 저장했습니다.");
+        return;
+      }
+      postTableExport(unitsComparisonExportTable(), button.dataset.unitsCompareExport)
+        .then(() => showToast("학년군 단원표를 내려받았습니다."))
+        .catch((error) => showToast(error.message));
+    }));
     restoreScroll();
     return;
   }
@@ -4274,6 +5264,241 @@ function renderWorkspace() {
   syncDraftFileRowCheckboxes();
   syncDraftFileColumnCheckboxes();
   restoreScroll();
+}
+
+// 03단계 비교용 단원표: 대단원 → 중단원 → 소단원을 한 줄씩, 차시·쪽수만 오른쪽 열에.
+function renderUnitsComparison() {
+  normalizeAutomaticUnitNumbering(state);
+  const filter = state.unitDomainFilter || "전체";
+  const coreAllocated = unitsTotalPages(state.units) + specialPagesTotal(state) + lineItemsTotalPages(state.appendixText);
+  const supplementary = lineItemsTotalPages(state.frontMatterText) + lineItemsTotalPages(state.backMatterText);
+  const sumHours = (smallUnits) => smallUnits.reduce((sum, small) => sum + (Number(small.hours) || 0), 0);
+  const sumPages = (smallUnits) => smallUnits.reduce((sum, small) => sum + (Number(small.pages) || 0), 0);
+  const rows = state.units.map((unit, unitIndex) => {
+    if (filter !== "전체" && unit.domain !== filter) return "";
+    const subtitle = unit.subdomainGroups.map((group) => group.subtitle).filter(Boolean).join(" · ");
+    const unitPages = unitsTotalPages([unit]) + specialPagesTotal(state, unit.domain);
+    const middleRows = unit.subdomainGroups.flatMap((group, groupIndex) => group.middleUnits.map((middle, middleIndex) => {
+      const position = middleUnitPosition(unit, groupIndex, middleIndex);
+      const smallRows = middle.smallUnits.map((small, smallIndex) => `
+        <tr class="cmp-small"><td><b>${unitNumberLabel(unitIndex, position, smallIndex + 1)}</b> ${escapeHtml(small.title)}</td><td>${Number(small.hours) || 0}</td><td>${Number(small.pages) || 0}</td></tr>`).join("");
+      return `<tr class="cmp-middle"><td><b>${unitNumberLabel(unitIndex, position)}</b> ${escapeHtml(middle.title)}</td><td>${sumHours(middle.smallUnits)}</td><td>${sumPages(middle.smallUnits)}</td></tr>${smallRows}`;
+    })).join("");
+    return `
+      <tr class="cmp-large"><td><b>${unitNumberLabel(unitIndex)}</b> <span class="domain-badge ${escapeHtml(unit.domain)}">${escapeHtml(unit.domain)}</span> ${escapeHtml(subtitle)}<small>도입 ${Number(unit.introPages) || 0} · 마무리 ${Number(unit.wrapUpPages) || 0}쪽</small></td><td>${unitsTotalHours([unit])}</td><td>${unitPages}</td></tr>
+      ${middleRows}`;
+  }).join("");
+  return `
+    <p class="cmp-summary"><span>차시 <b>${unitsTotalHours(state.units)}</b>/${projectTargetHours()}</span><span>본문·부록 <b>${coreAllocated}</b>/${Number(state.project.corePages) || 0}쪽</span><span>부속자료 <b>${supplementary}</b>/${Number(state.project.supplementaryPages) || 0}쪽</span></p>
+    <table class="cmp-unit-table"><thead><tr><th>단원</th><th>차시</th><th>쪽수</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// 03단계 비교 보기의 영역 필터는 두 책 위에 한 번만 두고, 오른쪽에 학년군 단원표 내려받기를 둔다.
+function renderUnitsComparisonFilter(books) {
+  const domains = [...new Set(books.flatMap((book) => (book.units || []).map((unit) => unit.domain)))];
+  const selected = books[0]?.unitDomainFilter || "전체";
+  return `<div class="compare-toolbar"><div class="curriculum-domain-tabs">${["전체", ...domains].map((domain) => `<button class="${selected === domain ? "active" : ""}" data-unit-domain-filter="${escapeHtml(domain)}" type="button">${escapeHtml(domain)}</button>`).join("")}</div>
+    <span class="compare-download">학년군 단원표 <button class="secondary-button" type="button" data-units-compare-export="pdf">PDF</button><button class="secondary-button" type="button" data-units-compare-export="xlsx">엑셀</button></span></div>`;
+}
+
+// 학년책 하나의 단원표 행: 대단원마다 묶어 [단원, 차시, 쪽수]. 비교 파일에서 대단원 시작 줄을 맞추는 데 쓴다.
+function unitsComparisonBlocks(book) {
+  normalizeAutomaticUnitNumbering(book);
+  const sum = (smallUnits, field) => smallUnits.reduce((total, small) => total + (Number(small[field]) || 0), 0);
+  return (book.units || []).map((unit, unitIndex) => {
+    const subtitle = unit.subdomainGroups.map((group) => group.subtitle).filter(Boolean).join(" · ");
+    const rows = [[`${unitNumberLabel(unitIndex)}. ${unit.domain}${subtitle ? ` · ${subtitle}` : ""}`, unitsTotalHours([unit]), unitsTotalPages([unit]) + specialPagesTotal(book, unit.domain), 0, `도입 ${Number(unit.introPages) || 0}·마무리 ${Number(unit.wrapUpPages) || 0}쪽`]];
+    unit.subdomainGroups.forEach((group, groupIndex) => group.middleUnits.forEach((middle, middleIndex) => {
+      const position = middleUnitPosition(unit, groupIndex, middleIndex);
+      rows.push([`${unitNumberLabel(unitIndex, position)}. ${middle.title}`, sum(middle.smallUnits, "hours"), sum(middle.smallUnits, "pages"), 1]);
+      middle.smallUnits.forEach((small, smallIndex) => rows.push([`${unitNumberLabel(unitIndex, position, smallIndex + 1)}. ${small.title}`, Number(small.hours) || 0, Number(small.pages) || 0, 2]));
+    }));
+    return rows;
+  });
+}
+
+function buildUnitsComparisonPdfPages() {
+  const project = activeProject();
+  const entries = Object.entries(project.books || {});
+  const blocks = entries.map(([, book]) => unitsComparisonBlocks(book));
+  const pageWidth = 1123;
+  const pageHeight = 794;
+  const margin = 36;
+  const columnGap = 22;
+  const scale = 2;
+  const columnWidth = (pageWidth - margin * 2 - columnGap * (entries.length - 1)) / entries.length;
+  const numberWidth = 42;
+  const palette = { brand: "#1e4a9a", brandSoft: "#edf2fb", brandTint: "#c9d7f0", text: "#1f2633", muted: "#667085", line: "#e3e7ee" };
+  const font = (weight, size) => `${weight} ${size}px 'Malgun Gothic','Apple SD Gothic Neo',sans-serif`;
+  const heights = [30, 22, 19];
+  const canvases = [];
+  let context = null;
+  let y = 0;
+  const fit = (text, width) => {
+    let value = String(text);
+    if (context.measureText(value).width <= width) return value;
+    while (value.length > 1 && context.measureText(`${value}…`).width > width) value = value.slice(0, -1);
+    return `${value}…`;
+  };
+  const newPage = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = pageWidth * scale;
+    canvas.height = pageHeight * scale;
+    context = canvas.getContext("2d");
+    context.scale(scale, scale);
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, pageWidth, pageHeight);
+    context.fillStyle = palette.brand;
+    context.fillRect(0, 0, pageWidth, 5);
+    canvases.push(canvas);
+    y = margin;
+    context.font = font(800, 17);
+    context.fillStyle = palette.text;
+    context.fillText(`${project.band || project.pairLabel || project.name || "학년군"} 단원·차시 배분`, margin, y + 12);
+    context.font = font(400, 10);
+    context.fillStyle = palette.muted;
+    context.textAlign = "right";
+    context.fillText(`${canvases.length}쪽`, pageWidth - margin, y + 12);
+    context.textAlign = "left";
+    y += 30;
+    entries.forEach(([bookKey, book], index) => {
+      const x = margin + index * (columnWidth + columnGap);
+      const core = unitsTotalPages(book.units) + specialPagesTotal(book) + lineItemsTotalPages(book.appendixText);
+      context.font = font(800, 14);
+      context.fillStyle = palette.brand;
+      context.fillText(bookKey, x, y + 12);
+      context.font = font(400, 10.5);
+      context.fillStyle = palette.muted;
+      context.fillText(`차시 ${unitsTotalHours(book.units)}/${Number(book.project.targetHours) || 0} · 본문·부록 ${core}/${Number(book.project.corePages) || 0}쪽`, x + 52, y + 12);
+      context.fillStyle = palette.brand;
+      context.fillRect(x, y + 20, columnWidth, 1.5);
+      context.font = font(700, 9.5);
+      context.fillStyle = palette.muted;
+      context.fillText("단원", x + 4, y + 33);
+      context.textAlign = "right";
+      context.fillText("차시", x + columnWidth - numberWidth - 6, y + 33);
+      context.fillText("쪽수", x + columnWidth - 6, y + 33);
+      context.textAlign = "left";
+    });
+    y += 42;
+  };
+  const drawRow = (row, x, height) => {
+    const [label, hours, pages, level, note] = row;
+    const top = y;
+    if (level === 0) {
+      context.fillStyle = palette.brandSoft;
+      context.fillRect(x, top + 6, columnWidth, height - 6);
+      context.fillStyle = palette.brand;
+      context.fillRect(x, top + 6, 3, height - 6);
+    } else if (level === 1) {
+      context.fillStyle = "#f6f8fc";
+      context.fillRect(x, top, columnWidth, height);
+    }
+    const indent = [10, 10, 24][level];
+    const baseline = top + height - (level === 0 ? 8 : 6);
+    context.font = level === 0 ? font(800, 12) : level === 1 ? font(700, 10.8) : font(400, 10.5);
+    context.fillStyle = level === 2 ? palette.text : palette.brand;
+    const labelWidth = columnWidth - numberWidth * 2 - indent - 8;
+    const noteText = note ? `  ${note}` : "";
+    context.fillText(fit(label, labelWidth - (noteText ? 90 : 0)), x + indent, baseline);
+    if (noteText) {
+      const used = context.measureText(fit(label, labelWidth - 90)).width;
+      context.font = font(400, 9.5);
+      context.fillStyle = palette.muted;
+      context.fillText(noteText, x + indent + used, baseline);
+    }
+    context.font = level === 2 ? font(400, 10.5) : font(700, 11);
+    context.fillStyle = palette.text;
+    context.textAlign = "right";
+    context.fillText(String(hours), x + columnWidth - numberWidth - 6, baseline);
+    context.fillText(String(pages), x + columnWidth - 6, baseline);
+    context.textAlign = "left";
+    if (level !== 0) {
+      context.fillStyle = palette.line;
+      context.fillRect(x, top + height - 0.5, columnWidth, 0.5);
+    }
+  };
+  newPage();
+  const unitCount = Math.max(...blocks.map((list) => list.length));
+  for (let unitIndex = 0; unitIndex < unitCount; unitIndex += 1) {
+    const lineCount = Math.max(...blocks.map((list) => list[unitIndex]?.length || 0));
+    if (unitIndex) y += 12;
+    for (let line = 0; line < lineCount; line += 1) {
+      const rows = blocks.map((list) => list[unitIndex]?.[line] || null);
+      const height = Math.max(...rows.map((row) => (row ? heights[row[3]] : 0)));
+      if (y + height > pageHeight - margin) newPage();
+      rows.forEach((row, index) => { if (row) drawRow(row, margin + index * (columnWidth + columnGap), height); });
+      y += height;
+    }
+  }
+  return canvases;
+}
+
+// 학년군 두 책을 한 표로: 학년마다 [단원, 차시, 쪽수] 세 열을 나란히 두고, 대단원 시작 줄을 맞춘다.
+function unitsComparisonExportTable() {
+  const project = activeProject();
+  const entries = Object.entries(project.books || {});
+  const blocks = entries.map(([, book]) => unitsComparisonBlocks(book));
+  const columns = entries.flatMap(([bookKey]) => [`${bookKey} 단원`, "차시", "쪽수"]);
+  const rows = [];
+  const unitCount = Math.max(...blocks.map((list) => list.length));
+  for (let unitIndex = 0; unitIndex < unitCount; unitIndex += 1) {
+    const height = Math.max(...blocks.map((list) => list[unitIndex]?.length || 0));
+    for (let line = 0; line < height; line += 1) {
+      rows.push(blocks.flatMap((list) => {
+        const row = list[unitIndex]?.[line];
+        if (!row) return ["", "", ""];
+        const [label, hours, pages, level, note] = row;
+        return [`${["", "  ", "      "][level]}${label}${note ? ` (${note})` : ""}`, hours, pages];
+      }));
+    }
+    if (unitIndex < unitCount - 1) rows.push(columns.map(() => ""));
+  }
+  rows.push(entries.flatMap(([, book]) => {
+    const core = unitsTotalPages(book.units) + specialPagesTotal(book) + lineItemsTotalPages(book.appendixText);
+    return [`합계 (본문·부록 ${core}/${Number(book.project.corePages) || 0}쪽)`, unitsTotalHours(book.units), unitsTotalPages(book.units)];
+  }));
+  const name = `${project.band || project.pairLabel || project.name || "학년군"}_단원·차시 배분`;
+  return { title: name, filename: name, columns, rows, widths: entries.flatMap(() => [46, 7, 7]) };
+}
+
+// 비교 보기는 읽기 전용이다. 입력칸은 값만 글자로 바꾸고 작업 버튼은 숨기며,
+// 영역 필터 버튼만 두 학년책에 함께 적용한다.
+function bindComparisonPanels() {
+  const filterSelector = "[data-curriculum-domain], [data-unit-domain-filter]";
+  document.querySelectorAll(".book-comparison-panel").forEach((panel) => {
+    // 입력용으로만 있는 구획(파일 올리기·생성 방식·삽화 켜기)과 선택 체크박스는 비교할 데이터가 아니다.
+    panel.querySelectorAll(".feedback-drop, .feedback-note-field, .draft-mockup-toggle, .help-tip, .generation-mode-note, .toggle-editor-field").forEach((element) => element.remove());
+    panel.querySelectorAll("input, select, textarea").forEach((element) => {
+      if (element.type === "checkbox" || element.type === "radio" || element.type === "file" || element.type === "hidden") {
+        element.remove();
+        return;
+      }
+      const value = element.tagName === "SELECT" ? element.selectedOptions[0]?.textContent || "" : element.value;
+      const text = document.createElement("span");
+      text.className = "compare-value";
+      text.textContent = value;
+      element.replaceWith(text);
+    });
+    panel.querySelectorAll("button").forEach((button) => {
+      if (!button.matches(filterSelector)) button.remove();
+    });
+    // 비어 있는 입력칸은 이름표째 뺀다.
+    panel.querySelectorAll(".editor-field").forEach((field) => {
+      const values = field.querySelectorAll(".compare-value");
+      if (values.length && [...values].every((value) => !value.textContent.trim())) field.remove();
+    });
+  });
+  document.querySelectorAll(`:is(.book-comparison-panel, .compare-toolbar) :is(${filterSelector})`).forEach((button) => {
+    button.addEventListener("click", () => {
+      Object.values(activeProject().books).forEach((book) => {
+        if ("curriculumDomain" in button.dataset) book.curriculumDomain = button.dataset.curriculumDomain;
+        if ("unitDomainFilter" in button.dataset) book.unitDomainFilter = button.dataset.unitDomainFilter;
+      });
+      persist();
+      renderWorkspace();
+    });
+  });
 }
 
 function bindWorkspace() {
@@ -4351,8 +5576,7 @@ function bindWorkspace() {
       book.project[field] = value;
       if (field === "targetHours" && Number.isInteger(value) && value > 0) redistributeUnitHours(book, value);
       if (["corePages", "supplementaryPages"].includes(field) && pageValidation(book).valid) {
-        book.pages = buildPagePlan(book);
-        book.selectedPages = [1];
+        fitBookPagesToTargets(book);
       }
       persist();
       renderWorkspace();
@@ -4411,8 +5635,13 @@ function bindWorkspace() {
   });
 
   document.querySelector("#downloadCurriculumButton")?.addEventListener("click", () => {
-    downloadCsvFile(`${state.project.name || "교육과정"}_성취기준.csv`, curriculumDownloadRows());
-    showToast("성취기준·고려사항을 다운로드했습니다.");
+    const canvases = buildCurriculumStandardsPdfPages();
+    if (!canvases) {
+      showToast("내려받을 성취기준이 없습니다.");
+      return;
+    }
+    downloadCanvasPagesAsPdf(`${state.project.name || "교육과정"}_성취기준과_고려사항.pdf`, canvases);
+    showToast("성취기준·고려사항을 PDF로 저장했습니다.");
   });
 
   document.querySelector("#downloadCurriculumNoteButton")?.addEventListener("click", () => {
@@ -4425,21 +5654,33 @@ function bindWorkspace() {
     showToast("분석 내용을 PDF로 저장했습니다.");
   });
 
+  document.querySelector("#fitPagesButton")?.addEventListener("click", () => {
+    if (!window.confirm("소단원 쪽수와 앞·뒷부속을 기준 쪽수에 맞게 다시 배분합니다. 직접 고친 쪽수도 바뀝니다. 계속할까요?")) return;
+    if (!fitBookPagesToTargets(state)) {
+      showToast("이 책은 공식 쪽수 기준이 없어 자동 배분할 수 없습니다.");
+      return;
+    }
+    persist("기준 쪽수에 맞게 쪽수 배분됨");
+    renderWorkspace();
+    showToast("기준 쪽수에 맞게 배분했습니다.");
+  });
+
   document.querySelector("#downloadTocButton")?.addEventListener("click", () => {
     downloadCsvFile(`${state.project.name || "목차"}_목차.csv`, unitsTocRows());
     showToast("목차를 다운로드했습니다.");
   });
 
   document.querySelector("#addTocSpecialPageButton")?.addEventListener("click", () => {
-    const type = document.querySelector("#tocSpecialPageTypeSelect")?.value || "reading";
-    const domain = document.querySelector("#tocSpecialPageDomainSelect")?.value || state.units[0]?.domain || "스포츠 문화";
+    const type = document.querySelector("#tocSpecialPageTypeSelect")?.value || specialPageTypes()[0]?.id || "reading";
+    const domainSelect = document.querySelector("#tocSpecialPageDomainSelect");
+    const domain = domainSelect ? domainSelect.value : state.units[0]?.domain || "";
     const label = sportsCultureSpecialPageTypeLabel(type);
     state.specialPages ||= [];
-    state.specialPages.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, domain, title: `${domain} ${label}`, pages: 2 });
+    state.specialPages.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, domain, title: domain ? `${domain} ${label}` : `통합 ${label}`, pages: 2 });
     state.pages = buildPagePlan(state);
     persist("3단계 특별페이지 추가됨");
     renderWorkspace();
-    showToast("특별페이지 2쪽을 배열표에 반영했습니다. 전체 쪽수에 맞게 다른 쪽수를 조정하세요.");
+    showToast("2쪽을 배열표에 반영했습니다. 기준 쪽수와 달라졌으면 '기준 쪽수에 맞게 배분'을 눌러 주세요.");
   });
 
   document.querySelectorAll("[data-toc-special-title]").forEach((input) => {
@@ -4725,12 +5966,6 @@ function bindWorkspace() {
         state.units.splice(unitIndex + 1, 0, copy);
       } else if (action === "delete" && state.units.length > 1) {
         state.units.splice(unitIndex, 1);
-      } else if (action === "up" && unitIndex > 0) {
-        [state.units[unitIndex - 1], state.units[unitIndex]] =
-          [state.units[unitIndex], state.units[unitIndex - 1]];
-      } else if (action === "down" && unitIndex < state.units.length - 1) {
-        [state.units[unitIndex + 1], state.units[unitIndex]] =
-          [state.units[unitIndex], state.units[unitIndex + 1]];
       } else {
         return;
       }
@@ -4767,12 +6002,6 @@ function bindWorkspace() {
         group.middleUnits.splice(middleIndex + 1, 0, JSON.parse(JSON.stringify(group.middleUnits[middleIndex])));
       } else if (action === "delete" && group.middleUnits.length > 1) {
         group.middleUnits.splice(middleIndex, 1);
-      } else if (action === "up" && middleIndex > 0) {
-        [group.middleUnits[middleIndex - 1], group.middleUnits[middleIndex]] =
-          [group.middleUnits[middleIndex], group.middleUnits[middleIndex - 1]];
-      } else if (action === "down" && middleIndex < group.middleUnits.length - 1) {
-        [group.middleUnits[middleIndex + 1], group.middleUnits[middleIndex]] =
-          [group.middleUnits[middleIndex], group.middleUnits[middleIndex + 1]];
       } else {
         return;
       }
@@ -4790,12 +6019,6 @@ function bindWorkspace() {
         middle.smallUnits.splice(smallIndex + 1, 0, JSON.parse(JSON.stringify(middle.smallUnits[smallIndex])));
       } else if (action === "delete" && middle.smallUnits.length > 1) {
         middle.smallUnits.splice(smallIndex, 1);
-      } else if (action === "up" && smallIndex > 0) {
-        [middle.smallUnits[smallIndex - 1], middle.smallUnits[smallIndex]] =
-          [middle.smallUnits[smallIndex], middle.smallUnits[smallIndex - 1]];
-      } else if (action === "down" && smallIndex < middle.smallUnits.length - 1) {
-        [middle.smallUnits[smallIndex + 1], middle.smallUnits[smallIndex]] =
-          [middle.smallUnits[smallIndex], middle.smallUnits[smallIndex + 1]];
       } else {
         return;
       }
@@ -4803,6 +6026,8 @@ function bindWorkspace() {
       renderWorkspace();
     });
   });
+
+  bindUnitDragAndDrop();
 
   document.querySelectorAll("[data-toggle-move]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -4852,16 +6077,10 @@ function bindWorkspace() {
     });
   });
 
-  document.querySelectorAll("[data-framework-metric]").forEach((input) => {
-    input.addEventListener("input", () => {
-      input.nextElementSibling.textContent = input.value;
-    });
-  });
-
   document.querySelectorAll("[data-book-style-value]").forEach((button) => {
     button.addEventListener("click", () => {
       state.bookStyleValue = Number(button.dataset.bookStyleValue);
-      persist("스포츠 문화 전체 스타일 변경됨");
+      persist("전체 스타일 변경됨");
       renderWorkspace();
     });
   });
@@ -4879,6 +6098,31 @@ function bindWorkspace() {
       persist("초고 생성 대상 변경됨");
       refreshDraftSelectionControls();
     });
+  });
+
+  document.querySelectorAll("[data-draft-group]").forEach((box) => {
+    box.addEventListener("change", () => {
+      const keys = box.dataset.draftGroup.split("|").filter(Boolean);
+      const selected = new Set(state.selectedDraftSmallUnitKeys || []);
+      keys.forEach((key) => (box.checked ? selected.add(key) : selected.delete(key)));
+      state.selectedDraftSmallUnitKeys = [...selected];
+      document.querySelectorAll("[data-draft-target]").forEach((input) => { input.checked = selected.has(input.dataset.draftTarget); });
+      persist("초고 생성 대상 변경됨");
+      refreshDraftSelectionControls();
+    });
+  });
+  syncDraftGroupCheckboxes();
+
+  document.querySelector("#selectAllDraftTargets")?.addEventListener("click", () => {
+    state.selectedDraftSmallUnitKeys = draftStudioTargets().map((item) => item.key);
+    document.querySelectorAll("[data-draft-target]").forEach((input) => { input.checked = true; });
+    persist("전체 단원 생성 대상으로 선택됨");
+    refreshDraftSelectionControls();
+  });
+
+  document.querySelector("#includeMockupsToggle")?.addEventListener("change", (event) => {
+    state.includeMockups = event.target.checked;
+    persist("디자인 시안 함께 그리기 변경됨");
   });
 
   document.querySelectorAll("[data-draft-content-type]").forEach((select) => {
@@ -4902,6 +6146,28 @@ function bindWorkspace() {
     });
   });
 
+  document.querySelectorAll("[data-elementary-lesson-type]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const small = sportsCultureSmallUnitRecord(select.dataset.elementaryLessonType);
+      if (!small) return;
+      small.lessonType = select.value;
+      persist("소단원 수업 유형 변경됨");
+      renderWorkspace();
+    });
+  });
+
+  document.querySelectorAll("[data-elementary-corner]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const unitIndex = select.dataset.elementaryCorner;
+      state.elementaryCornerTypes ||= {};
+      if (select.value) state.elementaryCornerTypes[unitIndex] = select.value;
+      else delete state.elementaryCornerTypes[unitIndex];
+      if (!select.value) state.selectedDraftSmallUnitKeys = (state.selectedDraftSmallUnitKeys || []).filter((key) => key !== `special:corner:${unitIndex}`);
+      persist("확장 코너 변경됨");
+      renderWorkspace();
+    });
+  });
+
   document.querySelector("#selectAllSmallDraftTargets")?.addEventListener("click", () => {
     state.selectedDraftSmallUnitKeys = smallUnitOptions().map((item) => item.key);
     document.querySelectorAll("[data-draft-target]").forEach((input) => { input.checked = state.selectedDraftSmallUnitKeys.includes(input.dataset.draftTarget); });
@@ -4917,7 +6183,7 @@ function bindWorkspace() {
   });
 
   document.querySelector("#selectAllSpecialDraftTargets")?.addEventListener("click", () => {
-    const specialKeys = sportsCultureSpecialDraftTargets().map((item) => item.key);
+    const specialKeys = specialDraftTargets().map((item) => item.key);
     const current = new Set(state.selectedDraftSmallUnitKeys || []);
     specialKeys.forEach((key) => current.add(key));
     state.selectedDraftSmallUnitKeys = [...current];
@@ -4927,41 +6193,11 @@ function bindWorkspace() {
   });
 
   document.querySelector("#clearSpecialDraftTargets")?.addEventListener("click", () => {
-    const specialKeys = new Set(sportsCultureSpecialDraftTargets().map((item) => item.key));
+    const specialKeys = new Set(specialDraftTargets().map((item) => item.key));
     state.selectedDraftSmallUnitKeys = (state.selectedDraftSmallUnitKeys || []).filter((key) => !specialKeys.has(key));
     document.querySelectorAll("[data-draft-target]").forEach((input) => { input.checked = state.selectedDraftSmallUnitKeys.includes(input.dataset.draftTarget); });
     persist("도입·마무리·특별페이지 선택 해제됨");
     refreshDraftSelectionControls();
-  });
-
-  document.querySelector("#previewSmallUnitSelect")?.addEventListener("change", (event) => {
-    state.previewSmallUnitKey = event.target.value;
-    if (isSportsCultureProject()) {
-      const selected = smallUnitOptions().find((item) => item.key === state.previewSmallUnitKey);
-      state.draftPrimaryType = selected ? inferSportsCultureContentType(selected) : "theory";
-      state.draftSecondaryType = "";
-    }
-    persist();
-    renderWorkspace();
-  });
-
-  document.querySelector("#draftPrimaryTypeSelect")?.addEventListener("change", (event) => {
-    state.draftPrimaryType = event.target.value;
-    if (state.draftSecondaryType === state.draftPrimaryType) state.draftSecondaryType = "";
-    persist("스포츠 문화 주 소단원 유형 변경됨");
-    renderWorkspace();
-  });
-
-  document.querySelector("#draftSecondaryTypeSelect")?.addEventListener("change", (event) => {
-    state.draftSecondaryType = event.target.value === state.draftPrimaryType ? "" : event.target.value;
-    persist("스포츠 문화 보조 소단원 유형 변경됨");
-    renderWorkspace();
-  });
-
-  document.querySelector("#draftProviderSelect")?.addEventListener("change", (event) => {
-    state.generationProviderId = event.target.value;
-    persist("초안 생성 제공자 변경됨");
-    renderWorkspace();
   });
 
   document.querySelector("#includeImagesToggle")?.addEventListener("change", (event) => {
@@ -4970,8 +6206,9 @@ function bindWorkspace() {
   });
 
   document.querySelector("#generateDraftButton")?.addEventListener("click", async (event) => {
-    if (isSportsCultureProject()) {
-      const targetsByKey = new Map(sportsCultureDraftTargets().map((item) => [item.key, item]));
+    if (usesDraftStudio()) {
+      const sportsCultureMode = isSportsCultureProject();
+      const targetsByKey = new Map(draftStudioTargets().map((item) => [item.key, item]));
       const targets = (state.selectedDraftSmallUnitKeys || []).map((key) => targetsByKey.get(key)).filter(Boolean);
       if (!targets.length) {
         showToast("먼저 생성할 소단원이나 특별 페이지를 선택해 주세요.");
@@ -4985,7 +6222,13 @@ function bindWorkspace() {
       const button = event.currentTarget;
       const originalLabel = button.textContent;
       button.disabled = true;
+      const busy = startButtonBusy(button);
+      const busyNote = document.querySelector("#draftGenerateSelectionSummary");
+      if (busyNote) busyNote.textContent = `AI가 펼침면마다 원고를 쓰는 중입니다(항목 하나에 1~2분${state.includeMockups && !isSportsCultureProject() ? ", 시안까지 그리면 2~4분" : ""}). 이 창을 열어 두세요.`;
       let completedCount = 0;
+      let failedMockups = 0;
+      let mockupError = "";
+      const firstNewBatchIndex = state.frameworkDraftLog.length;
       try {
         const style = sportsCultureStyleProfile(state.bookStyleValue);
         const framework = { id: style.id, name: `전체 스타일 · ${style.label}`, summary: style.summary };
@@ -4993,7 +6236,47 @@ function bindWorkspace() {
         const additionalConcept = sportsCultureAdditionalConcept.trim();
         for (let index = 0; index < targets.length; index += 1) {
           const target = targets[index];
-          button.textContent = `${index + 1}/${targets.length} 초고 구성 중…`;
+          busy.set(`${index + 1}/${targets.length} 초고 구성 중…`);
+          if (!sportsCultureMode) {
+            const result = await engine.generateDraftSet({
+              profileId: globalThis.ELEMENTARY_DRAFT_ENGINE.profileId,
+              imageAudience: "elementary",
+              providerId: engine.externalAiProviderId,
+              styleValue: state.bookStyleValue,
+              additionalConcept: "",
+              feedbackNotes: selectedFeedbackNotes(),
+              includeImages: false,
+              onImageProgress: (done, total) => {
+                busy.set(`${index + 1}/${targets.length} 초고 구성 중… (이미지 ${done}/${total})`);
+              },
+              smallUnit: target,
+              frameworks: [framework],
+              metricsByFramework: { [framework.id]: metrics },
+            });
+            state.frameworkDraftLog.push({
+              generatedAt: new Date().toISOString(),
+              targetKey: target.key,
+              smallUnitLabel: result.entries[0]?.smallUnitLabel || `${target.domain} · ${target.middleTitle} · ${target.smallTitle}`,
+              lessonType: target.lessonType || null,
+              pageRole: target.pageRole,
+              styleValue: state.bookStyleValue,
+              styleLabel: style.label,
+              provider: result.provider,
+              entries: result.entries,
+            });
+            completedCount = index + 1;
+            if (state.includeMockups) {
+              busy.set(`${index + 1}/${targets.length} 디자인 시안 그리는 중…`);
+              persistNow("초고 생성됨");
+              const failed = await drawMockupsForBatches([state.frameworkDraftLog.length - 1]);
+              if (failed) {
+                failedMockups += failed;
+                const lastIndex = state.frameworkDraftLog.length - 1;
+                mockupError ||= Object.entries(state.designMockups || {}).find(([key, value]) => key.startsWith(`${state.frameworkDraftLog[lastIndex].generatedAt}|`) && value?.error)?.[1]?.error || "";
+              }
+            }
+            continue;
+          }
           const sportMode = target.sportMode || "none";
           const targetSports = sportMode === "none" ? [] : (target.sports || []);
           if (sportMode !== "none" && !targetSports.length) throw new Error(`${target.smallTitle}: ${sportsCultureSportModeLabel(sportMode)}에 사용할 종목을 지정해 주세요.`);
@@ -5002,7 +6285,7 @@ function bindWorkspace() {
           const supportMode = target.targetKind === "small-unit" ? target.supportMode : "";
           const result = await engine.generateDraftSet({
             profileId: engine.sportsCultureProfile().id,
-            providerId: state.generationProviderId || engine.internalProviderId,
+            providerId: engine.externalAiProviderId,
             carrierSport,
             sportMode,
             sports: targetSports,
@@ -5011,9 +6294,10 @@ function bindWorkspace() {
             pageRole: target.pageRole,
             styleValue: state.bookStyleValue,
             additionalConcept,
+            feedbackNotes: selectedFeedbackNotes(),
             includeImages: Boolean(state.includeImages),
             onImageProgress: (done, total) => {
-              button.textContent = `${index + 1}/${targets.length} 초고 구성 중… (이미지 ${done}/${total})`;
+              busy.set(`${index + 1}/${targets.length} 초고 구성 중… (이미지 ${done}/${total})`);
             },
             smallUnit: target,
             frameworks: [framework],
@@ -5021,6 +6305,7 @@ function bindWorkspace() {
           });
           state.frameworkDraftLog.push({
             generatedAt: new Date().toISOString(),
+            targetKey: target.key,
             smallUnitLabel: `${target.domain} · ${target.middleTitle} · ${target.smallTitle}`,
             carrierSport,
             sportMode,
@@ -5034,18 +6319,22 @@ function bindWorkspace() {
           });
           completedCount = index + 1;
         }
+        busy.stop();
         expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
         {
           const lastBatchIndex = state.frameworkDraftLog.length - 1;
           const lastBatch = state.frameworkDraftLog[lastBatchIndex];
           expandedDraftFilePreviews = new Set((lastBatch?.entries || []).map((_, entryIndex) => `${lastBatchIndex}:${entryIndex}`));
         }
-        persistNow(`${targets.length}개 스포츠 문화 초고 생성됨`);
+        persistNow(`${targets.length}개 초고 생성됨`);
         renderWorkspace();
-        showToast(`${targets.length}개 항목의 초고를 생성했습니다.`);
+        showToast(failedMockups ? `${targets.length}개 항목의 초고를 생성했지만 디자인 시안 ${failedMockups}장은 그리지 못했습니다${mockupError ? `: ${mockupError}` : ""}. 미리보기에서 [디자인 시안 그리기]로 다시 그려 주세요.` : `${targets.length}개 항목의 초고를 생성했습니다.`);
+        if (await saveNewDraftBatchesToFolder(firstNewBatchIndex)) persist("초고 폴더 저장 위치 기록됨");
       } catch (error) {
+        busy.stop();
         button.disabled = false;
         button.textContent = originalLabel;
+        if (busyNote) busyNote.textContent = `선택한 ${(state.selectedDraftSmallUnitKeys || []).length}개 항목`;
         // 여러 항목을 순서대로 생성하다가 중간에 실패해도, 이미 성공한 항목까지는
         // 화면에서 사라지지 않고 그대로 저장·표시되게 한다(예전엔 실패 시 catch에서
         // persist/render를 안 불러서, 앞서 성공한 항목까지 화면에 반영도 저장도 안 된
@@ -5055,91 +6344,15 @@ function bindWorkspace() {
           const lastBatch = state.frameworkDraftLog[lastBatchIndex];
           expandedDraftBatches = new Set([lastBatchIndex]);
           expandedDraftFilePreviews = new Set((lastBatch?.entries || []).map((_, entryIndex) => `${lastBatchIndex}:${entryIndex}`));
-          persistNow(`${completedCount}개 스포츠 문화 초고 생성됨(이후 실패)`);
+          persistNow(`${completedCount}개 초고 생성됨(이후 실패)`);
           renderWorkspace();
+          if (await saveNewDraftBatchesToFolder(firstNewBatchIndex)) persist("초고 폴더 저장 위치 기록됨");
         }
         showToast(`${completedCount}/${targets.length}개까지 생성 후 실패: ${error?.message || "초고 생성에 실패했습니다."}`);
       }
       return;
     }
-    const smallUnit = smallUnitOptions().find((item) => item.key === state.previewSmallUnitKey);
-    if (!smallUnit) {
-      showToast("먼저 소단원을 선택해 주세요.");
-      return;
-    }
-    if (!state.frameworkMetrics) state.frameworkMetrics = defaultFrameworkMetrics(frameworkOptions());
-    document.querySelectorAll("[data-framework-metric]").forEach((input) => {
-      const [frameworkId, key] = input.dataset.frameworkMetric.split(":");
-      state.frameworkMetrics[frameworkId][key] = Number(input.value);
-    });
-    if (!Array.isArray(state.frameworkDraftLog)) state.frameworkDraftLog = [];
-    const button = event.currentTarget;
-    button.disabled = true;
-    const originalLabel = button.textContent;
-    button.textContent = "초안 구성 중…";
-    try {
-      let generated;
-      let provider = { id: "legacy-simulation", label: "기존 더미 생성", mode: "simulation" };
-      if (isSportsCultureProject()) {
-        state.carrierSport = (smallUnit.sports || []).join(", ");
-        if (!state.carrierSport) throw new Error("3단계에서 이 소단원에 적용할 종목을 지정해 주세요.");
-        const engine = globalThis.TEXTBOOK_DRAFT_ENGINE;
-        if (!engine) throw new Error("내부 초안 생성 모듈을 불러오지 못했습니다.");
-        const result = await engine.generateDraftSet({
-          profileId: engine.sportsCultureProfile().id,
-          providerId: state.generationProviderId || engine.internalProviderId,
-          carrierSport: state.carrierSport,
-          primaryType: state.draftPrimaryType,
-          secondaryType: state.draftSecondaryType,
-          includeImages: Boolean(state.includeImages),
-          onImageProgress: (done, total) => {
-            button.textContent = `초안 구성 중… (이미지 ${done}/${total})`;
-          },
-          smallUnit,
-          frameworks: frameworkOptions(),
-          metricsByFramework: state.frameworkMetrics,
-        });
-        generated = result.entries;
-        provider = result.provider;
-      } else {
-        generated = frameworkOptions().map((framework) => ({
-          frameworkId: framework.id,
-          ...simulatedManuscriptDraft(framework, state.frameworkMetrics[framework.id], smallUnit),
-        }));
-      }
-      state.frameworkDraftLog.push({
-        generatedAt: new Date().toISOString(),
-        smallUnitLabel: `${smallUnit.domain} · ${smallUnit.middleTitle} · ${smallUnit.smallTitle}`,
-        carrierSport: isSportsCultureProject() ? state.carrierSport : null,
-        primaryType: isSportsCultureProject() ? state.draftPrimaryType : null,
-        secondaryType: isSportsCultureProject() ? state.draftSecondaryType : null,
-        provider,
-        entries: generated,
-      });
-      expandedDraftBatches = new Set([state.frameworkDraftLog.length - 1]);
-      if (isSportsCultureProject()) {
-        const lastBatchIndex = state.frameworkDraftLog.length - 1;
-        const lastBatch = state.frameworkDraftLog[lastBatchIndex];
-        expandedDraftFilePreviews = new Set((lastBatch?.entries || []).map((_, entryIndex) => `${lastBatchIndex}:${entryIndex}`));
-      }
-      persistNow(isSportsCultureProject() ? "내부 데이터 초안 생성됨" : "AI 초안 생성됨");
-      renderWorkspace();
-      showToast(isSportsCultureProject() ? "내부 데이터로 체제 3개의 초안을 생성했습니다." : "체제 3개의 초안을 생성했습니다.");
-    } catch (error) {
-      button.disabled = false;
-      button.textContent = originalLabel;
-      showToast(error?.message || "초안 생성에 실패했습니다.");
-    }
-  });
-
-  document.querySelectorAll("[data-approve-framework]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.frameworkId = button.dataset.approveFramework;
-      state.frameworkApproval = { status: "approved", frameworkId: button.dataset.approveFramework, approvedAt: new Date().toISOString() };
-      persist("체제 승인됨");
-      renderWorkspace();
-      showToast("이 체제로 승인했습니다.");
-    });
+    showToast("이 과목은 아직 초안을 만들 수 없습니다.");
   });
 
   document.querySelectorAll("[data-download-pptx]").forEach((button) => {
@@ -5442,76 +6655,6 @@ function bindWorkspace() {
     });
   });
 
-  document.querySelector("#mockReviewFilterToggle")?.addEventListener("change", (event) => {
-    document.querySelector("#mockReviewTable")?.classList.toggle("hide-pass", event.target.checked);
-  });
-
-  // 채점 도중/완료 후 화면이 다시 그려지면 <input type="file">는 항상 선택 안 된 상태로
-  // 초기화된다 — 파일이 사라진 것처럼 보이지 않도록 파일명을 별도 상태로 기억해 두고,
-  // 여기서는 전체 재렌더 없이 라벨만 직접 갱신한다(재렌더하면 방금 고른 파일 선택 자체가
-  // 새 input 엘리먼트로 교체되며 사라져 버린다).
-  document.querySelector("#mockReviewFileInput")?.addEventListener("change", (event) => {
-    mockReviewSelectedFileName = event.target.files?.[0]?.name || null;
-    const label = document.querySelector("#mockReviewSelectedFileLabel");
-    if (label) {
-      label.textContent = mockReviewSelectedFileName ? `선택한 파일: ${mockReviewSelectedFileName}` : "";
-      label.hidden = !mockReviewSelectedFileName;
-    }
-  });
-
-  document.querySelectorAll("[data-mock-review-revision]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.mockReviewRevision = button.dataset.mockReviewRevision;
-      persist("모의심사 기준 교육과정 변경됨");
-      renderWorkspace();
-    });
-  });
-
-  document.querySelector("#mockReviewStartButton")?.addEventListener("click", async () => {
-    const fileInput = document.querySelector("#mockReviewFileInput");
-    const file = fileInput?.files?.[0];
-    if (!file) {
-      showToast("PDF 파일을 선택해 주세요.");
-      return;
-    }
-    const button = document.querySelector("#mockReviewStartButton");
-    const errorBox = document.querySelector("#mockReviewError");
-    const originalLabel = button.textContent;
-    button.disabled = true;
-    button.textContent = "채점 중...";
-    if (errorBox) {
-      errorBox.hidden = true;
-      errorBox.textContent = "";
-    }
-    try {
-      button.textContent = "PDF 읽는 중...";
-      const pdfText = await extractPdfTextInBrowser(file);
-      if (!pdfText.trim()) throw new Error("PDF에서 텍스트를 추출하지 못했습니다(스캔 이미지로만 되어 있을 수 있습니다).");
-      button.textContent = "채점 중...";
-      const response = await fetch("/api/prototype/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdfText, fileName: file.name, catalogId: inferredCatalogId(activeProject()) || "", revision: state.mockReviewRevision || "2022" }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "채점 요청에 실패했습니다.");
-      state.mockReview = data.result;
-      persist("모의심사 채점됨");
-      renderWorkspace();
-      showToast("채점이 완료됐습니다.");
-    } catch (error) {
-      const message = error.message || "채점에 실패했습니다.";
-      if (errorBox) {
-        errorBox.textContent = message;
-        errorBox.hidden = false;
-      }
-      showToast(message);
-    } finally {
-      button.disabled = false;
-      button.textContent = originalLabel;
-    }
-  });
-
   document.querySelectorAll("[data-edit-source]").forEach((button) => {
     button.addEventListener("click", () => {
       editingSourceId = button.dataset.editSource;
@@ -5597,7 +6740,41 @@ function goToStep(index) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+// 2009·2015 개정은 분석만 한다(개발 단계 없음).
+function isAnalysisOnlyRevision() {
+  return Boolean(analysisProjectIds(selectedRevision));
+}
+
+function inAnalysisView() {
+  return isAnalysisOnlyRevision() || (workMode === "analysis" && hasRevisionReference(selectedRevision));
+}
+
+function analysisCatalogFor() {
+  if (!isAnalysisOnlyRevision()) return inferredCatalogId(activeProject());
+  const ids = analysisProjectIds(selectedRevision);
+  if (!ids.includes(analysisCatalogId)) {
+    const current = inferredCatalogId(activeProject());
+    analysisCatalogId = ids.includes(current) ? current : ids[0];
+  }
+  return analysisCatalogId;
+}
+
 function render() {
+  if (inAnalysisView()) {
+    renderProjectSwitcher();
+    renderAnalysisView(selectedRevision, analysisCatalogFor());
+    return;
+  }
+  leaveAnalysisView();
+  const fitted = Object.values(activeProject().books || {}).map(ensurePagesFitTargets).some(Boolean);
+  if (fitted) persist("기준 쪽수에 맞게 기본 쪽수 배분됨");
+  // 04 현장 의견 분석 단계를 끼우기 전에 저장된 책은 초안 이후 단계 번호를 하나씩 민다.
+  if ((state.stepLayout || 1) < STEP_LAYOUT_VERSION) {
+    if (state.currentStep >= FEEDBACK_STEP_INDEX) state.currentStep += 1;
+    state.stepLayout = STEP_LAYOUT_VERSION;
+  }
+  // 05 모의심사 단계를 없앴으므로, 그 단계에 머문 채 저장된 책은 마지막 단계로 돌린다.
+  if (!(state.currentStep < steps.length)) state.currentStep = steps.length - 1;
   renderProjectSwitcher();
   renderNavigation();
   renderHeader();
@@ -5705,6 +6882,11 @@ document.addEventListener("keydown", (event) => {
   renderWorkspace();
 });
 
+bindWorkspaceFolderPanel();
+bindAiKeyPanel();
+bindQuitStudioButton();
+bindUnitTitleProposal();
+bindDesigncraftPanel();
 render();
 persist("자동 저장됨");
 clearTimeout(serverSyncTimer);

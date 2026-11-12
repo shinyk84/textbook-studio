@@ -3,16 +3,16 @@
   display: grid;
   place-items: center;
   padding: 32px;
-  background: #f2f4ef;
+  background: #edf0f6;
 }
 
 .login-card {
   width: min(100%, 480px);
   padding: 44px;
-  border: 1px solid #d8dfd8;
+  border: 1px solid #d6dae1;
   border-radius: 24px;
   background: #fff;
-  box-shadow: 0 20px 60px rgb(25 55 43 / 10%);
+  box-shadow: 0 20px 60px rgb(23 36 57 / 10%);
 }
 
 .login-card h1 {
@@ -22,7 +22,7 @@
 
 .login-description {
   margin-bottom: 28px;
-  color: #5d6a64;
+  color: #59616e;
   line-height: 1.65;
 }
 
@@ -35,7 +35,7 @@
   width: 100%;
   margin-bottom: 8px;
   padding: 14px 16px;
-  border: 1px solid #ccd6d0;
+  border: 1px solid #c9cfd9;
   border-radius: 12px;
   font: inherit;
 }
@@ -50,7 +50,7 @@
   margin-top: 12px;
   border: 0;
   background: transparent;
-  color: #176b4f;
+  color: #15356d;
   cursor: pointer;
 }
 

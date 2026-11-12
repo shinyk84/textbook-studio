@@ -1,0 +1,10 @@
+{
+  "name": "차기 개정 가정 S3: 3영역 + 영역 통합 프로젝트 6차시(5~6학년군)",
+  "hours_per_grade": 102,
+  "project_chasi": 6,
+  "areas": [
+    {"key": "운동", "type": "fitness", "standards": 5},
+    {"key": "스포츠", "type": "sport", "standards": 10},
+    {"key": "표현", "type": "expression", "standards": 6}
+  ]
+}

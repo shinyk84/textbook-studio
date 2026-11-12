@@ -14,3 +14,19 @@ skills-lock.json
 official-data/criteria/
 official-data/textbook/
 official-data/teacher_guide/
+
+preprocessor/tessdata/
+preprocessor/settings.json
+
+# DesignCraft 조판 결과(각자 컴퓨터에서 생성)
+data/designcraft/
+
+# 작업 폴더(작업 상태 DB·원고 파일 — 컴퓨터마다 따로, 공개 저장소에 올리지 않음)
+작업 폴더/
+_도구데이터/
+
+# 교과서 쪽 이미지·출판사 지면 참고 이미지(저작권·용량 — 각자 컴퓨터에만 둠)
+official-data/processed/**/images/
+official-data/processed/**/*.jpg
+design-references/구성/**/*.jpg
+design-references/구성/**/*.png

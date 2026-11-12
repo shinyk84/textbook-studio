@@ -3,18 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Textbook Studio v0.1 Prototype</title>
-    <link rel="stylesheet" href="/styles.css?v=3" />
-    <link rel="stylesheet" href="/prototype.css?v=64" />
+    <title>YBM 교과서 스튜디오</title>
+    <meta name="theme-color" content="#0d2557" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <link rel="stylesheet" href="/styles.css?v=11" />
+    <link rel="stylesheet" href="/prototype.css?v=104" />
+    <link rel="stylesheet" href="/layout-editor.css?v=10" />
   </head>
   <body>
     <div class="prototype-shell">
       <aside class="prototype-sidebar">
         <div class="brand">
-          <div class="brand-mark">교</div>
+          <div class="brand-mark" aria-hidden="true"><img src="/ybm-logo.svg" alt="" /></div>
           <div>
-            <strong>AI Textbook Studio</strong>
-            <span>Prototype v0.1 · Internal data</span>
+            <strong>YBM 교과서 스튜디오</strong>
           </div>
         </div>
 
@@ -22,19 +25,43 @@
 
         <nav id="stepNavigation" aria-label="프로토타입 단계"></nav>
 
-        <div class="prototype-note">
-          <span>저장 방식</span>
-          <strong>이 브라우저에 자동 저장</strong>
-          <small>초안은 외부 AI API 없이 내부 데이터로 구성합니다.</small>
+        <div class="prototype-note workspace-folder-note" id="workspaceFolderPanel">
+          <span>작업 폴더</span>
+          <strong data-folder-title>확인 중…</strong>
+          <small data-folder-detail hidden></small>
+          <small class="workspace-folder-worker" data-folder-worker hidden>작업자 <b></b> · <button type="button" class="link-button" id="changeFolderWorkerButton">이름 변경</button></small>
+          <div class="workspace-folder-actions">
+            <button class="secondary-button" id="connectWorkspaceFolderButton" type="button" hidden>작업 폴더 고르기</button>
+            <button class="secondary-button" id="reconnectWorkspaceFolderButton" type="button" hidden>폴더 다시 연결</button>
+            <button class="secondary-button" id="exportDraftsToFolderButton" type="button" hidden title="폴더를 고르기 전에 만든 이 책의 초고도 원고 파일(PDF·TXT·지도서·PPT)로 폴더에 저장합니다. 이후 만드는 초고는 자동으로 저장됩니다.">이전 초고 저장</button>
+            <button class="secondary-button" id="loadFolderSnapshotButton" type="button" hidden>폴더에서 작업 불러오기</button>
+          </div>
         </div>
+
+        <div class="prototype-note ai-key-note" id="aiKeyPanel">
+          <span>AI 생성 키</span>
+          <strong data-ai-key-title>확인 중…</strong>
+          <small data-ai-key-detail></small>
+          <form class="ai-key-form" id="aiKeyForm" hidden autocomplete="off">
+            <input type="password" id="aiKeyInput" placeholder="sk-로 시작하는 OpenAI API 키" aria-label="OpenAI API 키" autocomplete="off" spellcheck="false" />
+            <div class="workspace-folder-actions">
+              <button class="secondary-button" type="submit">저장</button>
+              <button class="secondary-button" type="button" id="removeAiKeyButton">이 컴퓨터에서 키 삭제</button>
+              <button class="secondary-button" type="button" id="cancelAiKeyButton">취소</button>
+            </div>
+          </form>
+          <div class="workspace-folder-actions">
+            <button class="secondary-button" id="openAiKeyFormButton" type="button" hidden>키 입력·변경</button>
+          </div>
+        </div>
+
+        <button class="sidebar-quit-button" id="quitStudioButton" type="button" title="작업을 저장하고 도구(서버)를 끕니다. 브라우저 창만 닫으면 도구는 계속 켜져 있습니다. 작업 폴더를 복사하기 전에 눌러 주세요.">도구 끄기</button>
       </aside>
 
       <main class="prototype-main">
         <header class="prototype-topbar">
           <div>
-            <p class="eyebrow" id="stepEyebrow">PROTOTYPE STEP 01</p>
             <h1 id="stepHeading">프로젝트 설정</h1>
-            <p class="subtitle" id="stepSubtitle"></p>
           </div>
           <div class="header-actions">
             <span class="save-state" id="saveState">자동 저장 준비</span>
@@ -46,16 +73,11 @@
           </div>
         </header>
 
-        <section class="prototype-progress" aria-label="진행률">
-          <div><span id="progressText">1/5</span><strong id="progressLabel">프로젝트 설정</strong></div>
-          <div class="progress-track"><i id="progressBar"></i></div>
-        </section>
-
         <section class="prototype-workspace" id="workspace"></section>
 
         <footer class="prototype-footer">
           <button class="secondary-button" id="previousButton" type="button">이전</button>
-          <span>내부 데이터 조합 결과를 편집·승인하는 프로토타입입니다.</span>
+          <span></span>
           <button class="primary-button" id="nextButton" type="button">다음</button>
         </footer>
       </main>
@@ -65,10 +87,17 @@
     <script src="/auth-client.js"></script>
     <script src="/pptxgen.bundle.js?v=1"></script>
     <script src="/jspdf.umd.min.js?v=1"></script>
-    <script type="module" src="/pdf.min.mjs?v=1"></script>
     <script src="/prototype-curriculum-data.js?v=5"></script>
     <script src="/sports-culture-evidence.js?v=1"></script>
-    <script src="/prototype-draft-engine.js?v=23"></script>
-    <script src="/prototype.js?v=95"></script>
+    <script src="/prototype-draft-engine.js?v=30"></script>
+    <script src="/elementary-pe-evidence.js?v=1"></script>
+    <script src="/elementary-draft-engine.js?v=4"></script>
+    <script src="/workspace-folder.js?v=3"></script>
+    <script src="/designcraft-link.js?v=15"></script>
+    <script src="/studio-modules.js?v=8"></script>
+    <script src="/revision-reference-data.js?v=2"></script>
+    <script src="/revision-reference.js?v=3"></script>
+    <script src="/prototype.js?v=127"></script>
+    <script src="/layout-editor.js?v=1"></script>
   </body>
 </html>

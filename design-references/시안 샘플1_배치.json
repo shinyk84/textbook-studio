@@ -1,0 +1,3094 @@
+{
+"image": "시안 샘플1.png",
+"size": [
+1536,
+1024
+],
+"background": "#F6F1FB",
+"items": [
+{
+"kind": "art",
+"box": [
+40,
+28,
+214,
+189
+],
+"label": "물방울 캐릭터와 말풍선"
+},
+{
+"kind": "box",
+"box": [
+222,
+36,
+341,
+64
+],
+"fill": "#7B5BB3",
+"strokeWidth": 2,
+"radius": 14,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+222,
+36,
+341,
+64
+],
+"text": "영역형 스포츠",
+"role": "꼬리표",
+"size": 16,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+217,
+76,
+690,
+132
+],
+"text": "농구 기본 기능 3가지 한눈에!",
+"role": "단원명",
+"size": 41,
+"weight": "heavy",
+"color": "#6B47A6",
+"align": "left",
+"valign": "top",
+"font": "display",
+"spans": [
+{
+"match": "한눈에!",
+"size": 31
+}
+],
+"leading": 1.15
+},
+{
+"kind": "text",
+"box": [
+222,
+140,
+560,
+168
+],
+"text": "드리블 · 패스 · 슛을 익혀 게임을 시작해요.",
+"role": "부제",
+"size": 18,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "box",
+"box": [
+692,
+81,
+752,
+161
+],
+"fill": "#FFFFFF",
+"stroke": "#9C7CCB",
+"strokeWidth": 2,
+"radius": 8,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+692,
+85,
+752,
+99
+],
+"text": "영상 보기",
+"role": "QR 안내",
+"size": 11,
+"weight": "bold",
+"color": "#6B47A6",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "qr",
+"box": [
+702,
+102,
+742,
+152
+],
+"content": "https://example.com/video",
+"color": "#6B47A6"
+},
+{
+"kind": "box",
+"box": [
+813,
+34,
+1480,
+179
+],
+"fill": "#FFFFFF",
+"stroke": "#AE93D6",
+"strokeWidth": 2.5,
+"radius": 16,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+813,
+21,
+943,
+51
+],
+"fill": "#5F57A8",
+"strokeWidth": 2,
+"radius": 15,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+813,
+21,
+943,
+51
+],
+"text": "규칙 한눈에",
+"role": "띠제목",
+"size": 18,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "box",
+"box": [
+832,
+55,
+1021,
+169
+],
+"fill": "#F4F1FA",
+"strokeWidth": 2,
+"radius": 10,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+832,
+58,
+1021,
+78
+],
+"text": "득점 방법",
+"role": "상자제목",
+"size": 15,
+"weight": "bold",
+"color": "#28306B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "art",
+"box": [
+835,
+81,
+978,
+140
+],
+"label": "득점 방법"
+},
+{
+"kind": "text",
+"box": [
+832,
+145,
+1021,
+165
+],
+"text": "골대에 공을 넣으면 1점!",
+"role": "캡션",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "box",
+"box": [
+1035,
+55,
+1251,
+169
+],
+"fill": "#FFF8EE",
+"strokeWidth": 2,
+"radius": 10,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1035,
+58,
+1251,
+78
+],
+"text": "지켜야 할 것",
+"role": "상자제목",
+"size": 15,
+"weight": "bold",
+"color": "#28306B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "art",
+"box": [
+1062,
+82,
+1228,
+144
+],
+"label": "지켜야 할 것"
+},
+{
+"kind": "text",
+"box": [
+1035,
+145,
+1251,
+165
+],
+"text": "밀지 않기, 몸으로 막지 않기",
+"role": "캡션",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "box",
+"box": [
+1265,
+55,
+1463,
+169
+],
+"fill": "#F2F6F5",
+"strokeWidth": 2,
+"radius": 10,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1265,
+58,
+1463,
+78
+],
+"text": "교대 방법",
+"role": "상자제목",
+"size": 15,
+"weight": "bold",
+"color": "#28306B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "art",
+"box": [
+1293,
+82,
+1440,
+144
+],
+"label": "교대 방법"
+},
+{
+"kind": "text",
+"box": [
+1265,
+145,
+1463,
+165
+],
+"text": "정해진 순서에 따라 바꿔요.",
+"role": "캡션",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "box",
+"box": [
+52,
+188,
+1482,
+311
+],
+"fill": "#EFE8F7",
+"stroke": "#D6C8EA",
+"strokeWidth": 2,
+"radius": 22,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+58,
+203,
+158,
+263
+],
+"text": "수업 시작\n3단계",
+"role": "단계제목",
+"size": 21,
+"weight": "heavy",
+"color": "#26214F",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.35
+},
+{
+"kind": "art",
+"box": [
+78,
+265,
+136,
+311
+],
+"label": "체크리스트 아이콘"
+},
+{
+"kind": "box",
+"box": [
+170,
+197,
+536,
+304
+],
+"fill": "#FFFFFF",
+"strokeWidth": 2,
+"radius": 16,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+570,
+197,
+924,
+304
+],
+"fill": "#FFFFFF",
+"strokeWidth": 2,
+"radius": 16,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+950,
+197,
+1436,
+304
+],
+"fill": "#FFFFFF",
+"strokeWidth": 2,
+"radius": 16,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+218,
+211,
+258,
+250
+],
+"fill": "#8862B3",
+"strokeWidth": 2,
+"shape": "ellipse",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+218,
+211,
+258,
+250
+],
+"text": "1",
+"role": "번호",
+"size": 24,
+"weight": "heavy",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "display",
+"leading": 1.0
+},
+{
+"kind": "art",
+"box": [
+275,
+214,
+327,
+268
+],
+"label": "공 확인"
+},
+{
+"kind": "text",
+"box": [
+339,
+214,
+440,
+242
+],
+"text": "공 확인",
+"role": "단계이름",
+"size": 22,
+"weight": "heavy",
+"color": "#4A2A8C",
+"align": "left",
+"valign": "top",
+"font": "display",
+"leading": 1.2
+},
+{
+"kind": "box",
+"box": [
+462,
+212,
+492,
+242
+],
+"fill": "#FFFFFF",
+"stroke": "#9C7CCB",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+339,
+251,
+470,
+297
+],
+"text": "공 상태를 확인하고\n함께 인사해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "box",
+"box": [
+616,
+211,
+655,
+250
+],
+"fill": "#8862B3",
+"strokeWidth": 2,
+"shape": "ellipse",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+616,
+211,
+655,
+250
+],
+"text": "2",
+"role": "번호",
+"size": 24,
+"weight": "heavy",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "display",
+"leading": 1.0
+},
+{
+"kind": "art",
+"box": [
+653,
+214,
+720,
+296
+],
+"label": "자리 확인"
+},
+{
+"kind": "text",
+"box": [
+709,
+214,
+820,
+242
+],
+"text": "자리 확인",
+"role": "단계이름",
+"size": 22,
+"weight": "heavy",
+"color": "#4A2A8C",
+"align": "left",
+"valign": "top",
+"font": "display",
+"leading": 1.2
+},
+{
+"kind": "box",
+"box": [
+846,
+212,
+876,
+242
+],
+"fill": "#FFFFFF",
+"stroke": "#9C7CCB",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+734,
+251,
+880,
+297
+],
+"text": "모둠 대형을 만들고\n간격을 확보해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "box",
+"box": [
+1016,
+210,
+1055,
+248
+],
+"fill": "#8862B3",
+"strokeWidth": 2,
+"shape": "ellipse",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1016,
+210,
+1055,
+248
+],
+"text": "3",
+"role": "번호",
+"size": 24,
+"weight": "heavy",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "display",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+1069,
+214,
+1170,
+242
+],
+"text": "안전 확인",
+"role": "단계이름",
+"size": 22,
+"weight": "heavy",
+"color": "#4A2A8C",
+"align": "left",
+"valign": "top",
+"font": "display",
+"leading": 1.2
+},
+{
+"kind": "box",
+"box": [
+1184,
+212,
+1213,
+241
+],
+"fill": "#FFFFFF",
+"stroke": "#9C7CCB",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1069,
+251,
+1225,
+297
+],
+"text": "규칙과 신호를 확인하고\n안전 약속을 해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "art",
+"box": [
+533,
+233,
+577,
+268
+],
+"label": "화살표"
+},
+{
+"kind": "art",
+"box": [
+918,
+233,
+962,
+268
+],
+"label": "화살표"
+},
+{
+"kind": "art",
+"box": [
+1226,
+202,
+1284,
+296
+],
+"label": "손 든 어린이"
+},
+{
+"kind": "art",
+"box": [
+1310,
+204,
+1398,
+312
+],
+"label": "물방울 캐릭터"
+},
+{
+"kind": "box",
+"box": [
+1392,
+201,
+1472,
+268
+],
+"fill": "#FFFFFF",
+"stroke": "#B9AAD0",
+"strokeWidth": 1.5,
+"shape": "ellipse",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1392,
+216,
+1472,
+256
+],
+"text": "준비됐나요?\n출발!",
+"role": "말풍선",
+"size": 12.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.4
+},
+{
+"kind": "box",
+"box": [
+39,
+332,
+1497,
+628
+],
+"fill": "#FFFFFF",
+"stroke": "#E6DEF1",
+"strokeWidth": 2,
+"radius": 22,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+58,
+402,
+110,
+442
+],
+"text": "난이도\n스위치",
+"role": "단계제목",
+"size": 14.5,
+"weight": "bold",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.35
+},
+{
+"kind": "art",
+"box": [
+64,
+446,
+104,
+584
+],
+"label": "난이도 아이콘"
+},
+{
+"kind": "box",
+"box": [
+111,
+331,
+525,
+621
+],
+"fill": "#FFFFFF",
+"stroke": "#97C77F",
+"strokeWidth": 2.5,
+"radius": 14,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+112,
+332,
+524,
+386
+],
+"fill": "#E5F1DB",
+"strokeWidth": 2,
+"radius": 13,
+"corners": "top",
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "art",
+"box": [
+146,
+335,
+190,
+382
+],
+"label": "농구공"
+},
+{
+"kind": "text",
+"box": [
+201,
+341,
+290,
+377
+],
+"text": "드리블",
+"role": "기능이름",
+"size": 27,
+"weight": "heavy",
+"color": "#2E8B3A",
+"align": "left",
+"valign": "top",
+"font": "display",
+"leading": 1.2
+},
+{
+"kind": "text",
+"box": [
+290,
+352,
+460,
+372
+],
+"text": "공을 바닥에 튀기며 이동하기",
+"role": "기능설명",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "qr",
+"box": [
+464,
+339,
+508,
+381
+],
+"content": "https://example.com/video",
+"color": "#6B47A6"
+},
+{
+"kind": "box",
+"box": [
+133,
+401,
+174,
+422
+],
+"fill": "#5AA846",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+133,
+401,
+174,
+422
+],
+"text": "쉬움",
+"role": "난이도",
+"size": 13.5,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+203,
+400,
+371,
+446
+],
+"text": "한 손으로 천천히\n바닥에 튀기며 이동해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "line",
+"box": [
+129,
+461,
+513,
+461
+],
+"stroke": "#E3E3E3",
+"strokeWidth": 1.2,
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+133,
+474,
+174,
+495
+],
+"fill": "#3E7BC8",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+133,
+474,
+174,
+495
+],
+"text": "보통",
+"role": "난이도",
+"size": 13.5,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+203,
+473,
+371,
+519
+],
+"text": "왼손 · 오른손을 번갈아\n드리블하며 이동해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "line",
+"box": [
+129,
+533,
+513,
+533
+],
+"stroke": "#E3E3E3",
+"strokeWidth": 1.2,
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+133,
+546,
+174,
+567
+],
+"fill": "#7D2D9A",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+133,
+546,
+174,
+567
+],
+"text": "도전",
+"role": "난이도",
+"size": 13.5,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+203,
+545,
+371,
+591
+],
+"text": "장애물을 피하며\n드리블로 이동해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "art",
+"box": [
+372,
+394,
+506,
+460
+],
+"label": "드리블"
+},
+{
+"kind": "art",
+"box": [
+372,
+465,
+506,
+535
+],
+"label": "드리블"
+},
+{
+"kind": "art",
+"box": [
+348,
+541,
+510,
+612
+],
+"label": "드리블"
+},
+{
+"kind": "box",
+"box": [
+541,
+331,
+980,
+621
+],
+"fill": "#FFFFFF",
+"stroke": "#8EB0DF",
+"strokeWidth": 2.5,
+"radius": 14,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+542,
+332,
+979,
+386
+],
+"fill": "#E4ECF8",
+"strokeWidth": 2,
+"radius": 13,
+"corners": "top",
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "art",
+"box": [
+563,
+335,
+607,
+382
+],
+"label": "농구공"
+},
+{
+"kind": "text",
+"box": [
+620,
+341,
+676,
+377
+],
+"text": "패스",
+"role": "기능이름",
+"size": 27,
+"weight": "heavy",
+"color": "#2F62B3",
+"align": "left",
+"valign": "top",
+"font": "display",
+"leading": 1.2
+},
+{
+"kind": "text",
+"box": [
+682,
+352,
+870,
+372
+],
+"text": "친구에게 공을 정확히 보내기",
+"role": "기능설명",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "qr",
+"box": [
+919,
+339,
+963,
+381
+],
+"content": "https://example.com/video",
+"color": "#6B47A6"
+},
+{
+"kind": "box",
+"box": [
+563,
+401,
+604,
+422
+],
+"fill": "#5AA846",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+563,
+401,
+604,
+422
+],
+"text": "쉬움",
+"role": "난이도",
+"size": 13.5,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+633,
+400,
+801,
+446
+],
+"text": "가까운 친구에게\n가슴 패스로 보내요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "line",
+"box": [
+559,
+461,
+968,
+461
+],
+"stroke": "#E3E3E3",
+"strokeWidth": 1.2,
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+563,
+474,
+604,
+495
+],
+"fill": "#3E7BC8",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+563,
+474,
+604,
+495
+],
+"text": "보통",
+"role": "난이도",
+"size": 13.5,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+633,
+473,
+801,
+519
+],
+"text": "바운드 패스를 사용해\n친구에게 보내요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "line",
+"box": [
+559,
+533,
+968,
+533
+],
+"stroke": "#E3E3E3",
+"strokeWidth": 1.2,
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+563,
+546,
+604,
+567
+],
+"fill": "#7D2D9A",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+563,
+546,
+604,
+567
+],
+"text": "도전",
+"role": "난이도",
+"size": 13.5,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+633,
+545,
+801,
+591
+],
+"text": "이동 중인 친구에게\n정확히 패스해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "art",
+"box": [
+786,
+396,
+942,
+460
+],
+"label": "패스"
+},
+{
+"kind": "art",
+"box": [
+786,
+465,
+946,
+536
+],
+"label": "패스"
+},
+{
+"kind": "art",
+"box": [
+786,
+544,
+946,
+614
+],
+"label": "패스"
+},
+{
+"kind": "box",
+"box": [
+996,
+331,
+1399,
+621
+],
+"fill": "#FFFFFF",
+"stroke": "#F2A37B",
+"strokeWidth": 2.5,
+"radius": 14,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+997,
+332,
+1398,
+386
+],
+"fill": "#FDEEDF",
+"strokeWidth": 2,
+"radius": 13,
+"corners": "top",
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "art",
+"box": [
+1016,
+335,
+1060,
+382
+],
+"label": "농구공"
+},
+{
+"kind": "text",
+"box": [
+1077,
+341,
+1110,
+377
+],
+"text": "슛",
+"role": "기능이름",
+"size": 27,
+"weight": "heavy",
+"color": "#E2622A",
+"align": "left",
+"valign": "top",
+"font": "display",
+"leading": 1.2
+},
+{
+"kind": "text",
+"box": [
+1116,
+352,
+1260,
+372
+],
+"text": "골대에 공을 넣기",
+"role": "기능설명",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "qr",
+"box": [
+1338,
+339,
+1382,
+381
+],
+"content": "https://example.com/video",
+"color": "#6B47A6"
+},
+{
+"kind": "box",
+"box": [
+1018,
+401,
+1059,
+422
+],
+"fill": "#5AA846",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1018,
+401,
+1059,
+422
+],
+"text": "쉬움",
+"role": "난이도",
+"size": 13.5,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+1088,
+400,
+1256,
+446
+],
+"text": "가까운 거리에서\n부드럽게 슛해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "line",
+"box": [
+1014,
+461,
+1387,
+461
+],
+"stroke": "#E3E3E3",
+"strokeWidth": 1.2,
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1018,
+474,
+1059,
+495
+],
+"fill": "#3E7BC8",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1018,
+474,
+1059,
+495
+],
+"text": "보통",
+"role": "난이도",
+"size": 13.5,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+1088,
+473,
+1256,
+519
+],
+"text": "중간 거리에서\n정확히 조준해 슛해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "line",
+"box": [
+1014,
+533,
+1387,
+533
+],
+"stroke": "#E3E3E3",
+"strokeWidth": 1.2,
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1018,
+546,
+1059,
+567
+],
+"fill": "#7D2D9A",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1018,
+546,
+1059,
+567
+],
+"text": "도전",
+"role": "난이도",
+"size": 13.5,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+1088,
+545,
+1256,
+591
+],
+"text": "드리블 후 레이업 슛으로\n득점해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "art",
+"box": [
+1266,
+392,
+1354,
+466
+],
+"label": "슛"
+},
+{
+"kind": "art",
+"box": [
+1233,
+468,
+1318,
+538
+],
+"label": "슛"
+},
+{
+"kind": "art",
+"box": [
+1230,
+538,
+1382,
+620
+],
+"label": "슛"
+},
+{
+"kind": "box",
+"box": [
+39,
+637,
+926,
+789
+],
+"fill": "#FFFFFF",
+"stroke": "#E2D9EF",
+"strokeWidth": 2,
+"radius": 20,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "art",
+"box": [
+54,
+643,
+96,
+682
+],
+"label": "별 아이콘"
+},
+{
+"kind": "text",
+"box": [
+99,
+646,
+300,
+678
+],
+"text": "함께 즐기는 활동",
+"role": "상자제목큰",
+"size": 21,
+"weight": "bold",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "box",
+"box": [
+67,
+694,
+94,
+721
+],
+"fill": "#3E8E3A",
+"strokeWidth": 2,
+"shape": "ellipse",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+67,
+694,
+94,
+721
+],
+"text": "1",
+"role": "번호",
+"size": 17,
+"weight": "heavy",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "display",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+102,
+692,
+227,
+723
+],
+"text": "술래잡기",
+"role": "놀이이름",
+"size": 22,
+"weight": "heavy",
+"color": "#3D8C2F",
+"align": "left",
+"valign": "top",
+"font": "display",
+"leading": 1.2
+},
+{
+"kind": "text",
+"box": [
+73,
+732,
+240,
+774
+],
+"text": "드리블로 도망가고, 술래는\n공을 터치해요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "art",
+"box": [
+236,
+672,
+384,
+768
+],
+"label": "술래잡기"
+},
+{
+"kind": "box",
+"box": [
+401,
+684,
+435,
+702
+],
+"fill": "#6CB34F",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+401,
+684,
+435,
+702
+],
+"text": "시간",
+"role": "꼬리표작은",
+"size": 12,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+440,
+683,
+495,
+703
+],
+"text": "3분",
+"role": "꼬리표값",
+"size": 14,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "box",
+"box": [
+401,
+713,
+435,
+731
+],
+"fill": "#6CB34F",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+401,
+713,
+435,
+731
+],
+"text": "인원",
+"role": "꼬리표작은",
+"size": 12,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+440,
+712,
+495,
+732
+],
+"text": "4~6명",
+"role": "꼬리표값",
+"size": 14,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "box",
+"box": [
+401,
+742,
+441,
+760
+],
+"fill": "#6CB34F",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+401,
+742,
+441,
+760
+],
+"text": "준비물",
+"role": "꼬리표작은",
+"size": 12,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+446,
+741,
+501,
+761
+],
+"text": "공",
+"role": "꼬리표값",
+"size": 14,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "box",
+"box": [
+526,
+673,
+553,
+700
+],
+"fill": "#3E6DC0",
+"strokeWidth": 2,
+"shape": "ellipse",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+526,
+673,
+553,
+700
+],
+"text": "2",
+"role": "번호",
+"size": 17,
+"weight": "heavy",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "display",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+561,
+671,
+686,
+702
+],
+"text": "별 패스",
+"role": "놀이이름",
+"size": 22,
+"weight": "heavy",
+"color": "#3366BB",
+"align": "left",
+"valign": "top",
+"font": "display",
+"leading": 1.2
+},
+{
+"kind": "text",
+"box": [
+526,
+713,
+690,
+755
+],
+"text": "별 모양으로 서서 패스를\n이어 가요.",
+"role": "본문",
+"size": 14.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.55
+},
+{
+"kind": "art",
+"box": [
+648,
+643,
+802,
+784
+],
+"label": "별 패스"
+},
+{
+"kind": "box",
+"box": [
+821,
+684,
+855,
+702
+],
+"fill": "#6CB34F",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+821,
+684,
+855,
+702
+],
+"text": "시간",
+"role": "꼬리표작은",
+"size": 12,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+860,
+683,
+915,
+703
+],
+"text": "3분",
+"role": "꼬리표값",
+"size": 14,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "box",
+"box": [
+821,
+713,
+855,
+731
+],
+"fill": "#6CB34F",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+821,
+713,
+855,
+731
+],
+"text": "인원",
+"role": "꼬리표작은",
+"size": 12,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+860,
+712,
+915,
+732
+],
+"text": "5~8명",
+"role": "꼬리표값",
+"size": 14,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "box",
+"box": [
+821,
+742,
+861,
+760
+],
+"fill": "#6CB34F",
+"strokeWidth": 2,
+"radius": 4,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+821,
+742,
+861,
+760
+],
+"text": "준비물",
+"role": "꼬리표작은",
+"size": 12,
+"weight": "bold",
+"color": "#FFFFFF",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+866,
+741,
+921,
+761
+],
+"text": "공",
+"role": "꼬리표값",
+"size": 14,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "line",
+"box": [
+506,
+651,
+506,
+777
+],
+"stroke": "#C9B8E4",
+"strokeWidth": 1.5,
+"dashed": true
+},
+{
+"kind": "box",
+"box": [
+36,
+798,
+747,
+987
+],
+"fill": "#F4EFFA",
+"stroke": "#D3C4E8",
+"strokeWidth": 2,
+"radius": 20,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "art",
+"box": [
+52,
+801,
+90,
+845
+],
+"label": "물음표 아이콘"
+},
+{
+"kind": "text",
+"box": [
+100,
+808,
+400,
+838
+],
+"text": "그럴 땐 이렇게! (자주 묻는 상황)",
+"role": "상자제목큰",
+"size": 21,
+"weight": "bold",
+"color": "#2B2468",
+"align": "left",
+"valign": "top",
+"font": "body",
+"spans": [
+{
+"match": "(자주 묻는 상황)",
+"size": 15
+}
+],
+"leading": 1.45
+},
+{
+"kind": "box",
+"box": [
+47,
+850,
+259,
+981
+],
+"fill": "#FFFFFF",
+"stroke": "#D9CDEB",
+"strokeWidth": 1.5,
+"radius": 12,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+47,
+858,
+259,
+882
+],
+"text": "친구를 잡았어요!",
+"role": "카드제목",
+"size": 16.5,
+"weight": "bold",
+"color": "#4A2A8C",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+65,
+886,
+253,
+928
+],
+"text": "멈추고 \"잡았다!\"라고 외친 후,\n안전하게 서요.",
+"role": "카드본문",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.6
+},
+{
+"kind": "art",
+"box": [
+158,
+912,
+250,
+979
+],
+"label": "친구를 잡았어요!"
+},
+{
+"kind": "box",
+"box": [
+272,
+850,
+505,
+981
+],
+"fill": "#FFFFFF",
+"stroke": "#D9CDEB",
+"strokeWidth": 1.5,
+"radius": 12,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+272,
+858,
+505,
+882
+],
+"text": "부딪혔어요!",
+"role": "카드제목",
+"size": 16.5,
+"weight": "bold",
+"color": "#4A2A8C",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+278,
+886,
+499,
+928
+],
+"text": "즉시 멈추고 괜찮은지 확인해요.\n미안하다고 말하고 다시 시작해요!",
+"role": "카드본문",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.6
+},
+{
+"kind": "art",
+"box": [
+320,
+926,
+478,
+982
+],
+"label": "부딪혔어요!"
+},
+{
+"kind": "box",
+"box": [
+514,
+850,
+736,
+981
+],
+"fill": "#FFFFFF",
+"stroke": "#D9CDEB",
+"strokeWidth": 1.5,
+"radius": 12,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+514,
+858,
+736,
+882
+],
+"text": "공을 놓쳤어요!",
+"role": "카드제목",
+"size": 16.5,
+"weight": "bold",
+"color": "#4A2A8C",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+520,
+886,
+730,
+928
+],
+"text": "당황하지 말고 다시 주워서\n다음 플레이를 이어가요.",
+"role": "카드본문",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.6
+},
+{
+"kind": "art",
+"box": [
+598,
+926,
+668,
+981
+],
+"label": "공을 놓쳤어요!"
+},
+{
+"kind": "box",
+"box": [
+938,
+637,
+1491,
+792
+],
+"fill": "#FFFFFF",
+"stroke": "#E0D6EE",
+"strokeWidth": 2,
+"radius": 18,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "art",
+"box": [
+948,
+637,
+981,
+675
+],
+"label": "전구 아이콘"
+},
+{
+"kind": "text",
+"box": [
+985,
+646,
+1200,
+676
+],
+"text": "교구 대체 아이디어",
+"role": "상자제목큰",
+"size": 20,
+"weight": "bold",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "box",
+"box": [
+946,
+679,
+1200,
+781
+],
+"fill": "#FFFFFF",
+"stroke": "#D8CCEA",
+"strokeWidth": 1.5,
+"radius": 12,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+963,
+694,
+1086,
+716
+],
+"text": "공이 없을 때",
+"role": "아이디어제목",
+"size": 15.5,
+"weight": "bold",
+"color": "#6A3FA0",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+963,
+722,
+1086,
+766
+],
+"text": "풍선, 신문지 뭉치,\n작은 공 등으로!",
+"role": "카드본문",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.6
+},
+{
+"kind": "art",
+"box": [
+1072,
+698,
+1190,
+770
+],
+"label": "공이 없을 때"
+},
+{
+"kind": "box",
+"box": [
+1205,
+679,
+1479,
+781
+],
+"fill": "#FFFFFF",
+"stroke": "#D8CCEA",
+"strokeWidth": 1.5,
+"radius": 12,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1222,
+694,
+1345,
+716
+],
+"text": "골대가 없을 때",
+"role": "아이디어제목",
+"size": 15.5,
+"weight": "bold",
+"color": "#6A3FA0",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+1222,
+722,
+1345,
+766
+],
+"text": "의자, 콘, 바구니 등을\n골대처럼 사용해요!",
+"role": "카드본문",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "top",
+"font": "body",
+"leading": 1.6
+},
+{
+"kind": "art",
+"box": [
+1336,
+690,
+1470,
+770
+],
+"label": "골대가 없을 때"
+},
+{
+"kind": "box",
+"box": [
+766,
+804,
+1498,
+989
+],
+"fill": "#F4EFFA",
+"stroke": "#D3C4E8",
+"strokeWidth": 2,
+"radius": 22,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "art",
+"box": [
+767,
+810,
+866,
+972
+],
+"label": "물방울 캐릭터"
+},
+{
+"kind": "text",
+"box": [
+857,
+816,
+1100,
+842
+],
+"text": "오늘의 점검! (성공 표시)",
+"role": "상자제목큰",
+"size": 21,
+"weight": "bold",
+"color": "#5A3399",
+"align": "left",
+"valign": "top",
+"font": "body",
+"spans": [
+{
+"match": "(성공 표시)",
+"size": 15
+}
+],
+"leading": 1.45
+},
+{
+"kind": "box",
+"box": [
+871,
+850,
+1015,
+981
+],
+"fill": "#FFFFFF",
+"stroke": "#EBCAD5",
+"strokeWidth": 1.5,
+"radius": 12,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+871,
+858,
+1015,
+880
+],
+"text": "드리블 성공!",
+"role": "카드제목",
+"size": 15.5,
+"weight": "bold",
+"color": "#4A2A8C",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+871,
+884,
+1015,
+924
+],
+"text": "연속 10초 이상\n드리블했어요.",
+"role": "카드본문",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.6
+},
+{
+"kind": "box",
+"box": [
+886.0,
+932,
+920.0,
+968
+],
+"fill": "#FFFFFF",
+"stroke": "#E3B5C3",
+"strokeWidth": 1.5,
+"shape": "star",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+926.0,
+932,
+960.0,
+968
+],
+"fill": "#FFFFFF",
+"stroke": "#E3B5C3",
+"strokeWidth": 1.5,
+"shape": "star",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+966.0,
+932,
+1000.0,
+968
+],
+"fill": "#FFFFFF",
+"stroke": "#E3B5C3",
+"strokeWidth": 1.5,
+"shape": "star",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1021,
+850,
+1165,
+981
+],
+"fill": "#FFFFFF",
+"stroke": "#EBCAD5",
+"strokeWidth": 1.5,
+"radius": 12,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1021,
+858,
+1165,
+880
+],
+"text": "패스 성공!",
+"role": "카드제목",
+"size": 15.5,
+"weight": "bold",
+"color": "#4A2A8C",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+1021,
+884,
+1165,
+924
+],
+"text": "친구에게 정확히\n패스했어요.",
+"role": "카드본문",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.6
+},
+{
+"kind": "box",
+"box": [
+1036.0,
+932,
+1070.0,
+968
+],
+"fill": "#FFFFFF",
+"stroke": "#E3B5C3",
+"strokeWidth": 1.5,
+"shape": "star",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1076.0,
+932,
+1110.0,
+968
+],
+"fill": "#FFFFFF",
+"stroke": "#E3B5C3",
+"strokeWidth": 1.5,
+"shape": "star",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1116.0,
+932,
+1150.0,
+968
+],
+"fill": "#FFFFFF",
+"stroke": "#E3B5C3",
+"strokeWidth": 1.5,
+"shape": "star",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1171,
+850,
+1326,
+981
+],
+"fill": "#FFFFFF",
+"stroke": "#EBCAD5",
+"strokeWidth": 1.5,
+"radius": 12,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1171,
+858,
+1326,
+880
+],
+"text": "슛 성공!",
+"role": "카드제목",
+"size": 15.5,
+"weight": "bold",
+"color": "#4A2A8C",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+1171,
+884,
+1326,
+924
+],
+"text": "골대에 공을\n넣었어요.",
+"role": "카드본문",
+"size": 13.5,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.6
+},
+{
+"kind": "box",
+"box": [
+1186.0,
+932,
+1223.6666666666667,
+968
+],
+"fill": "#FFFFFF",
+"stroke": "#E3B5C3",
+"strokeWidth": 1.5,
+"shape": "star",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1229.6666666666667,
+932,
+1267.3333333333335,
+968
+],
+"fill": "#FFFFFF",
+"stroke": "#E3B5C3",
+"strokeWidth": 1.5,
+"shape": "star",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1273.3333333333333,
+932,
+1311.0,
+968
+],
+"fill": "#FFFFFF",
+"stroke": "#E3B5C3",
+"strokeWidth": 1.5,
+"shape": "star",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1350,
+844,
+1476,
+986
+],
+"fill": "#FFFFFF",
+"stroke": "#CDBDE5",
+"strokeWidth": 1.5,
+"radius": 14,
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "box",
+"box": [
+1351,
+845,
+1475,
+880
+],
+"fill": "#EFE8F7",
+"strokeWidth": 2,
+"radius": 13,
+"corners": "top",
+"shape": "rect",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1350,
+851,
+1476,
+875
+],
+"text": "오늘의 한마디",
+"role": "카드제목",
+"size": 15.5,
+"weight": "bold",
+"color": "#2A2460",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.45
+},
+{
+"kind": "text",
+"box": [
+1350,
+888,
+1476,
+926
+],
+"text": "우리 모두\n최고예요!",
+"role": "카드본문",
+"size": 14,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "top",
+"font": "body",
+"leading": 1.6
+},
+{
+"kind": "art",
+"box": [
+1380,
+928,
+1444,
+981
+],
+"label": "하트"
+},
+{
+"kind": "box",
+"box": [
+22,
+985,
+48,
+1011
+],
+"fill": "#C9B5E2",
+"strokeWidth": 2,
+"shape": "ellipse",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+22,
+985,
+48,
+1011
+],
+"text": "64",
+"role": "쪽번호",
+"size": 14,
+"weight": "bold",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "text",
+"box": [
+58,
+988,
+160,
+1008
+],
+"text": "2. 스포츠",
+"role": "쪽머리",
+"size": 13,
+"weight": "regular",
+"color": "#2B2B2B",
+"align": "left",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+},
+{
+"kind": "box",
+"box": [
+1484,
+985,
+1511,
+1011
+],
+"fill": "#C9B5E2",
+"strokeWidth": 2,
+"shape": "ellipse",
+"dashed": false
+},
+{
+"kind": "text",
+"box": [
+1484,
+985,
+1511,
+1011
+],
+"text": "65",
+"role": "쪽번호",
+"size": 14,
+"weight": "bold",
+"color": "#2B2B2B",
+"align": "center",
+"valign": "center",
+"font": "body",
+"leading": 1.0
+}
+]
+}

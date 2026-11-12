@@ -2,8 +2,10 @@
   "use strict";
 
   const SCHEMA_VERSION = "1.5";
-  const INTERNAL_PROVIDER_ID = "internal-rules-v1";
   const providers = new Map();
+  // 교과·학교급 프로필마다 내용 구조가 다르므로(예: 초등 체육은 차시·활동 카드, 스포츠 문화는
+  // 이론·실기 설명문) 같은 제공자 id라도 프로필별 생성 함수를 따로 둘 수 있게 한다.
+  const profileGenerators = new Map();
 
   if (!global.SPORTS_CULTURE_EVIDENCE && typeof require === "function") {
     try { require("./sports-culture-evidence.js"); } catch (_error) { /* browser script supplies it */ }
@@ -365,10 +367,6 @@
     return String(value || "").replace(/^\d+(?:-\d+){0,2}[.)]?\s*/, "").trim();
   }
 
-  function stripEnd(value) {
-    return String(value || "").replace(/[.!?]+\s*$/, "");
-  }
-
   function evidenceRecordFor(smallUnit) {
     const title = normalizedTitle(smallUnit.smallTitle);
     const units = global.SPORTS_CULTURE_EVIDENCE?.units || {};
@@ -436,163 +434,6 @@
       { role: "비평과 문화 창작", titles: ["참여 자료 분석", "경기 문화 비평", "개선안과 새 문화 설계", "공유·평가·진로 연결"] },
     ],
   };
-
-  const SPREAD_ENRICHMENTS = {
-    theory: [
-      "스포츠 문화를 분석하는 단위는 개인 행동, 집단의 관습, 제도와 사회 구조로 나눌 수 있다. 개인이 규칙을 지키는 장면만 보면 태도의 문제처럼 보이지만, 참가 자격이나 시설 접근성까지 살피면 제도가 행동의 선택 범위를 정한다는 사실이 드러난다. 세 단위를 오가며 설명해야 문화 현상을 개인의 성격으로만 환원하지 않을 수 있다.",
-      "전근대의 신체활동과 근대 스포츠를 구분하는 기준에는 성문화된 규칙, 전문 조직, 기록의 계량화, 경기 공간과 시간의 표준화가 있다. 그러나 모든 지역이 같은 순서로 변화한 것은 아니다. 지역의 놀이와 제례, 식민지 경험, 학교 제도가 서로 다른 방식으로 결합했으므로 보편적 변화와 지역적 특수성을 함께 서술해야 한다.",
-      "스포츠에서 경쟁은 탁월성을 추구하는 동기가 되지만 승리만을 최상위 가치로 놓으면 상대 존중과 참가 기회의 평등이 약해질 수 있다. 규칙을 지켰다는 사실과 행위가 정당하다는 평가는 항상 일치하지 않는다. 목적, 절차, 결과, 취약한 참여자에게 미친 영향을 차례로 검토하여 윤리적 판단의 기준을 명료하게 세운다.",
-      "미디어는 경기를 전달하는 수단을 넘어 어떤 종목과 선수를 중요하게 볼지 결정하는 문화 생산자이다. 중계 시간, 화면의 구도, 해설의 표현, 후원 기업의 이해는 대중의 인식과 자원 배분에 영향을 준다. 반복해서 등장하는 이미지와 빠진 장면을 비교하면 스포츠 문화에 작용하는 권력과 상업화의 방식을 구체적으로 읽을 수 있다.",
-      "서로 다른 자료가 충돌할 때에는 한쪽을 즉시 오류로 처리하지 않는다. 통계는 전체 경향을 보여 주지만 개인의 경험을 충분히 설명하지 못하고, 인터뷰는 맥락을 풍부하게 드러내지만 대표성이 제한될 수 있다. 자료마다 답할 수 있는 질문의 범위를 정하고 교차 검증한 뒤 결론의 확실성과 남은 불확실성을 구분한다.",
-      "미래의 스포츠 문화를 제안할 때 기술 도입 자체를 발전으로 가정해서는 안 된다. 판정 정확도나 접근성을 높이는 효과와 함께 비용 격차, 개인정보 수집, 인간 심판의 책임 변화, 전자 폐기물 문제를 검토한다. 제안은 수혜자와 부담 주체, 운영 규칙, 검증 방법을 포함해야 실제로 평가하고 수정할 수 있다.",
-    ],
-    practice: [
-      "종목을 이해한다는 것은 대표 기술의 이름을 아는 것을 넘어 경기의 목적, 득점 구조, 공간 사용, 참여자의 관계를 파악하는 것이다. 같은 기술도 점수와 상대 위치, 팀의 약속에 따라 의미가 달라진다. 경기 영상을 볼 때 공만 따라가지 말고 공이 없는 선수와 심판·기록자의 움직임까지 관찰하여 종목의 전체 구조를 읽는다.",
-      "안전 점검은 준비 운동만으로 끝나지 않는다. 활동 공간의 경계와 충돌 지점, 용구의 마모, 대기 학생의 위치, 기온과 환기, 비상 연락 체계를 확인한다. 위험 가능성과 사고 발생 시 피해의 크기를 기준으로 우선순위를 정하고 제거·대체·규칙 조정·보호 장비 순으로 대책을 마련한다.",
-      "판정 능력을 기르려면 규칙 문장을 실제 장면의 조건으로 바꾸어 읽어야 한다. 행위가 일어난 위치와 시점, 공의 상태, 접촉의 의도와 결과, 심판의 시야를 확인한 뒤 적용 조항을 선택한다. 판정을 설명할 때에는 결론보다 관찰한 사실과 규칙의 연결을 먼저 제시해야 참가자가 결과를 수용할 수 있다.",
-      "기본 동작은 부분 연습과 전체 수행을 오가며 익힌다. 처음에는 속도를 낮추어 자세와 힘의 전달 순서를 확인하고, 안정되면 이동·목표·상대 압박을 추가한다. 오류가 생기면 결과만 반복하지 말고 어느 단계에서 균형이나 타이밍이 무너졌는지 찾아 한 요소씩 수정한 뒤 전체 동작에서 다시 확인한다.",
-      "좋은 전술은 정해진 위치를 외우는 것이 아니라 정보를 빠르게 읽고 선택을 갱신하는 능력이다. 공격에서는 공간을 만들고 이용하는 움직임, 수비에서는 위험한 공간을 줄이고 서로를 지원하는 거리가 핵심이다. 경기 전 계획, 실제 선택, 결과를 비교하여 판단이 적절했던 순간과 정보가 부족했던 순간을 구분한다.",
-      "경기 운영에서는 시작 전 준비, 진행 중 판정과 기록, 종료 후 결과 확인이 하나의 절차로 연결된다. 역할별 책임과 의사 결정 권한을 미리 정하고 문제가 발생하면 보고·협의·결정·공지의 순서를 따른다. 평가 자료에는 승패 외에도 안전사고, 역할 수행, 규칙 분쟁, 참가 만족도와 개선안을 포함한다.",
-    ],
-    mixed: [
-      "개인의 참여 경험은 스포츠 문화를 이해하는 출발점이지만 그 자체가 전체를 대표하지는 않는다. 즐거움이나 불편함이 생긴 장면을 규칙, 공간, 역할 관계와 연결하고 다른 학생의 경험 및 공식 자료와 비교한다. 경험의 공통점과 예외를 함께 제시하면 개인적 소감을 사회적 설명으로 확장할 수 있다.",
-      "종목의 역사에는 경기 기술뿐 아니라 누가 참여할 수 있었는지, 어떤 시설과 용구를 사용할 수 있었는지의 변화가 담긴다. 시설의 표준화는 교류를 확대했지만 비용과 접근성의 장벽을 만들기도 했다. 과거와 현재를 비교할 때 기술적 개선과 참여 기회의 변화를 별개의 축으로 놓고 평가한다.",
-      "규칙은 공정성을 보장하지만 모든 차이를 없애지는 않는다. 기능 수준, 신체 조건, 경험이 다른 참가자가 같은 규칙 아래에서 실제로 어떤 기회를 얻는지 관찰해야 한다. 변형 규칙을 만들 때에는 특정 학생만 예외로 표시하지 말고 전체 참가자가 선택할 수 있는 방식으로 설계하여 자율성과 존중을 지킨다.",
-      "기본 동작을 문화적 가치와 연결하려면 수행 과정에서 나타나는 관계를 기록해야 한다. 동료의 준비를 기다리는 행동, 위험을 알리는 의사소통, 판정을 받아들이는 태도, 실수 뒤 다시 참여하도록 돕는 방식이 존중과 책임을 보여 준다. 기술 평가표와 참여 관찰표를 함께 사용하여 두 성장을 분리하지 않는다.",
-      "역할을 교대하면 같은 경기 장면도 다르게 보인다. 선수는 수행과 공간에 집중하지만 심판은 규칙 적용, 기록원은 사건의 정확한 순서, 운영자는 전체 시간과 안전을 살핀다. 역할별 기록을 한데 모아 정보의 누락과 판단 충돌을 찾고 공동 결정을 위한 의사소통 규칙을 세운다.",
-      "문화 창작은 장식물을 만드는 활동이 아니라 발견한 문제에 새로운 관계와 규칙을 제안하는 과정이다. 개선안의 대상과 목적, 필요한 자원, 실행 절차, 예상 효과를 밝히고 실제 참가자의 의견을 받아 수정한다. 결과물에는 실패하거나 바뀐 아이디어도 남겨 문제 해결의 과정을 학습 증거로 제시한다.",
-    ],
-  };
-
-  function manuscriptParagraphs(type, blueprintIndex, sectionIndex, request, traceability, reference, context, angle, first, guide) {
-    const title = MANUSCRIPT_BLUEPRINTS[type][blueprintIndex].titles[sectionIndex];
-    const sport = reference.sport;
-    const theoryDetails = [
-      [`‘${angle}’을 ${stripEnd(context.core)}는 관점에서 다시 보면`, `문화는 개인의 취향만을 뜻하지 않는다. ${sport}을 둘러싼 언어, 관습, 규칙과 제도는 참여자들이 공유하고 다음 세대로 전달하면서 형성된다.`, `따라서 ${title}에서는 눈에 보이는 경기 장면과 그 장면을 가능하게 한 사회적 조건을 구분하여 살펴본다.`],
-      [`‘${angle}’의 형성 맥락은 ${stripEnd(context.history)}는 사실에서 출발한다`, "산업화와 도시화는 노동과 여가의 시간을 구분하였고, 학교와 지역 단체는 정해진 공간에서 같은 규칙으로 경기를 운영하였다. 이 과정은 스포츠의 대중화를 이끌었지만 지역 고유의 놀이가 주변화되는 결과도 낳았다.", `${sport}의 과거 사진·규칙 문서·신문 자료를 연대순으로 배열하고 변화의 원인을 기술·교육·미디어·국제 교류의 측면에서 설명한다.`],
-      [`${stripEnd(context.core)}. 이 관점은 스포츠를 단순한 승패가 아니라 좋은 삶, 자율성, 탁월성, 공동체의 관계를 묻는 철학적 실천으로 보게 한다.`, "같은 규칙을 모두에게 적용하는 형식적 공정성과 서로 다른 조건을 고려하는 실질적 공정성은 때때로 다른 결론을 낳는다. 판단할 때에는 규칙의 목적과 참여자에게 미치는 영향을 함께 검토해야 한다.", `${sport}의 실제 갈등 사례에서 사실·가치·이해관계자를 구분하고 자신이 선택한 판단 원칙을 반대 관점에서도 검토한다.`],
-      [`‘${angle}’에서 검토할 쟁점은 ${stripEnd(context.issue)}는 점이다`, "협회·학교·기업·언론은 경기 기회와 자원, 대중의 관심을 배분한다. 제도의 결정은 중립적으로 보일 수 있지만 성별, 장애, 경제적 조건, 지역에 따라 참여자에게 다른 영향을 줄 수 있다.", `${title}에 관한 기사나 정책을 읽고 혜택을 얻는 집단과 부담을 지는 집단, 의사 결정에서 빠진 목소리를 찾아 개선 기준을 제안한다.`],
-      ["스포츠 자료는 과거의 사실을 그대로 보여 주는 창문이 아니라 특정한 목적과 관점으로 선택·구성된 기록이다. 작성자, 제작 시기, 대상 독자와 자료의 형식을 확인해야 한다.", "통계는 표본과 조사 방식에 따라 의미가 달라지고 사진은 프레임 밖의 상황을 감춘다. 서로 다른 종류의 자료를 교차 확인하면 하나의 자료에 의존할 때 생기는 오류를 줄일 수 있다.", `${sport}에 관한 두 자료의 주장과 근거를 비교하고 신뢰도·관련성·충분성을 평가한 뒤 ${context.product}에 출처를 표시한다.`],
-      [`오늘날 ${sport}은 디지털 중계, 데이터 분석, 가상 참여와 결합하며 시간과 장소의 경계를 넓히고 있다. 새로운 기술은 접근성을 높일 수 있지만 감시, 개인정보, 비용 격차라는 문제도 만든다.`, `${stripEnd(context.issue)}는 흐름 속에서, 새로운 문화가 지속되려면 재미와 효율뿐 아니라 인권, 환경, 지역 공동체에 미치는 영향을 평가해야 한다.`, `${traceability.standardCodes.join(", ")}을 기준으로 현재 문화의 장점·한계·개선 방안을 구분하고 실행 가능한 제안을 ${context.product} 형태로 정리한다.`],
-    ];
-    const practiceDetails = [
-      [`${sport}은 기능 수행, 규칙, 시설, 참여자의 역할과 태도가 결합된 경기 문화이다. 기술을 잘 수행하는 것만으로는 공정하고 안전한 경기가 완성되지 않는다.`, `‘${angle}’에서는 ${stripEnd(context.issue)}는 점을 특히 눈여겨봐야 한다`, `활동 전 자신의 기능·경험·건강 상태를 점검하고 선수·심판·기록·운영 중 도전할 역할과 필요한 지원을 구체적으로 정한다.`],
-      [`‘${angle}’의 시설·용구 조건은 ${stripEnd(reference.facility)}는 규격을 따른다`, "시설 규격은 경기의 공정성과 안전을 확보하는 기준이다. 학교 수업에서는 공간을 축소할 수 있지만 이동 경로가 겹치지 않도록 하고 경계선·완충 구역·대기 위치를 명확하게 표시해야 한다.", `용구의 파손, 바닥의 미끄러움, 주변 장애물과 사람 사이의 거리를 활동 전에 점검한다. 이상이 발견되면 활동을 멈추고 대체 공간이나 용구를 사용한다.`],
-      [`‘${angle}’의 판정 기준은 ${stripEnd(reference.rule)}는 규칙에 근거한다`, "규칙은 행동을 제한하기만 하는 장치가 아니라 경기의 흐름을 예측 가능하게 하고 서로의 권리와 안전을 보장하는 약속이다. 반칙의 결과뿐 아니라 해당 규칙이 필요한 이유를 이해해야 한다.", `${sport}의 득점·서비스 또는 시작·진행·재개·반칙 상황을 경기 기록지에 표시하고, 애매한 판정은 합의한 절차에 따라 설명하고 조정한다.`],
-      [`${reference.skills[0]} 이때 시선, 중심 이동, 관절의 순서와 타이밍을 하나씩 확인하면 동작의 원인을 파악할 수 있다.`, `${reference.skills[1]} 빠른 수행보다 정확한 자세와 안정된 반복을 우선하고, 성공 횟수뿐 아니라 움직임의 질을 관찰한다.`, `${reference.skills[2]} 동료는 결과만 평가하지 않고 관찰 기준에 따라 강점 한 가지와 수정할 점 한 가지를 구체적인 언어로 피드백한다.`],
-      ["전술은 정답 동작을 외우는 것이 아니라 공·상대·동료·공간·점수의 변화를 읽고 더 유리한 선택을 하는 과정이다. 경기 전에 세운 계획도 상황이 바뀌면 수정할 수 있어야 한다.", `${sport}에서는 상대의 위치와 빈 공간, 다음 동작의 가능성을 동시에 살핀다. 개인의 선택을 팀의 약속과 연결하고 짧고 명확한 신호로 의사소통한다.`, "선수와 심판·기록자의 관점을 번갈아 경험하면 같은 장면을 다르게 해석하는 이유를 이해하고 갈등을 근거에 따라 조정할 수 있다."],
-      ["미니 경기는 학습 목표가 드러나도록 인원·시간·공간·득점 조건을 조정한다. 기능 차이가 큰 경우 공의 속도, 허용 횟수, 역할 교대 규칙을 바꾸되 특정 학생에게 낙인이 되지 않게 전체 규칙으로 설계한다.", `${context.product}에는 준비·운영·정리 단계의 역할, 실제 발생한 문제, 해결 과정과 판단 근거를 시간 순서로 남긴다.`, `평가는 승패만으로 결정하지 않는다. 규칙 이해, 안전 실천, 기술과 전략, 협력과 책임을 과정 증거와 함께 평가하고 다음 참여 목표를 설정한다.`],
-    ];
-    const mixedDetails = [
-      [context.core, `${sport}을 직접 경험한 기억에는 규칙과 시설뿐 아니라 긴장, 협력, 응원, 갈등과 소속감이 함께 담긴다. 개인 경험을 문화 개념과 연결하면 익숙한 장면을 새롭게 해석할 수 있다.`, `${title}에 관한 자신의 경험을 사실·감정·가치 판단으로 나누어 기록하고 친구의 경험과 공통점 및 차이점을 비교한다.`],
-      [context.history, `${reference.facility} 시설과 용구의 변화는 단순한 기술 발전이 아니라 경기 속도, 참여 가능한 사람, 관람 방식과 종목의 이미지를 바꾸었다.`, `${sport}의 과거와 현재 자료를 비교하여 변한 요소와 유지된 요소를 찾고, 그 변화가 참여자와 사회에 가져온 이익과 한계를 설명한다.`],
-      [reference.rule, "공정한 참여는 규칙을 똑같이 적용하는 데서 끝나지 않는다. 규칙의 목적, 참가자의 서로 다른 조건, 판정 과정의 투명성과 이의 제기 절차를 함께 갖추어야 한다.", `${sport} 활동에 필요한 존중·책임·안전 약속을 근거와 함께 만들고 실제 경기 후 약속이 어떤 장면에서 지켜졌는지 확인한다.`],
-      [`${reference.skills[0]} 동작을 수행할 때에는 결과와 함께 준비 자세, 중심 이동, 타점 또는 접촉 지점, 마무리 자세를 관찰한다.`, `${reference.skills[1]} 기능 수준이 다른 학생은 거리·속도·용구를 조정하거나 보조 역할을 선택해 같은 문화적 가치를 학습할 수 있다.`, `${reference.skills[2]} 수행 과정에서 공정성·존중·협력이 드러난 순간을 기록하고 기능 향상과 문화적 실천이 어떻게 연결되는지 설명한다.`],
-      ["스포츠 대회에는 경기하는 선수 외에도 심판, 기록, 시설, 안전, 홍보, 해설, 촬영 등 여러 역할이 필요하다. 각 역할은 서로 다른 정보와 책임을 가지고 하나의 경기를 공동으로 만든다.", `${sport} 활동에서 역할을 교대하며 관찰 대상과 의사 결정의 차이를 기록한다. 특히 판정이나 운영 문제가 생겼을 때 누가 어떤 근거로 조정했는지 살펴본다.`, "역할별 기록을 모으면 개인의 기억만으로 보이지 않던 경기 문화의 구조가 드러난다. 서로의 기여를 구체적인 증거로 인정하고 개선이 필요한 연결 지점을 찾는다."],
-      [`참여 기록은 잘한 점을 나열하는 소감문이 아니라 주장과 근거가 연결된 비평 자료이다. 경기 장면, 기록표, 인터뷰와 결과물을 성취기준에 따라 분류한다.`, context.issue, `${context.product}에는 문제 상황, 원인, 이해관계자의 관점, 대안, 예상 효과와 한계를 포함하고 동료 검토를 거쳐 수정한 내용을 표시한다.`],
-    ];
-    const detail = { theory: theoryDetails, practice: practiceDetails, mixed: mixedDetails }[type][blueprintIndex];
-    const detailParagraph = detail[sectionIndex] || {
-      theory: `${title}에서는 ‘${angle}’에 대한 앞선 설명을 종합하여 핵심 개념의 적용 범위와 한계를 판단한다. ‘${context.issue}’를 핵심 쟁점으로 삼아 사실, 가치 판단, 이해관계자의 주장을 구분하고 ${context.product}의 최종 논지를 세운다.`,
-      practice: `${title}에서는 ‘${angle}’과 관련해 앞 단계에서 익힌 시설·규칙·기술 정보를 실제 경기 운영에 통합한다. 수행 결과뿐 아니라 선택의 이유, 역할 간 의사소통, 안전 조치와 경기 재개 절차를 기록하여 다음 활동의 수정 근거로 삼는다.`,
-      mixed: `${title}에서는 ‘${angle}’의 개념 탐구와 ${reference.sport} 참여 기록을 하나의 설명으로 통합한다. 자료에서 파악한 문화적 의미가 실제 행동에서 어떻게 실천되거나 충돌했는지 비교하고, 차이가 생긴 조건을 규칙·역할·환경의 측면에서 해석한다.`,
-    }[type];
-    const analysisParagraphs = [
-      `‘${title}’의 핵심 주장이 이 펼침면의 구체적인 자료와 어떻게 연결되는지 밝히는 것이 이 절의 목표이다. 용어의 정의, 적용되는 사례, 적용하기 어려운 반례를 차례로 검토하면 개념의 범위를 지나치게 넓히거나 개인 경험 하나를 일반화하는 오류를 줄일 수 있다.`,
-      `‘${title}’에 나타난 변화나 수행 결과를 하나의 원인으로 단정해서는 안 된다. ${reference.sport}의 시설과 규칙, 참여자의 기능과 역할, 시대적 요구가 서로 어떤 영향을 주었는지 인과 관계와 단순한 전후 관계를 구분하여 설명한다.`,
-      `‘${title}’을 평가할 때에는 선수만이 아니라 심판·운영자·관중·미디어와 참여 기회가 제한된 사람의 관점도 포함한다. 같은 결정이 집단별로 가져오는 이익과 부담을 비교하고 ${traceability.values.join("·")} 중 우선할 가치와 그 이유를 제시한다.`,
-      `‘${title}’은 ${MANUSCRIPT_BLUEPRINTS[type][blueprintIndex].role}에서 학습한 내용을 종합하는 단계이다. 앞 절의 개념과 자료를 나열하지 말고 핵심 주장, 근거, 예상되는 반론, 반론에 대한 답변의 관계로 재구성하여 ${context.product}의 완성도를 높인다.`,
-    ];
-    const evidenceParagraph = first
-      ? `이 절의 핵심 자료는 ${first.publisher || first.documentId} ${first.documentType} ${first.sourcePdfPage || first.physicalPage}쪽이다. 자료의 작성 주체·시기·목적을 먼저 확인하고, ‘${title}’에 관한 주장과 직접 연결되는 부분을 인용이 아닌 자신의 말로 요약한다. 자료가 보여 주지 못하는 정보와 추가로 확인할 자료까지 표시해야 근거의 신뢰도와 충분성을 판단할 수 있다.`
-      : `‘${title}’에 관한 자료는 작성 주체·시기·목적을 먼저 확인하고, 주장과 직접 연결되는 부분을 인용이 아닌 자신의 말로 요약한다. 자료가 보여 주지 못하는 정보와 추가로 확인할 자료까지 표시해야 근거의 신뢰도와 충분성을 판단할 수 있다.`;
-    const taskVariants = {
-      balanced: ["설명 자료와 참여 증거가 일치하는 지점과 충돌하는 지점을 두 열 표로 정리한다", "개념 설명 뒤에 실제 사례와 반례를 각각 배치한다", "개인 기록과 모둠 기록의 차이를 비교하여 판단 기준을 수정한다", `네 절의 결과를 연결해 ${context.product}의 주장-근거 구조를 완성한다`],
-      activity: [`${reference.sport}의 해당 장면을 직접 수행하거나 역할 관찰로 재현하고 시간 순서대로 기록한다`, "조건 하나를 바꾼 두 차례의 수행을 비교하여 변화의 원인을 찾는다", "선수·심판·기록 역할을 교대하며 판단과 정보의 차이를 확인한다", `운영 과정에서 발견한 문제를 해결하고 수정 전후 결과를 ${context.product}에 남긴다`],
-      creative: ["익숙한 관습을 다른 시대 또는 문화권의 관점으로 바꾸어 해석한다", "기존 자료의 표현 방식과 다른 형식의 시각 자료를 설계한다", "배제된 참여자의 관점에서 규칙이나 운영 방식을 다시 제안한다", `대안의 참신성·실현 가능성·부작용을 검토하여 ${context.product}을 수정한다`],
-    }[request.framework.id] || [`${context.product}을 작성한다`, `${context.product}을 작성한다`, `${context.product}을 작성한다`, `${context.product}을 작성한다`];
-    const guideNote = guide ? ` ${guide.publisher || guide.documentId} 지도서 ${guide.sourcePdfPage || guide.physicalPage}쪽의 수업 관점을 참고해 반대되거나 빠진 관점이 있는지 검토한다.` : "";
-    const taskParagraph = `체제안의 이번 과제는 ‘${title}’을 중심으로 ${taskVariants[sectionIndex]}는 것이다. 결과물에는 수행 또는 탐구 과정에서 실제로 확인한 증거를 두 가지 이상 포함하고, 처음 판단에서 바뀐 부분과 바뀐 이유를 표시한다.${guideNote} 마지막에는 ${traceability.standardCodes.join(", ")}의 과정·기능과 가치·태도 요소가 어디에서 드러나는지 스스로 점검한다.`;
-    return [
-      detailParagraph,
-      analysisParagraphs[sectionIndex],
-      evidenceParagraph,
-      taskParagraph,
-    ];
-  }
-
-  const CONCEPT_BOX_TEMPLATES = {
-    "디지털활용 활동": (t, sport) => `앱이나 영상 분석, 기록 측정 도구 등 디지털 기기를 활용해 ${sport || "이 소단원"} 관련 활동을 기록하고 그 결과를 점검한다.`,
-    "안전 팁": (t, sport) => `${sport || "이 활동"}에 참여하기 전에 반드시 확인해야 할 안전 수칙과 위험 요인을 점검하고, 사고를 예방할 수 있는 준비 사항을 정리한다.`,
-    "진로·직업 정보": (t) => `${t.knowledge?.[0] || "이 분야"}와 관련된 직업의 역할과 준비 과정을 소개하고, 자신의 진로와 어떻게 연결할 수 있을지 생각해 본다.`,
-    "응용·전략 활동": (t, sport) => `배운 개념을 실제 ${sport || "경기"} 상황에 적용해 전략을 세우고, 수행 결과를 바탕으로 전략을 수정하며 경기 수행 능력을 높인다.`,
-    "협동·팀워크 활동": () => `모둠을 구성해 역할을 나누고, 서로의 의견을 조율하며 협력하는 과정에서 팀워크를 기른다.`,
-    "자기 점검": (t) => `${t.knowledge?.[0] || "이번 소단원"}에서 배운 내용을 스스로 점검하고, 더 알아보고 싶은 부분이나 부족한 부분을 확인한다.`,
-    "심화 읽기자료": (t) => `${t.knowledge?.[0] || "이 주제"}와 관련된 심화 자료를 더 찾아 읽고, 본문에서 다루지 않은 관점이나 사례를 보충한다.`,
-    "인성·매너 팁": () => `경기와 활동에 참여할 때 상대와 동료를 존중하며 지켜야 할 예의와 태도를 안내한다.`,
-    "과학·타교과 융합 팁": (t) => `${t.knowledge?.[0] || "이 내용"}을 과학 등 다른 교과의 개념과 연결해 설명을 확장한다.`,
-  };
-
-  // 편집자가 소단원에 지정한 '구성요소'(디지털활용 활동, 안전 팁 등)를 내부 규칙 조합기가
-  // 다룰 수 있도록, 기존 절 뒤에 구성요소별 절 하나씩을 추가로 만든다(boxType으로 표시).
-  // 목록에 없는 사용자 정의 구성요소는 일반적인 안내 문장으로 대체한다 — 내부 조합기는
-  // 실제 AI가 아니라서 처음 보는 이름의 내용을 새로 '쓸' 수는 없기 때문이다.
-  function conceptBoxSections(concepts, startNumber, traceability, sport) {
-    return (Array.isArray(concepts) ? concepts : []).map((concept, index) => ({
-      number: startNumber + index,
-      title: concept,
-      paragraphs: [(CONCEPT_BOX_TEMPLATES[concept] || (() => `${concept}과 관련된 내용을 이 소단원에 맞게 정리한다.`))(traceability, sport)],
-      boxType: concept,
-    }));
-  }
-
-  function textbookManuscriptFor(phase, request, traceability, index) {
-    const reference = sportReferenceFor(request.carrierSport, request.sportMode);
-    const knowledge = traceability.knowledge.join("·");
-    const type = MANUSCRIPT_BLUEPRINTS[request.primaryType] ? request.primaryType : "theory";
-    const standardCode = traceability.standardCodes[0];
-    const context = STANDARD_CONTEXT[standardCode] || STANDARD_CONTEXT["[12스문01-01]"];
-    const evidenceRecord = evidenceRecordFor(request.smallUnit);
-    if (!evidenceRecord || !evidenceRecord.evidence?.length) {
-      throw new Error(`‘${request.smallUnit.smallTitle}’에 연결된 전처리 근거가 없습니다. 소단원 제목 또는 성취기준 연결을 먼저 확인해 주세요.`);
-    }
-    const angles = UNIT_CONTENT_PLANS[evidenceRecord.title];
-    if (!angles) throw new Error(`‘${evidenceRecord.title}’의 집필 브리프가 아직 구성되지 않았습니다.`);
-    const angle = angles[index % angles.length];
-    const thesis = UNIT_THESES[evidenceRecord.title];
-    const textbookEvidence = evidenceRecord.evidence.filter((item) => item.documentType === "교과서");
-    const guideEvidence = evidenceRecord.evidence.filter((item) => item.documentType === "지도서");
-    const pool = [...textbookEvidence, ...guideEvidence];
-    const blueprintRows = MANUSCRIPT_BLUEPRINTS[type];
-    const blueprintIndex = index % blueprintRows.length;
-    const blueprint = blueprintRows[blueprintIndex];
-    const sectionTitles = blueprint.titles;
-    const sections = sectionTitles.map((title, sectionIndex) => {
-      const base = index * 12 + sectionIndex * 3;
-      const first = pool[base % pool.length];
-      const guide = guideEvidence[(index * 4 + sectionIndex) % Math.max(1, guideEvidence.length)] || first;
-      const sourceLine = sectionIndex === 0
-        ? `이 소단원의 핵심 주제는 “${stripEnd(thesis)}”이며, ${first.publisher || first.documentId} ${first.documentType} ${first.sourcePdfPage || first.physicalPage}쪽의 관련 자료는 ‘${angle}’을 구체적인 사례와 연결하는 근거로 활용한다.`
-        : `${first.publisher || first.documentId} ${first.documentType} ${first.sourcePdfPage || first.physicalPage}쪽의 관련 자료를 바탕으로 ‘${angle}’과 ‘${title}’이 ${evidenceRecord.title}의 전체 의미와 어떤 관계를 맺는지 설명한다.`;
-      const richParagraphs = manuscriptParagraphs(type, blueprintIndex, sectionIndex, request, traceability, reference, context, angle, first, guide);
-      return { number: sectionIndex + 1, title, paragraphs: [sourceLine, ...richParagraphs] };
-    });
-    // 구성요소(디지털활용 활동 등)는 소단원당 한 번만 다루면 충분하므로 첫 펼침면에만 붙인다.
-    const conceptSections = index === 0 ? conceptBoxSections(request.smallUnit.concepts, sections.length + 1, traceability, reference.sport) : [];
-    return {
-      headline: `${request.smallUnit.smallTitle} — ${angle}`,
-      learningGoal: `${knowledge}을 이해하고 ${traceability.process.join("·")}을 수행하여 ${context.product}을 완성할 수 있다.`,
-      openingQuestion: Number(request.styleValue ?? 50) < 34 ? "" : `‘${angle}’을 스포츠 문화라고 판단할 수 있는 구체적인 근거는 무엇인가?`,
-      layout: type,
-      deck: `${index + 1}번째 펼침면은 ‘${angle}’에 관한 교과서 자료와 지도서 수업 관점을 연결한다. 다음 펼침면과 중복되지 않는 근거 묶음으로 개념 설명, 사례 해석, 학습 활동을 구성한다.`,
-      sections: [...sections, ...conceptSections],
-      visualBriefs: [
-        `${angle}의 변화 또는 관계를 보여 주는 정보 그래픽`,
-        `${request.sportMode === "none" ? evidenceRecord.title : reference.sport}의 실제 사례를 보여 주는 출처 확인 사진 또는 도해`,
-        `${sectionTitles.slice(0, 3).join("·")}을 비교하는 표`,
-      ],
-    };
-  }
 
   const SPECIAL_PAGE_COPY = {
     "unit-intro": {
@@ -665,28 +506,6 @@
     },
   };
 
-  function specialPageManuscriptFor(request, traceability, index = 0) {
-    const copies = index === 0 ? SPECIAL_PAGE_COPY : SPECIAL_PAGE_CONTINUATION_COPY;
-    const copy = copies[request.pageRole] || copies.special;
-    const title = request.smallUnit.smallTitle;
-    const paragraphs = copy.paragraphs;
-    return {
-      headline: `${title}${index ? ` — 확장 ${index + 1}` : ""}`,
-      learningGoal: `${copy.role}의 자료와 활동을 통해 ${traceability.knowledge.slice(0, 2).join("·")}의 관계를 설명할 수 있다.`,
-      openingQuestion: Number(request.styleValue ?? 50) < 34 ? "" : `${title}에서 주목해야 할 스포츠 문화의 질문은 무엇인가?`,
-      layout: request.pageRole,
-      deck: `${copy.role}의 목적에 맞춰 앞뒤 소단원의 학습을 연결하고, 학생이 남길 학습 증거를 분명히 제시한다.`,
-      sections: copy.titles.map((sectionTitle, index) => ({
-        number: index + 1,
-        title: sectionTitle,
-        paragraphs: request.pageRole === "unit-closing"
-          ? (index < 2 ? [paragraphs[index]] : [paragraphs[index], paragraphs[index + 2]].filter(Boolean))
-          : [paragraphs[index], ...(index === 3 && paragraphs[4] ? [paragraphs[4]] : [])],
-      })),
-      visualBriefs: [`${title}의 대표 장면을 보여 주는 큰 사진`, "핵심 개념과 소단원 관계를 보여 주는 안내도", "학생 기록 또는 결과물 예시"],
-    };
-  }
-
   const DECIMAL_POINT_GUARD = "";
 
   function removeRepeatedManuscriptSentences(spreads) {
@@ -735,82 +554,6 @@
     };
   }
 
-  function internalGenerate(request) {
-    if (request.profileId !== SPORTS_CULTURE_PROFILE.id) throw new Error("내부 제공자는 현재 스포츠 문화 프로필만 지원합니다.");
-    const sportMode = ["none", "examples", "primary"].includes(request.sportMode) ? request.sportMode : "primary";
-    if (sportMode !== "none" && (!request.carrierSport || !String(request.carrierSport).trim())) throw new Error("사례 또는 주 종목을 사용하는 초안에는 선택 종목이 1개 이상 필요합니다.");
-    if (sportMode === "primary" && String(request.carrierSport).split(",").filter((item) => item.trim()).length > 1) throw new Error("주 종목 중심 초안에는 종목을 하나만 선택해야 합니다.");
-    const traceability = traceabilityFor(request.smallUnit);
-    const primaryType = TYPE_PHASES[request.primaryType] ? request.primaryType : "theory";
-    const secondaryType = MODE_PHASE[request.secondaryType] ? request.secondaryType : null;
-    const supportMode = ["activity", "concept"].includes(request.supportMode) ? request.supportMode : "";
-    const pageRole = request.pageRole || "small-unit";
-    const phaseIds = [...TYPE_PHASES[primaryType]];
-    if (secondaryType) phaseIds[phaseIds.length - 2] = MODE_PHASE[secondaryType];
-    if (supportMode === "activity" && primaryType === "theory") phaseIds[phaseIds.length - 2] = "participation";
-    if (supportMode === "concept" && primaryType === "practice") phaseIds[1] = "evidence";
-    const spreadCount = Math.max(1, Math.round((Number(request.smallUnit.pages) || 2) / 2));
-    const spreads = Array.from({ length: spreadCount }, (_, index) => {
-      const phaseId = phaseIds[index % phaseIds.length];
-      const phase = PHASES.find((candidate) => candidate.id === phaseId) || PHASES[0];
-      const textbookManuscript = pageRole === "small-unit"
-        ? textbookManuscriptFor(phase, request, traceability, index)
-        : specialPageManuscriptFor(request, traceability, index);
-      return {
-        left_page: index * 2 + 1,
-        right_page: index * 2 + 2,
-        layout_template: phase.template,
-        role: phase.role,
-        content_type: primaryType,
-        content_type_label: TYPE_LABELS[primaryType],
-        page_role: pageRole,
-        title: `${request.smallUnit.smallTitle} · ${phase.role}`,
-        intro: sportMode === "none"
-          ? `${traceability.knowledge.join("·")}의 개념과 문화적 맥락을 탐구합니다. 이번 펼침면에서는 ${phase.role}을 중심으로 자료와 관점을 연결합니다.`
-          : sportMode === "examples"
-            ? `${request.carrierSport} 사례를 비교하여 ${traceability.knowledge.join("·")}을 탐구합니다. 사례의 공통점과 차이를 구분해 문화적 의미를 해석합니다.`
-            : `${request.carrierSport}를 주 종목으로 ${traceability.knowledge.join("·")}을 탐구합니다. 이번 펼침면에서는 ${phase.role}을 중심으로 직접 참여와 문화적 해석을 연결합니다.`,
-        activities: activitiesFor(phase, request, traceability, index),
-        support_boxes: supportBoxes(phase, traceability, sportReferenceFor(request.carrierSport, sportMode).sport, request.metrics),
-        wrap_up: `${traceability.standardCodes.join(", ")}에 비추어 활동에서 확인한 근거와 다음 실천을 기록합니다.`,
-        textbook_manuscript: textbookManuscript,
-        teacher_guide: teacherGuideFor(phase, request, traceability, index, textbookManuscript),
-      };
-    });
-    removeRepeatedManuscriptSentences(spreads);
-    return {
-      schemaVersion: SCHEMA_VERSION,
-      provider: { id: INTERNAL_PROVIDER_ID, label: "내부 데이터 조합", mode: "local-deterministic" },
-      frameworkName: request.framework.name,
-      smallUnitLabel: `${request.smallUnit.domain} · ${request.smallUnit.middleTitle} · ${request.smallUnit.smallTitle}`,
-      instruction: sportMode === "none" ? "특정 종목에 종속되지 않는 개념·자료 탐구 결과를 성취기준에 근거하여 비평·성찰합니다." : sportMode === "examples" ? `${request.carrierSport}의 사례를 비교하되 한 종목의 규칙을 다른 종목에 일반화하지 않습니다.` : `${request.carrierSport}의 실제 경기 참여와 문화 자료 탐구를 연결하고, 결과를 성취기준에 근거하여 비평·성찰합니다.`,
-      carrierSport: request.carrierSport,
-      sportMode,
-      primaryType,
-      primaryTypeLabel: TYPE_LABELS[primaryType],
-      secondaryType,
-      secondaryTypeLabel: secondaryType ? request.secondaryType : null,
-      supportMode,
-      pageRole,
-      traceability,
-      sourceEvidence: sourceEvidenceFor(request),
-      manuscriptQuality: manuscriptQualityFor(spreads, pageRole, primaryType),
-      teacherGuide: {
-        principle: "확정된 교과서 펼침면과 동일한 성취기준·활동·평가 데이터를 사용해 차시 수업안을 파생합니다.",
-        annualPlanLink: `${request.smallUnit.hours || 0}차시 · ${request.smallUnit.pages || 0}쪽`,
-      },
-      spreads,
-    };
-  }
-
-  registerProvider({
-    id: INTERNAL_PROVIDER_ID,
-    label: "내부 데이터 조합",
-    mode: "local-deterministic",
-    description: "전처리된 교육과정 규칙과 공통 편집 패턴을 외부 API 없이 조합합니다.",
-    generate: internalGenerate,
-  });
-
   const EXTERNAL_AI_PROVIDER_ID = "external-ai-v1";
 
   // 서버 쪽 스포츠 문화 원고 생성은 응답이 스키마는 맞는데 내용이 깨졌으면(추론 모델의
@@ -844,7 +587,7 @@
 
   const IMAGE_GENERATION_CONCURRENCY = 3;
 
-  async function fillVisualImages(manuscripts, onProgress) {
+  async function fillVisualImages(manuscripts, onProgress, audience = "") {
     const items = [];
     manuscripts.forEach((manuscript) => {
       if (!manuscript?.visuals) return;
@@ -862,6 +605,7 @@
           const result = await postJsonForManuscript("/api/prototype/sports-culture-image", {
             description: item.description,
             size: item.size,
+            audience,
           });
           item.imageBase64 = result.imageBase64;
           item.imageId = result.imageId;
@@ -947,6 +691,7 @@
         preciseEvidenceMatch: preciseMatch,
         conceptTypes: Array.isArray(request.smallUnit.concepts) ? request.smallUnit.concepts : [],
         additionalConcept: request.additionalConcept || "",
+        feedbackNotes: request.feedbackNotes || [],
         spreads: [spreadInput],
       })));
       manuscripts = responses.map((response, index) => {
@@ -997,6 +742,7 @@
         sportReference: sportMode === "none" ? null : reference,
         pageRole,
         additionalConcept: request.additionalConcept || "",
+        feedbackNotes: request.feedbackNotes || [],
         spreads: [spreadInput],
       })));
       manuscripts = responses.map((response, index) => {
@@ -1077,12 +823,18 @@
     generate: externalAiGenerate,
   });
 
+  function registerProfileGenerator(profileId, providerId, generate) {
+    if (!providers.has(providerId)) throw new Error(`등록되지 않은 생성 제공자입니다: ${providerId}`);
+    profileGenerators.set(`${profileId}|${providerId}`, generate);
+  }
+
   async function generateDraftSet(request) {
-    const provider = providers.get(request.providerId || INTERNAL_PROVIDER_ID);
+    const provider = providers.get(request.providerId || EXTERNAL_AI_PROVIDER_ID);
     if (!provider) throw new Error(`사용할 수 없는 생성 제공자입니다: ${request.providerId}`);
+    const generate = profileGenerators.get(`${request.profileId}|${provider.id}`) || provider.generate;
     const entries = [];
     for (const framework of request.frameworks) {
-      const result = await provider.generate({ ...request, framework, metrics: request.metricsByFramework[framework.id] });
+      const result = await generate({ ...request, framework, metrics: request.metricsByFramework[framework.id] });
       if (!Array.isArray(result.spreads) || !result.spreads.length) throw new Error("생성 결과에 펼침면이 없습니다.");
       entries.push({ frameworkId: framework.id, ...result });
     }
@@ -1091,12 +843,15 @@
 
   const api = {
     schemaVersion: SCHEMA_VERSION,
-    internalProviderId: INTERNAL_PROVIDER_ID,
     externalAiProviderId: EXTERNAL_AI_PROVIDER_ID,
     sportsCultureProfile: () => clone(SPORTS_CULTURE_PROFILE),
     providerOptions,
     registerProvider,
+    registerProfileGenerator,
     generateDraftSet,
+    postJsonForManuscript,
+    fillVisualImages,
+    removeRepeatedManuscriptSentences,
     resolveStandardCodes,
   };
 

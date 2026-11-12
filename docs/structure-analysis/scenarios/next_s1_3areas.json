@@ -1,0 +1,9 @@
+{
+  "name": "차기 개정 가정 S1: 3영역 유지·성취기준 소폭 감축(3~4학년군)",
+  "hours_per_grade": 102,
+  "areas": [
+    {"key": "운동", "type": "fitness", "standards": 5},
+    {"key": "스포츠", "type": "sport", "standards": 9},
+    {"key": "표현", "type": "expression", "standards": 6}
+  ]
+}

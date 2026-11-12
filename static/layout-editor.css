@@ -1,0 +1,410 @@
+/* 조판 편집기 — 판형 188×257mm(4×6배판), 1mm = var(--mm) 화면 픽셀 */
+.layout-editor {
+  --mm: 3px;
+  --pt: calc(var(--mm) * 0.3528);
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: #3b4048;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+}
+
+.layout-editor[hidden] {
+  display: none;
+}
+
+body.layout-editor-open {
+  overflow: hidden;
+}
+
+.le-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 10px 16px;
+  background: #22262c;
+  color: #e8ebef;
+  font-size: 13px;
+}
+
+.le-title {
+  display: grid;
+  margin-right: auto;
+}
+
+.le-title span {
+  color: #a9b1bb;
+  font-size: 12px;
+}
+
+.le-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.le-toolbar button {
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid #4a515b;
+  border-radius: 6px;
+  background: #2f343b;
+  color: #f1f3f5;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.le-toolbar button:hover:not(:disabled) {
+  background: #3d444d;
+}
+
+.le-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.le-toolbar .le-close {
+  background: #f1f3f5;
+  color: #22262c;
+  font-weight: 700;
+}
+
+.le-status {
+  flex-basis: 100%;
+  margin: 0;
+  color: #a9b1bb;
+  font-size: 12px;
+}
+
+.le-stage {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+}
+
+.le-spread {
+  display: flex;
+  width: max-content;
+  margin: 0 auto;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+}
+
+.le-gutter {
+  width: 1px;
+  background: rgb(0 0 0 / 18%);
+}
+
+.le-page {
+  position: relative;
+  width: calc(188 * var(--mm));
+  height: calc(257 * var(--mm));
+  background: #fff;
+  color: #23272d;
+}
+
+.le-page.is-overset {
+  box-shadow: inset 0 0 0 2px #e03131;
+}
+
+.le-page-body {
+  position: absolute;
+  inset: calc(14 * var(--mm)) calc(14 * var(--mm)) calc(16 * var(--mm)) calc(16 * var(--mm));
+  display: flex;
+  flex-direction: column;
+  gap: calc(3.2 * var(--mm));
+  overflow: hidden;
+}
+
+.le-page-left .le-page-body {
+  inset: calc(14 * var(--mm)) calc(16 * var(--mm)) calc(16 * var(--mm)) calc(14 * var(--mm));
+}
+
+.le-folio {
+  position: absolute;
+  bottom: calc(7 * var(--mm));
+  font-size: calc(8 * var(--pt));
+  color: #7a828c;
+}
+
+.le-page-left .le-folio {
+  left: calc(14 * var(--mm));
+}
+
+.le-page-right .le-folio {
+  right: calc(14 * var(--mm));
+}
+
+.le-overset {
+  position: absolute;
+  right: calc(4 * var(--mm));
+  bottom: calc(4 * var(--mm));
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #e03131;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.le-overset[hidden] {
+  display: none;
+}
+
+.le-lesson {
+  align-self: flex-start;
+  padding: calc(0.6 * var(--mm)) calc(2.4 * var(--mm));
+  border-radius: calc(1 * var(--mm));
+  background: var(--spread-pale);
+  color: var(--spread-accent-dark);
+  font-size: calc(9 * var(--pt));
+  font-weight: 800;
+}
+
+.le-headline {
+  margin: 0;
+  font-size: calc(20 * var(--pt));
+  font-weight: 900;
+  line-height: 1.3;
+  color: #171b21;
+}
+
+.le-goal,
+.le-opening {
+  display: flex;
+  gap: calc(2 * var(--mm));
+  font-size: calc(10 * var(--pt));
+  line-height: 1.55;
+  color: var(--spread-accent-dark);
+}
+
+.le-goal b,
+.le-opening b {
+  flex: none;
+}
+
+.le-goal span,
+.le-opening span {
+  flex: 1;
+  color: #2b3036;
+}
+
+.le-opening {
+  padding: calc(2.6 * var(--mm)) calc(3 * var(--mm));
+  border-radius: calc(2 * var(--mm));
+  background: var(--spread-pale);
+}
+
+.le-role {
+  margin: 0;
+  color: var(--spread-accent-dark);
+  font-size: calc(8.5 * var(--pt));
+  font-weight: 700;
+  text-align: right;
+  opacity: 0.75;
+}
+
+.le-frame {
+  --fs: 1;
+  padding: calc(1.2 * var(--mm));
+  border: 1px dashed transparent;
+  border-radius: calc(1.2 * var(--mm));
+}
+
+.le-stage .le-frame:hover {
+  border-color: #b8c4d6;
+}
+
+.le-stage .le-frame.selected {
+  border: 1px solid var(--brand, #1e4a9a);
+  box-shadow: 0 0 0 2px rgb(30 74 154 / 18%);
+}
+
+.le-frame.boxed {
+  border: 1px solid #d7a34a;
+  background: #fdf6ea;
+}
+
+.le-frame header {
+  display: flex;
+  align-items: center;
+  gap: calc(1.8 * var(--mm));
+  margin-bottom: calc(1 * var(--mm));
+}
+
+.le-section-number,
+.le-section-label {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(5.5 * var(--mm));
+  height: calc(5.5 * var(--mm));
+  padding: 0 calc(1.6 * var(--mm));
+  border-radius: 999px;
+  background: var(--spread-accent);
+  color: #fff;
+  font-size: calc(8.5 * var(--pt) * var(--fs));
+  font-weight: 800;
+}
+
+.le-frame h3 {
+  flex: 1;
+  margin: 0;
+  font-size: calc(12.5 * var(--pt) * var(--fs));
+  font-weight: 800;
+  color: #22262c;
+}
+
+.le-boxtype {
+  flex: none;
+  padding: calc(0.4 * var(--mm)) calc(1.8 * var(--mm));
+  border-radius: 999px;
+  background: #b5651d;
+  color: #fff;
+  font-size: calc(8 * var(--pt));
+  font-weight: 800;
+}
+
+.le-paragraph {
+  margin: calc(1 * var(--mm)) 0 0;
+  font-size: calc(10.5 * var(--pt) * var(--fs));
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.le-visuals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(2.4 * var(--mm));
+  margin-top: auto;
+}
+
+.le-visual {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  margin: 0;
+  overflow: hidden;
+  border: 1px dashed #9aa5b4;
+  border-radius: calc(1.6 * var(--mm));
+  background: repeating-linear-gradient(135deg, #f4f6f9 0 calc(2 * var(--mm)), #eceff4 calc(2 * var(--mm)) calc(4 * var(--mm)));
+}
+
+.le-visual.size-full {
+  width: 100%;
+  height: calc(54 * var(--mm));
+}
+
+.le-visual.size-half {
+  width: calc(50% - 1.2 * var(--mm));
+  height: calc(42 * var(--mm));
+}
+
+.le-visual.size-small {
+  width: calc(33.33% - 1.6 * var(--mm));
+  height: calc(32 * var(--mm));
+}
+
+.le-visual img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.le-visual figcaption {
+  position: relative;
+  width: 100%;
+  padding: calc(1.2 * var(--mm)) calc(1.8 * var(--mm));
+  background: rgb(255 255 255 / 85%);
+  color: #4d5866;
+  font-size: calc(7.5 * var(--pt));
+  line-height: 1.4;
+}
+
+.layout-editor [contenteditable="true"] {
+  outline: none;
+  border-radius: 2px;
+  cursor: text;
+}
+
+.layout-editor .le-stage [contenteditable="true"]:hover {
+  background: rgb(30 74 154 / 6%);
+}
+
+.layout-editor .le-stage [contenteditable="true"]:focus {
+  background: rgb(30 74 154 / 10%);
+}
+
+.layout-editor [contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: #a3abb5;
+}
+
+.le-print-root {
+  display: none;
+}
+
+/* 인쇄(PDF 저장): 화면과 같은 판면으로 펼침면마다 한 장(376×257mm)씩 */
+@media print {
+  @page {
+    size: 377mm 257mm;
+    margin: 0;
+  }
+
+  body.layout-editor-open > *:not(.layout-editor) {
+    display: none !important;
+  }
+
+  body.layout-editor-open {
+    overflow: visible;
+    background: #fff;
+  }
+
+  .layout-editor {
+    --mm: 1mm !important; /* 화면 배율(인라인 --mm)과 상관없이 실제 크기로 */
+    position: static;
+    display: block;
+    background: #fff;
+  }
+
+  .le-toolbar,
+  .le-stage,
+  .le-overset {
+    display: none !important;
+  }
+
+  .le-print-root {
+    display: block;
+  }
+
+  .le-print-root .le-spread {
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+  }
+
+  .le-print-root .le-spread:last-child {
+    break-after: auto;
+  }
+
+  .le-print-root .le-frame,
+  .le-print-root .le-frame.selected {
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .le-print-root .le-frame.boxed {
+    border-color: #d7a34a;
+  }
+
+  .le-print-root [contenteditable="true"]:empty::before {
+    content: none;
+  }
+}

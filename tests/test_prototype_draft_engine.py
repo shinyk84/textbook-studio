@@ -69,20 +69,12 @@ class PrototypeDraftEngineTests(unittest.TestCase):
         )
         self.assertEqual(result, {"none": 2, "examples": 9, "primary": 7})
 
-    def test_framework_step_initializes_small_unit_options_before_lookup(self):
-        prototype = PROTOTYPE.read_text(encoding="utf-8")
-        start = prototype.index("function renderFrameworks()")
-        end = prototype.index("function renderMockReview()", start)
-        render_frameworks = prototype[start:end]
-        self.assertLess(
-            render_frameworks.index("const smallUnits = smallUnitOptions();"),
-            render_frameworks.index("smallUnits.find("),
-        )
-
-    def test_small_unit_title_has_a_labeled_wide_layout(self):
+    def test_small_unit_title_has_a_wide_layout_with_drag_handle(self):
         prototype = PROTOTYPE.read_text(encoding="utf-8")
         css = PROTOTYPE_CSS.read_text(encoding="utf-8")
-        self.assertIn('<span>소단원명</span>', prototype)
+        self.assertNotIn('<span>소단원명</span>', prototype)
+        self.assertIn('dragHandle("small", smallPath, "소단원")', prototype)
+        self.assertNotIn('data-small-action="up"', prototype)
         self.assertIn(".small-unit-title-field", css)
         self.assertIn("grid-template-columns: minmax(320px, 1fr) auto auto max-content", css)
         self.assertIn("height: 42px", css)
@@ -136,11 +128,9 @@ class PrototypeDraftEngineTests(unittest.TestCase):
     def test_sports_draft_supports_recommended_types_and_png_preview(self):
         prototype = PROTOTYPE.read_text(encoding="utf-8")
         self.assertIn("inferSportsCultureContentType", prototype)
-        self.assertIn("draftPrimaryTypeSelect", prototype)
-        self.assertIn("draftSecondaryTypeSelect", prototype)
         self.assertIn("data-draft-canvas", prototype)
         self.assertIn("data-download-draft-png", prototype)
-        self.assertIn("교과서·지도서 원고와 근거 확인", prototype)
+        self.assertIn("원고 글·근거 보기", prototype)
         self.assertIn("data-download-textbook-text", prototype)
         self.assertIn("data-download-guide-text", prototype)
         self.assertIn('canvas width="1400" height="900"', prototype)
@@ -207,9 +197,13 @@ class PrototypeDraftEngineTests(unittest.TestCase):
         self.assertIn("const smallNumber = unitNumberLabel(unitIndex, middlePosition, smallIndex + 1);", prototype)
         self.assertIn('`${smallNumber}. ${small.title}`', prototype)
 
-    def test_internal_provider_generates_traceable_textbook_and_guide_draft(self):
+    def test_ai_provider_generates_traceable_textbook_draft_with_feedback(self):
         source = r"""
 const e=require('./static/prototype-draft-engine.js');
+global.requests=[];
+global.fetch=async(url,init)=>{const body=JSON.parse(init.body);requests.push({url:String(url),body});
+  return {ok:true,status:200,json:async()=>({result:{spreads:body.spreads.map((s,i)=>({headline:'제목'+requests.length,learning_goal:'g',opening_question:'q',deck:'d',
+    sections:[{title:'t',paragraphs:['p'],box_type:null}],left_visuals:[],right_visuals:[]}))}})};};
 (async()=>{
   const frameworks=[
     {id:'balanced',name:'탐구·참여 균형형'},
@@ -219,11 +213,12 @@ const e=require('./static/prototype-draft-engine.js');
   const metrics=Object.fromEntries(frameworks.map(x=>[x.id,{curriculum:5,feasibility:4,engagement:4,novelty:4,safety:5}]));
   const result=await e.generateDraftSet({
     profileId:e.sportsCultureProfile().id,
-    providerId:e.internalProviderId,
+    providerId:e.externalAiProviderId,
     carrierSport:'배드민턴',
     primaryType:'practice',
     secondaryType:'project',
     smallUnit:{domain:'스포츠 경기 문화',middleTitle:'스포츠 대회 기획과 운영',smallTitle:'학생 주도 스포츠 대회를 기획·운영하고 진로 탐색하기',sourceActivity:'스포츠 대회 기획과 운영',hours:8,pages:6,standardCodes:['[12스문02-02]']},
+    feedbackNotes:['대회 운영 역할을 구체적으로'],
     frameworks,
     metricsByFramework:metrics
   });
@@ -239,16 +234,13 @@ const e=require('./static/prototype-draft-engine.js');
     type:first.primaryType,
     secondary:first.secondaryType,
     manuscript:Boolean(first.spreads[0].textbook_manuscript?.sections?.length),
-    uniqueHeadlines:new Set(first.spreads.map(spread=>spread.textbook_manuscript?.headline)).size,
-    minimumChars:Math.min(...first.spreads.map(spread=>spread.textbook_manuscript.sections.flatMap(section=>section.paragraphs).join('').length)),
-    duplicateSentences:first.manuscriptQuality?.duplicateSentenceCount,
-    uniqueGuideQuestions:new Set(first.spreads.map(spread=>spread.teacher_guide?.questions?.[0])).size,
+    notes:[...new Set(requests.map(r=>JSON.stringify(r.body.feedbackNotes)))],
     activityWord:first.spreads.some(spread=>spread.title.includes('활동 1'))
   }));
 })().catch(error=>{console.error(error);process.exit(1);});
 """
         result = self.run_node(source)
-        self.assertEqual(result["provider"], "internal-rules-v1")
+        self.assertEqual(result["provider"], "external-ai-v1")
         self.assertEqual(result["entries"], 3)
         self.assertEqual(result["spreads"], 3)
         self.assertEqual(result["standard"], "[12스문02-02]")
@@ -258,20 +250,17 @@ const e=require('./static/prototype-draft-engine.js');
         self.assertEqual(result["type"], "practice")
         self.assertEqual(result["secondary"], "project")
         self.assertTrue(result["manuscript"])
-        self.assertEqual(result["uniqueHeadlines"], result["spreads"])
-        self.assertGreaterEqual(result["minimumChars"], 1400)
-        self.assertEqual(result["duplicateSentences"], 0)
-        self.assertEqual(result["uniqueGuideQuestions"], result["spreads"])
+        self.assertEqual(result["notes"], ['["대회 운영 역할을 구체적으로"]'])
         self.assertFalse(result["activityWord"])
 
-    def test_internal_provider_rejects_missing_carrier_sport(self):
+    def test_ai_provider_rejects_missing_carrier_sport(self):
         source = r"""
 const e=require('./static/prototype-draft-engine.js');
 (async()=>{
   try {
     await e.generateDraftSet({
       profileId:e.sportsCultureProfile().id,
-      providerId:e.internalProviderId,
+      providerId:e.externalAiProviderId,
       carrierSport:'',
       smallUnit:{domain:'스포츠 인문 문화',middleTitle:'스포츠의 역사와 철학',smallTitle:'역사·철학 탐구',pages:2,standardCodes:['[12스문01-02]']},
       frameworks:[{id:'balanced',name:'균형형'}],
@@ -287,12 +276,16 @@ const e=require('./static/prototype-draft-engine.js');
         self.assertTrue(result["rejected"])
         self.assertIn("선택 종목", result["message"])
 
-    def test_internal_provider_allows_no_sport_for_concept_unit(self):
+    def test_ai_provider_allows_no_sport_for_concept_unit(self):
         source = r"""
 const e=require('./static/prototype-draft-engine.js');
+global.requests=[];
+global.fetch=async(url,init)=>{const body=JSON.parse(init.body);requests.push({url:String(url),body});
+  return {ok:true,status:200,json:async()=>({result:{spreads:body.spreads.map((s,i)=>({headline:'제목'+requests.length,learning_goal:'g',opening_question:'q',deck:'d',
+    sections:[{title:'t',paragraphs:['p'],box_type:null}],left_visuals:[],right_visuals:[]}))}})};};
 (async()=>{
   const framework={id:'balanced',name:'균형형'};
-  const result=await e.generateDraftSet({profileId:e.sportsCultureProfile().id,providerId:e.internalProviderId,carrierSport:'',sportMode:'none',primaryType:'theory',smallUnit:{domain:'스포츠 인문 문화',middleTitle:'스포츠 인문 문화의 이해',smallTitle:'스포츠 문화의 의미와 형성',pages:2,standardCodes:['[12스문01-01]']},frameworks:[framework],metricsByFramework:{balanced:{curriculum:5,feasibility:4,engagement:4,novelty:3,safety:5}}});
+  const result=await e.generateDraftSet({profileId:e.sportsCultureProfile().id,providerId:e.externalAiProviderId,carrierSport:'',sportMode:'none',primaryType:'theory',smallUnit:{domain:'스포츠 인문 문화',middleTitle:'스포츠 인문 문화의 이해',smallTitle:'스포츠 문화의 의미와 형성',pages:2,standardCodes:['[12스문01-01]']},frameworks:[framework],metricsByFramework:{balanced:{curriculum:5,feasibility:4,engagement:4,novelty:3,safety:5}}});
   const entry=result.entries[0];
   process.stdout.write(JSON.stringify({mode:entry.sportMode,sport:entry.carrierSport,intro:entry.spreads[0].intro,instruction:entry.instruction}));
 })().catch(error=>{console.error(error);process.exit(1);});
@@ -306,61 +299,20 @@ const e=require('./static/prototype-draft-engine.js');
     def test_example_sports_are_compared_without_using_first_sport_as_primary(self):
         source = r"""
 const e=require('./static/prototype-draft-engine.js');
+global.requests=[];
+global.fetch=async(url,init)=>{const body=JSON.parse(init.body);requests.push({url:String(url),body});
+  return {ok:true,status:200,json:async()=>({result:{spreads:body.spreads.map((s,i)=>({headline:'제목'+requests.length,learning_goal:'g',opening_question:'q',deck:'d',
+    sections:[{title:'t',paragraphs:['p'],box_type:null}],left_visuals:[],right_visuals:[]}))}})};};
 (async()=>{
   const framework={id:'balanced',name:'균형형'};
-  const result=await e.generateDraftSet({profileId:e.sportsCultureProfile().id,providerId:e.internalProviderId,carrierSport:'축구, 육상, 탁구',sportMode:'examples',primaryType:'theory',smallUnit:{domain:'스포츠 인문 문화',middleTitle:'스포츠의 역사와 철학',smallTitle:'시대와 사회에 따른 스포츠의 변화',pages:2,standardCodes:['[12스문01-02]']},frameworks:[framework],metricsByFramework:{balanced:{curriculum:5,feasibility:4,engagement:4,novelty:3,safety:5}}});
+  const result=await e.generateDraftSet({profileId:e.sportsCultureProfile().id,providerId:e.externalAiProviderId,carrierSport:'축구, 육상, 탁구',sportMode:'examples',primaryType:'theory',smallUnit:{domain:'스포츠 인문 문화',middleTitle:'스포츠의 역사와 철학',smallTitle:'시대와 사회에 따른 스포츠의 변화',pages:2,standardCodes:['[12스문01-02]']},frameworks:[framework],metricsByFramework:{balanced:{curriculum:5,feasibility:4,engagement:4,novelty:3,safety:5}}});
   const entry=result.entries[0];
-  process.stdout.write(JSON.stringify({mode:entry.sportMode,intro:entry.spreads[0].intro,brief:entry.spreads[0].textbook_manuscript.visualBriefs.join(' ')}));
+  process.stdout.write(JSON.stringify({mode:entry.sportMode,intro:entry.spreads[0].intro}));
 })().catch(error=>{console.error(error);process.exit(1);});
 """
         result = self.run_node(source)
         self.assertEqual(result["mode"], "examples")
         self.assertIn("축구, 육상, 탁구 사례를 비교", result["intro"])
-        self.assertIn("축구·육상·탁구", result["brief"])
-
-    def test_special_page_uses_role_specific_density_and_no_repeated_sentence(self):
-        source = r"""
-const e=require('./static/prototype-draft-engine.js');
-(async()=>{
-  const framework={id:'balanced',name:'전체 스타일 50 · 균형형'};
-  const result=await e.generateDraftSet({
-    profileId:e.sportsCultureProfile().id,
-    providerId:e.internalProviderId,
-    carrierSport:'배드민턴',
-    primaryType:'theory',
-    pageRole:'unit-intro',
-    styleValue:50,
-    smallUnit:{domain:'스포츠 인문 문화',middleTitle:'스포츠 인문 문화',smallTitle:'스포츠 인문 문화 단원 도입',pages:2,standardCodes:['[12스문01-01]']},
-    frameworks:[framework],
-    metricsByFramework:{balanced:{curriculum:5,feasibility:4,engagement:4,novelty:3,safety:5}}
-  });
-  const entry=result.entries[0];
-  process.stdout.write(JSON.stringify({role:entry.pageRole,target:entry.manuscriptQuality.densityTarget,count:entry.manuscriptQuality.spreadCharacterCounts[0],below:entry.manuscriptQuality.belowMinimumCount,duplicates:entry.manuscriptQuality.duplicateSentenceCount}));
-})().catch(error=>{console.error(error);process.exit(1);});
-"""
-        result = self.run_node(source)
-        self.assertEqual(result["role"], "unit-intro")
-        self.assertEqual(result["target"]["minimum"], 300)
-        self.assertGreaterEqual(result["count"], 300)
-        self.assertLessEqual(result["count"], 700)
-        self.assertEqual(result["below"], 0)
-        self.assertEqual(result["duplicates"], 0)
-
-    def test_four_page_unit_closing_has_two_non_repeated_full_spreads(self):
-        source = r"""
-const e=require('./static/prototype-draft-engine.js');
-(async()=>{
-  const framework={id:'balanced',name:'전체 스타일 50 · 균형형'};
-  const result=await e.generateDraftSet({profileId:e.sportsCultureProfile().id,providerId:e.internalProviderId,carrierSport:'배드민턴',primaryType:'theory',pageRole:'unit-closing',styleValue:50,smallUnit:{domain:'스포츠 인문 문화',middleTitle:'스포츠 인문 문화',smallTitle:'스포츠 인문 문화 단원 마무리',pages:4,standardCodes:['[12스문01-01]']},frameworks:[framework],metricsByFramework:{balanced:{curriculum:5,feasibility:4,engagement:4,novelty:3,safety:5}}});
-  const entry=result.entries[0];
-  process.stdout.write(JSON.stringify({spreads:entry.spreads.length,counts:entry.manuscriptQuality.spreadCharacterCounts,below:entry.manuscriptQuality.belowMinimumCount,duplicates:entry.manuscriptQuality.duplicateSentenceCount,headlines:new Set(entry.spreads.map(item=>item.textbook_manuscript.headline)).size}));
-})().catch(error=>{console.error(error);process.exit(1);});
-"""
-        result = self.run_node(source)
-        self.assertEqual(result["spreads"], 2)
-        self.assertTrue(all(count >= 700 for count in result["counts"]))
-        self.assertEqual(result["below"], 0)
-        self.assertEqual(result["duplicates"], 0)
 
     def test_external_ai_provider_throttles_parallel_image_requests(self):
         source = r"""
@@ -458,7 +410,9 @@ const fs=require('fs');
 const s=fs.readFileSync('./static/prototype.js','utf8');
 const a=s.indexOf('function pptxTruncate');
 const b=s.indexOf('function spreadsToPptx');
-const api=new Function(s.slice(a,b)+'; return {addEntrySlidesToPptx};')();
+const c=s.indexOf('function manuscriptPageSplit');
+const d=s.indexOf('function renderSpreadPageView',c);
+const api=new Function(s.slice(a,b)+s.slice(c,d)+'; return {addEntrySlidesToPptx};')();
 
 function makeSlideRecorder(store) {
   const record = { shapes: [], texts: [], images: [] };

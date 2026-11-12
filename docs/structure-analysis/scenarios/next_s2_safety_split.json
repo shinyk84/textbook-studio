@@ -1,0 +1,10 @@
+{
+  "name": "차기 개정 가정 S2: 안전·생태를 4번째 영역으로 분리(3~4학년군)",
+  "hours_per_grade": 102,
+  "areas": [
+    {"key": "운동", "type": "fitness", "standards": 5},
+    {"key": "스포츠", "type": "sport", "standards": 9},
+    {"key": "표현", "type": "expression", "standards": 6},
+    {"key": "안전·생태", "type": "safety", "standards": 4}
+  ]
+}

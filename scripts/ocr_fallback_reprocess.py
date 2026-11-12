@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PROCESSED = ROOT / "official-data" / "processed"
 
 TESSERACT_EXE = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-TESSDATA_PREFIX = r"C:\Users\YBM\AppData\Local\Temp\claude\c--Users-YBM-Desktop-textbook-studio\eff0a547-7b2b-438d-b7b0-4c26eb646e54\scratchpad\tessdata"
+TESSDATA_PREFIX = str(ROOT / "preprocessor" / "tessdata")  # 전처리기가 내려받는 한국어 OCR 데이터 공유
 OCR_DPI = 300
 CHUNK_SIZE = 3000
 CHUNK_OVERLAP = 250
