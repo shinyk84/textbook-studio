@@ -1202,4 +1202,4 @@
   - 새로 전처리한 `official-data/processed/*` 출판사 교과서·지도서 본문 폴더(텍스트)도 이번 커밋에서 뺌 — 타 출판사 본문 전체를 공개 저장소에 올릴지는 사용자 판단이 필요해 미추적으로 남김(`_전처리목록.csv`만 포함). 이 자료와 참고 이미지는 이 컴퓨터에만 있으므로 다른 컴퓨터로 옮길 때는 도구 폴더째 복사해야 함.
   - 포함: 앞선 세션들의 코드·테스트·문서 변경 전부(옛 정적 페이지·발표 자료 삭제 포함, 사용자 변경 되돌리지 않음), 새 모듈(`designcraft_export.py`, `mockup_typeset.py`, `studio_ai.py`, `table_export.py`, `preprocessor/`, `static/*` 새 파일), 시안 샘플 3장.
   - 민감정보 검사: 실제 API 키·비밀번호·접속 문자열 없음(테스트용 가짜 `sk-…` 값만), `.env*`·`.db`·mp4 없음. `git diff --cached --check` 깨끗.
-  - Git: 브랜치 `feature/subject-area-dropdown`, 직전 커밋 `2ffc4dc`. 커밋·푸시 결과는 아래 기록 커밋에 반영.
+  - Git: 브랜치 `feature/subject-area-dropdown`, 직전 커밋 `2ffc4dc`. 커밋 `ee7a06c` → `origin/feature/subject-area-dropdown`에 푸시 성공(새 원격 브랜치, 추적 설정). 이 기록은 바로 뒤 기록 커밋으로 함께 푸시.
